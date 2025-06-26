@@ -1,9 +1,12 @@
 
-import { User, Trophy, Settings, Menu } from 'lucide-react';
+import { User, Trophy, Settings, Menu, LogOut } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   return (
     <nav className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
@@ -32,7 +35,17 @@ const Navbar = () => {
               <Trophy className="w-4 h-4 text-yellow-400" />
               <span className="text-sm font-medium">Level 5</span>
             </div>
-            <User className="w-8 h-8 p-1 bg-white/10 rounded-full cursor-pointer hover:bg-white/20 transition-colors" />
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">{user?.email}</span>
+              <Button
+                onClick={signOut}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/10"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="md:hidden">
@@ -44,6 +57,37 @@ const Navbar = () => {
             </button>
           </div>
         </div>
+        
+        {/* Mobile menu */}
+        {isMenuOpen && (
+          <div className="md:hidden">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+              <a href="#" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
+                Dashboard
+              </a>
+              <a href="#" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
+                Habits
+              </a>
+              <a href="#" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
+                Social
+              </a>
+              <div className="border-t border-white/20 pt-4">
+                <div className="flex items-center px-3 py-2">
+                  <span className="text-sm">{user?.email}</span>
+                </div>
+                <Button
+                  onClick={signOut}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/10 w-full justify-start"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
