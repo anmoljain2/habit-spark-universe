@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      friend_requests: {
+        Row: {
+          id: string
+          receiver_id: string | null
+          sender_id: string | null
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          id?: string
+          receiver_id?: string | null
+          sender_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          id?: string
+          receiver_id?: string | null
+          sender_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -36,12 +60,123 @@ export type Database = {
         }
         Relationships: []
       }
+      user_habits: {
+        Row: {
+          created_at: string | null
+          difficulty: string | null
+          frequency: string | null
+          habit_name: string
+          habit_type: string | null
+          id: string
+          reminder_time: string | null
+          streak_goal: number | null
+          time_estimate_minutes: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          difficulty?: string | null
+          frequency?: string | null
+          habit_name: string
+          habit_type?: string | null
+          id?: string
+          reminder_time?: string | null
+          streak_goal?: number | null
+          time_estimate_minutes?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          difficulty?: string | null
+          frequency?: string | null
+          habit_name?: string
+          habit_type?: string | null
+          id?: string
+          reminder_time?: string | null
+          streak_goal?: number | null
+          time_estimate_minutes?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_news_preferences: {
+        Row: {
+          format: string | null
+          frequency: string | null
+          interests: string[] | null
+          preferred_time: string | null
+          user_id: string
+        }
+        Insert: {
+          format?: string | null
+          frequency?: string | null
+          interests?: string[] | null
+          preferred_time?: string | null
+          user_id: string
+        }
+        Update: {
+          format?: string | null
+          frequency?: string | null
+          interests?: string[] | null
+          preferred_time?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string | null
+          display_name: string | null
+          profile_visibility: string | null
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          profile_visibility?: string | null
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          profile_visibility?: string | null
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_username_availability: {
+        Args: { username_to_check: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

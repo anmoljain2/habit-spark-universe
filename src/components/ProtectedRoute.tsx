@@ -1,5 +1,6 @@
 
 import { useAuth } from '@/hooks/useAuth';
+import { useOnboardingCheck } from '@/hooks/useOnboardingCheck';
 import { useEffect } from 'react';
 
 interface ProtectedRouteProps {
@@ -7,15 +8,25 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { needsOnboarding, loading: onboardingLoading } = useOnboardingCheck();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       window.location.href = '/auth';
     }
-  }, [user, loading]);
+  }, [user, authLoading]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!authLoading && !onboardingLoading && user && needsOnboarding) {
+      // Only redirect to onboarding if we're not already there
+      if (window.location.pathname !== '/onboarding') {
+        window.location.href = '/onboarding';
+      }
+    }
+  }, [user, authLoading, onboardingLoading, needsOnboarding]);
+
+  if (authLoading || onboardingLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50 flex items-center justify-center">
         <div className="text-center">
