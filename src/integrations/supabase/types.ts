@@ -41,6 +41,8 @@ export type Database = {
           total_xp: number | null
           updated_at: string | null
           username: string | null
+          streak: number | null
+          habits_completed_percent: number | null
         }
         Insert: {
           created_at?: string | null
@@ -49,6 +51,8 @@ export type Database = {
           total_xp?: number | null
           updated_at?: string | null
           username?: string | null
+          streak?: number | null
+          habits_completed_percent?: number | null
         }
         Update: {
           created_at?: string | null
@@ -57,6 +61,8 @@ export type Database = {
           total_xp?: number | null
           updated_at?: string | null
           username?: string | null
+          streak?: number | null
+          habits_completed_percent?: number | null
         }
         Relationships: []
       }
@@ -72,6 +78,8 @@ export type Database = {
           streak_goal: number | null
           time_estimate_minutes: number | null
           user_id: string | null
+          completed_today: boolean | null
+          streak: number | null
         }
         Insert: {
           created_at?: string | null
@@ -84,6 +92,8 @@ export type Database = {
           streak_goal?: number | null
           time_estimate_minutes?: number | null
           user_id?: string | null
+          completed_today?: boolean | null
+          streak?: number | null
         }
         Update: {
           created_at?: string | null
@@ -96,6 +106,8 @@ export type Database = {
           streak_goal?: number | null
           time_estimate_minutes?: number | null
           user_id?: string | null
+          completed_today?: boolean | null
+          streak?: number | null
         }
         Relationships: []
       }
@@ -167,6 +179,30 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      achievements: {
+        Row: {
+          id: string;
+          user_id: string;
+          achievement_key: string;
+          unlocked: boolean;
+          unlocked_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          achievement_key: string;
+          unlocked?: boolean;
+          unlocked_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          achievement_key?: string;
+          unlocked?: boolean;
+          unlocked_at?: string | null;
+        };
+        Relationships: [];
       }
     }
     Views: {

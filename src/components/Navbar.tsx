@@ -1,12 +1,30 @@
-
 import { User, Trophy, Settings, Menu, LogOut } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const [level, setLevel] = useState<number | null>(null);
+  const [levelLoading, setLevelLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLevel = async () => {
+      if (!user) return;
+      setLevelLoading(true);
+      const { data } = await supabase
+        .from('profiles')
+        .select('level')
+        .eq('id', user.id)
+        .single();
+      setLevel(data?.level || 1);
+      setLevelLoading(false);
+    };
+    fetchLevel();
+  }, [user]);
 
   return (
     <nav className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
@@ -18,23 +36,28 @@ const Navbar = () => {
           
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
-              <a href="#" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              <Link to="/" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 Dashboard
-              </a>
-              <a href="#" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              </Link>
+              <Link to="/habits" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 Habits
-              </a>
-              <a href="#" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              </Link>
+              <Link to="/social" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 Social
-              </a>
+              </Link>
             </div>
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
             <div className="flex items-center space-x-2 bg-white/10 px-3 py-1 rounded-full">
               <Trophy className="w-4 h-4 text-yellow-400" />
-              <span className="text-sm font-medium">Level 5</span>
+              <span className="text-sm font-medium">
+                {levelLoading ? '...' : `Level ${level}`}
+              </span>
             </div>
+            <Link to="/profile" className="flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors">
+              <User className="w-5 h-5 text-white" />
+            </Link>
             <div className="flex items-center space-x-2">
               <span className="text-sm">{user?.email}</span>
               <Button
@@ -62,15 +85,19 @@ const Navbar = () => {
         {isMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <a href="#" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
+              <Link to="/" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
                 Dashboard
-              </a>
-              <a href="#" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
+              </Link>
+              <Link to="/habits" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
                 Habits
-              </a>
-              <a href="#" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
+              </Link>
+              <Link to="/social" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
                 Social
-              </a>
+              </Link>
+              <Link to="/profile" className="flex items-center space-x-2 px-3 py-2 hover:bg-white/10 rounded-md text-base font-medium">
+                <User className="w-5 h-5 text-white" />
+                <span>Profile</span>
+              </Link>
               <div className="border-t border-white/20 pt-4">
                 <div className="flex items-center px-3 py-2">
                   <span className="text-sm">{user?.email}</span>
