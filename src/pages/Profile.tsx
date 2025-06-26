@@ -8,6 +8,9 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { User, Mail, Eye, EyeOff, Users, UserPlus, XCircle, CheckCircle, Users as UsersIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AchievementsBadgesRow } from '../components/AchievementBadge';
+import { useNavigate } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -19,6 +22,8 @@ const Profile = () => {
   const [sentFriendRequests, setSentFriendRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [mainStats, setMainStats] = useState({ total_xp: 0, streak: 0, habits_completed_percent: 0, level: 1 });
+  const navigate = useNavigate();
+  const [unfriendDialog, setUnfriendDialog] = useState<{ open: boolean, friendUserId: string | null, friendUsername: string | null }>({ open: false, friendUserId: null, friendUsername: null });
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -69,7 +74,7 @@ const Profile = () => {
       if (friendIds.length > 0) {
         const { data: profilesData } = await supabase
           .from('user_profiles')
-          .select('username,display_name,bio')
+          .select('user_id,username,display_name,bio')
           .in('user_id', friendIds);
         friendProfiles = profilesData || [];
       }
@@ -123,10 +128,50 @@ const Profile = () => {
   const handleAcceptFriend = async (requestId: string) => {
     await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', requestId);
     setPendingFriendRequests(pendingFriendRequests.filter(r => r.id !== requestId));
+    // Refresh friends list after accepting
+    // Fetch friends (accepted only)
+    const { data: friendsData } = await supabase
+      .from('friend_requests')
+      .select('sender_id,receiver_id,status')
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .eq('status', 'accepted');
+    const friendIds = (friendsData || []).map((f: any) => f.sender_id === user.id ? f.receiver_id : f.sender_id);
+    let friendProfiles: any[] = [];
+    if (friendIds.length > 0) {
+      const { data: profilesData } = await supabase
+        .from('user_profiles')
+        .select('user_id,username,display_name,bio')
+        .in('user_id', friendIds);
+      friendProfiles = profilesData || [];
+    }
+    setFriends(friendProfiles);
   };
   const handleDeclineFriend = async (requestId: string) => {
     await supabase.from('friend_requests').update({ status: 'rejected' }).eq('id', requestId);
     setPendingFriendRequests(pendingFriendRequests.filter(r => r.id !== requestId));
+  };
+
+  const handleUnfriend = async (friendUserId: string, friendUsername: string) => {
+    console.log('Unfriending:', { userId: user.id, friendUserId });
+    let error1 = null, error2 = null;
+    const { error: err1 } = await supabase
+      .from('friend_requests')
+      .delete()
+      .match({ sender_id: user.id, receiver_id: friendUserId });
+    if (err1) error1 = err1;
+    const { error: err2 } = await supabase
+      .from('friend_requests')
+      .delete()
+      .match({ sender_id: friendUserId, receiver_id: user.id });
+    if (err2) error2 = err2;
+    if (error1 || error2) {
+      console.error('Unfriend error:', error1 || error2);
+      toast({ title: 'Error', description: `Failed to unfriend: ${(error1 || error2)?.message}`, variant: 'destructive' });
+    } else {
+      setFriends(friends.filter(f => f.user_id !== friendUserId));
+      toast({ title: 'Unfriended', description: `You have unfriended ${friendUsername}.` });
+      setUnfriendDialog({ open: false, friendUserId: null, friendUsername: null });
+    }
   };
 
   if (!user) return null;
@@ -258,14 +303,41 @@ const Profile = () => {
             ) : (
               <ul className="flex flex-wrap gap-4">
                 {friends.map((friend, i) => (
-                  <li key={i} className="flex flex-col items-center bg-indigo-50 rounded-lg px-4 py-2 shadow-sm">
-                    <Avatar className="h-10 w-10 mb-1">
-                      <AvatarFallback className="bg-indigo-400 text-white font-bold">
-                        {(friend.display_name || friend.username || 'U')[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-semibold text-indigo-800">{friend.display_name || friend.username}</span>
-                    {friend.bio && <span className="text-xs text-gray-500 text-center mt-1">{friend.bio}</span>}
+                  <li key={i} className="flex flex-col items-center bg-indigo-50 rounded-lg px-4 py-3 shadow-sm w-48">
+                    <div className="flex flex-col items-center w-full cursor-pointer" onClick={() => navigate(`/user/${friend.username}`)}>
+                      <Avatar className="h-10 w-10 mb-2">
+                        <AvatarFallback className="bg-indigo-400 text-white font-bold">
+                          {(friend.display_name || friend.username || 'U')[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-semibold text-indigo-800 text-center">{friend.display_name || friend.username}</span>
+                      {friend.bio && <span className="text-xs text-gray-500 text-center mt-1 block w-full">{friend.bio}</span>}
+                    </div>
+                    <AlertDialog open={unfriendDialog.open && unfriendDialog.friendUserId === friend.user_id} onOpenChange={open => setUnfriendDialog(open ? { open: true, friendUserId: friend.user_id, friendUsername: friend.display_name || friend.username } : { open: false, friendUserId: null, friendUsername: null })}>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          className="mt-2 px-3 py-1 rounded bg-red-100 text-red-700 text-xs font-semibold hover:bg-red-200 transition"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setUnfriendDialog({ open: true, friendUserId: friend.user_id, friendUsername: friend.display_name || friend.username });
+                          }}
+                        >
+                          Unfriend
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Unfriend {friend.display_name || friend.username}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to remove this person from your friends list? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={() => setUnfriendDialog({ open: false, friendUserId: null, friendUsername: null })}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleUnfriend(friend.user_id, friend.display_name || friend.username)}>Unfriend</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </li>
                 ))}
               </ul>

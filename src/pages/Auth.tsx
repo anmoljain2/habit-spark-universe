@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -19,6 +18,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [triedSubmit, setTriedSubmit] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -49,20 +49,52 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTriedSubmit(true);
     
-    if (password !== confirmPassword) {
+    if (username.trim().length === 0) {
       toast({
         title: "Error",
-        description: "Passwords don't match",
+        description: "Username is required",
         variant: "destructive",
       });
       return;
     }
-
-    if (password.length < 6) {
+    if (email.trim().length === 0) {
       toast({
         title: "Error",
-        description: "Password must be at least 6 characters long",
+        description: "Email is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (password.trim().length === 0) {
+      toast({
+        title: "Error",
+        description: "Password is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (confirmPassword.trim().length === 0) {
+      toast({
+        title: "Error",
+        description: "Confirm password is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (password.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
         variant: "destructive",
       });
       return;
@@ -71,6 +103,30 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      // Check for duplicate username if provided
+      if (username.trim().length > 0) {
+        const { data: usernameAvailable, error: usernameError } = await supabase
+          .rpc('check_username_availability', { username_to_check: username });
+        if (usernameError) {
+          toast({
+            title: "Error",
+            description: "Failed to check username availability.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        if (!usernameAvailable) {
+          toast({
+            title: "Username taken",
+            description: "This username is already taken. Please choose another.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
       const redirectUrl = `${window.location.origin}/`;
       
       const { data, error } = await supabase.auth.signUp({
@@ -79,13 +135,18 @@ const Auth = () => {
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            username: username || email.split('@')[0],
+            username: username,
           }
         }
       });
 
       if (error) {
-        if (error.message.includes('already registered')) {
+        if (
+          error.message?.toLowerCase().includes('already registered') ||
+          error.message?.toLowerCase().includes('duplicate key value') ||
+          error.status === 400 ||
+          error.code === '23505'
+        ) {
           toast({
             title: "Account exists",
             description: "This email is already registered. Please sign in instead.",
@@ -99,15 +160,31 @@ const Auth = () => {
           });
         }
       } else if (data.user) {
-        toast({
-          title: "Success!",
-          description: "Account created successfully. Please check your email for verification.",
-        });
-        // Clear form
-        setEmail('');
-        setPassword('');
-        setConfirmPassword('');
-        setUsername('');
+        // If user.identities is empty, the email is already registered
+        if (data.user.identities && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          toast({
+            title: "Account exists",
+            description: "This email is already registered. Please sign in instead.",
+            variant: "destructive",
+          });
+        } else if (!data.user.confirmed_at) {
+          toast({
+            title: "Email not confirmed",
+            description: "This email is already registered but not confirmed. Please check your email for a confirmation link.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Success!",
+            description: "Account created successfully. Please check your email for verification.",
+          });
+          // Clear form
+          setEmail('');
+          setPassword('');
+          setConfirmPassword('');
+          setUsername('');
+          setTriedSubmit(false);
+        }
       }
     } catch (error) {
       toast({
@@ -186,14 +263,18 @@ const Auth = () => {
           <form onSubmit={isLogin ? handleSignIn : handleSignUp} className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="username">Username (optional)</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
                   type="text"
                   placeholder="Enter your username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  required
                 />
+                {triedSubmit && username.trim().length === 0 && (
+                  <p className="text-sm text-red-500">Username is required</p>
+                )}
               </div>
             )}
             
@@ -207,6 +288,9 @@ const Auth = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+              {triedSubmit && email.trim().length === 0 && (
+                <p className="text-sm text-red-500">Email is required</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -228,6 +312,12 @@ const Auth = () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {triedSubmit && password.trim().length === 0 && (
+                <p className="text-sm text-red-500">Password is required</p>
+              )}
+              {triedSubmit && password.length > 0 && password.length < 8 && (
+                <p className="text-sm text-red-500">Password must be at least 8 characters long</p>
+              )}
             </div>
             
             {!isLogin && (
@@ -241,6 +331,12 @@ const Auth = () => {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
+                {triedSubmit && confirmPassword.trim().length === 0 && (
+                  <p className="text-sm text-red-500">Confirm password is required</p>
+                )}
+                {triedSubmit && password !== confirmPassword && confirmPassword.length > 0 && (
+                  <p className="text-sm text-red-500">Passwords do not match</p>
+                )}
               </div>
             )}
             

@@ -52,6 +52,7 @@ const HabitsList = ({ onXPChange, hideAddButton }: HabitsListProps) => {
               completed={!!habit.completed_today}
               xpReward={habit.xp_value ?? 50}
               description={habit.frequency}
+              type={habit.habit_type || 'positive'}
               onXPChange={() => {
                 if (onXPChange) onXPChange();
                 supabase

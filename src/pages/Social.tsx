@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { UserPlus, Users, Check, PlusCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Social = () => {
   const { user } = useAuth();
@@ -17,6 +18,7 @@ const Social = () => {
   const [addingFriend, setAddingFriend] = useState<string | null>(null);
   const [joiningGroup, setJoiningGroup] = useState<string | null>(null);
   const [joinedGroups, setJoinedGroups] = useState<string[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchSocialData = async () => {
@@ -89,18 +91,19 @@ const Social = () => {
               ) : (
                 <ul className="flex flex-col gap-4">
                   {potentialFriends.map((friend) => (
-                    <li key={friend.user_id} className="flex items-center gap-4 bg-indigo-50 rounded-lg px-4 py-3 shadow-sm">
+                    <li key={friend.user_id} className="flex items-center gap-4 bg-indigo-50 rounded-lg px-4 py-3 shadow-sm cursor-pointer"
+                      onClick={() => navigate(`/user/${friend.username}`)}>
                       <Avatar className="h-12 w-12">
                         <AvatarFallback className="bg-indigo-400 text-white font-bold text-xl">
                           {(friend.display_name || friend.username || 'U')[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <div className="font-semibold text-indigo-800 text-lg">{friend.display_name || friend.username}</div>
+                        <div className="font-semibold text-indigo-800">{friend.display_name || friend.username}</div>
                         {friend.bio && <div className="text-xs text-gray-500 mt-1">{friend.bio}</div>}
                       </div>
                       <Button
-                        onClick={() => handleAddFriend(friend.user_id)}
+                        onClick={(e) => { e.stopPropagation(); handleAddFriend(friend.user_id); }}
                         disabled={addingFriend === friend.user_id}
                         className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-md"
                       >

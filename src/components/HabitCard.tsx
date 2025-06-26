@@ -12,9 +12,10 @@ interface HabitCardProps {
   xpReward: number;
   description?: string;
   onXPChange?: () => void;
+  type?: 'positive' | 'negative' | 'neutral';
 }
 
-const HabitCard = ({ id, name, difficulty, streak, completed, xpReward, description, onXPChange }: HabitCardProps) => {
+const HabitCard = ({ id, name, difficulty, streak, completed, xpReward, description, onXPChange, type = 'positive' }: HabitCardProps) => {
   const { user } = useAuth();
   const [isCompleted, setIsCompleted] = useState(completed);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -156,7 +157,10 @@ const HabitCard = ({ id, name, difficulty, streak, completed, xpReward, descript
       
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">{name}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            {name}
+            <span className={`text-xs px-2 py-1 rounded-full font-semibold ${type === 'positive' ? 'bg-blue-100 text-blue-700' : type === 'negative' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>{type}</span>
+          </h3>
           {description && <p className="text-gray-600 text-sm mb-2">{description}</p>}
           <div className="flex items-center space-x-2">
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${difficultyColors[difficulty]}`}>

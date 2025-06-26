@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Social from "./pages/Social";
 import Habits from "./pages/Habits";
+import UserProfile from "./pages/UserProfile";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,11 @@ const App = () => (
             <Route path="/habits" element={
               <ProtectedRoute>
                 <Habits />
+              </ProtectedRoute>
+            } />
+            <Route path="/user/:username" element={
+              <ProtectedRoute>
+                <UserProfile />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -18,6 +18,7 @@ const Habits = () => {
     name: '',
     frequency: 'daily',
     difficulty: 'easy',
+    type: 'positive',
   });
 
   const fetchHabits = async () => {
@@ -43,7 +44,7 @@ const Habits = () => {
 
   const openAdd = () => {
     setEditingHabit(null);
-    setForm({ name: '', frequency: 'daily', difficulty: 'easy' });
+    setForm({ name: '', frequency: 'daily', difficulty: 'easy', type: 'positive' });
     setShowSlideout(true);
   };
   const openEdit = (habit: any) => {
@@ -52,6 +53,7 @@ const Habits = () => {
       name: habit.habit_name,
       frequency: habit.frequency,
       difficulty: habit.difficulty,
+      type: habit.habit_type || 'positive',
     });
     setShowSlideout(true);
   };
@@ -76,6 +78,7 @@ const Habits = () => {
         habit_name: form.name,
         frequency: form.frequency,
         difficulty: form.difficulty,
+        habit_type: form.type,
         xp_value: xp,
       }).eq('id', editingHabit.id);
     } else {
@@ -84,6 +87,7 @@ const Habits = () => {
         habit_name: form.name,
         frequency: form.frequency,
         difficulty: form.difficulty,
+        habit_type: form.type,
         xp_value: xp,
       });
     }
@@ -111,6 +115,7 @@ const Habits = () => {
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-bold text-lg text-indigo-700">{habit.habit_name}</span>
                     <span className={`text-xs px-2 py-1 rounded-full font-semibold ${habit.difficulty === 'easy' ? 'bg-green-100 text-green-700' : habit.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{habit.difficulty}</span>
+                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${habit.habit_type === 'positive' ? 'bg-blue-100 text-blue-700' : habit.habit_type === 'negative' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>{habit.habit_type || 'positive'}</span>
                   </div>
                   <div className="text-sm text-gray-600 mb-1">Frequency: {habit.frequency}</div>
                   <div className="text-xs text-purple-600 font-semibold">XP: {habit.xp_value ?? DIFFICULTY_XP[habit.difficulty as keyof typeof DIFFICULTY_XP]}</div>
@@ -174,6 +179,18 @@ const Habits = () => {
                   <option value="easy">Easy (+30 XP)</option>
                   <option value="medium">Medium (+50 XP)</option>
                   <option value="hard">Hard (+70 XP)</option>
+                </select>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Type</label>
+                <select
+                  className="w-full border rounded px-3 py-2"
+                  value={form.type}
+                  onChange={e => setForm({ ...form, type: e.target.value })}
+                >
+                  <option value="positive">Positive</option>
+                  <option value="negative">Negative</option>
+                  <option value="neutral">Neutral</option>
                 </select>
               </div>
               <div className="mb-6 text-sm text-gray-500">XP Reward: <span className="font-bold text-indigo-700">{DIFFICULTY_XP[form.difficulty as keyof typeof DIFFICULTY_XP]}</span></div>

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +14,7 @@ interface Habit {
   reminderTime?: string;
   difficulty: string;
   estimatedMinutes?: number;
-  streakGoal?: number;
+  streak?: number;
 }
 
 interface HabitPersonalizationStepProps {
@@ -233,7 +232,7 @@ const HabitPersonalizationStep = ({ data, onUpdate, onNext, onPrev }: HabitPerso
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{habit.name}</span>
-                    <Badge size="sm" variant={habit.type === 'positive' ? 'default' : 'destructive'}>
+                    <Badge variant={habit.type === 'positive' ? 'default' : 'destructive'}>
                       {habit.type}
                     </Badge>
                   </div>

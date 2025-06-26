@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,8 +17,8 @@ export interface OnboardingData {
     frequency: string;
     reminderTime?: string;
     difficulty: string;
-    estimatedMinutes?: number;
-    streakGoal?: number;
+    xp_value?: number;
+    streak?: number;
   }>;
   profile: {
     username: string;
@@ -96,8 +95,16 @@ const Onboarding = () => {
           frequency: habit.frequency,
           reminder_time: habit.reminderTime || null,
           difficulty: habit.difficulty,
-          time_estimate_minutes: habit.estimatedMinutes || null,
-          streak_goal: habit.streakGoal || null
+          xp_value:
+            habit.xp_value ??
+            (habit.difficulty === 'easy'
+              ? 30
+              : habit.difficulty === 'medium'
+              ? 50
+              : habit.difficulty === 'hard'
+              ? 70
+              : 50),
+          streak: habit.streak || 0
         }));
 
         const { error: habitsError } = await supabase
