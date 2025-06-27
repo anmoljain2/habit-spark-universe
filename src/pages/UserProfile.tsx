@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,9 +7,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { AchievementsBadgesRow } from '../components/AchievementBadge';
-import { TrendingUp, Target, Flame } from 'lucide-react';
+import { TrendingUp, Target, Flame, ArrowLeft, UserPlus, Trophy, Users } from 'lucide-react';
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -73,7 +74,7 @@ const UserProfile = () => {
     if (!userId) return;
     await supabase.from('friend_requests').insert({ sender_id: user.id, receiver_id: userId, status: 'pending' });
     setAddFriendLoading(false);
-    // Optionally, you can show a toast or update UI
+    toast({ title: 'Friend request sent!', description: 'Your friend request has been sent.' });
   };
 
   const handleUnfriend = async (friendUserId: string, friendUsername: string) => {
@@ -88,99 +89,167 @@ const UserProfile = () => {
     toast({ title: 'Unfriended', description: `You have unfriended ${friendUsername}.` });
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (!profile) return <div>User not found.</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+        <div className="flex items-center justify-center min-h-[60vh] text-center">
+          <div>
+            <div className="text-6xl mb-4">🔍</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">User Not Found</h2>
+            <p className="text-gray-600">The user you're looking for doesn't exist.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const stats = [
+    { label: 'Total XP', value: mainStats?.total_xp ?? 0, color: 'from-yellow-400 to-orange-500', icon: Trophy },
+    { label: 'Current Streak', value: `${mainStats?.streak ?? 0} days`, color: 'from-orange-400 to-red-500', icon: Flame },
+    { label: 'Today\'s Progress', value: `${mainStats?.habits_completed_percent ?? 0}%`, color: 'from-green-400 to-emerald-500', icon: Target },
+    { label: 'Level', value: mainStats?.level ?? 1, color: 'from-purple-400 to-indigo-500', icon: TrendingUp },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <div className="w-full max-w-2xl mb-4 flex justify-start">
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        {/* Back Button */}
+        <div className="mb-6">
           <button
-            className="px-4 py-2 rounded bg-indigo-100 text-indigo-700 font-semibold hover:bg-indigo-200 transition"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/80 border border-white/50 text-gray-700 hover:bg-white/90 transition-all duration-200 shadow-sm hover:shadow-md"
             onClick={() => {
               const from = location.state?.from;
               if (from === 'social') navigate('/social');
               else navigate('/profile');
             }}
           >
-            ← Back
+            <ArrowLeft className="w-4 h-4" />
+            Back
           </button>
         </div>
-        {/* Compete Section (gradient card) */}
-        <div className="relative z-10 mb-10">
-          <div className="bg-gradient-to-br from-yellow-400 via-pink-400 to-indigo-500 rounded-2xl shadow-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-8 border-4 border-white/80 animate-pulse-slow">
-            <div className="flex-1 flex flex-col items-center md:items-start">
-              <h2 className="text-2xl font-bold text-white mb-2 drop-shadow">🔥 Compete with {profile?.display_name || profile?.username}</h2>
-              <p className="text-white/90 mb-4 text-lg font-semibold drop-shadow">See how you stack up against your friends!</p>
-              <div className="flex flex-wrap gap-6 items-center justify-center md:justify-start mb-6">
-                <div className="bg-white/90 rounded-xl px-8 py-6 flex flex-col items-center shadow-lg border-2 border-yellow-300">
-                  <span className="text-4xl font-bold text-yellow-500 drop-shadow">{mainStats?.total_xp ?? 0}</span>
-                  <span className="text-base font-semibold text-yellow-700 mt-1">Total XP</span>
+
+        {/* Profile Header */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 mb-8 border border-white/50">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+            <Avatar className="h-24 w-24 shadow-lg border-4 border-white/50">
+              <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-purple-500 to-indigo-600 text-white">
+                {(profile?.display_name || profile?.username || 'U')[0]}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className="flex-1 text-center md:text-left">
+              <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-800">{profile?.display_name || profile?.username}</h1>
+                  <p className="text-gray-500">@{profile?.username}</p>
                 </div>
-                <div className="bg-white/90 rounded-xl px-8 py-6 flex flex-col items-center shadow-lg border-2 border-pink-300">
-                  <span className="text-4xl font-bold text-pink-500 drop-shadow">{mainStats?.streak ?? 0}</span>
-                  <span className="text-base font-semibold text-pink-700 mt-1">Streak</span>
-                </div>
-                <div className="bg-white/90 rounded-xl px-8 py-6 flex flex-col items-center shadow-lg border-2 border-blue-300">
-                  <span className="text-4xl font-bold text-blue-600 drop-shadow">{mainStats?.habits_completed_percent ?? 0}%</span>
-                  <span className="text-base font-semibold text-blue-700 mt-1">Habits Completed Today</span>
-                </div>
-                <div className="bg-white/90 rounded-xl px-8 py-6 flex flex-col items-center shadow-lg border-2 border-green-300">
-                  <span className="text-4xl font-bold text-green-600 drop-shadow">{mainStats?.level ?? 1}</span>
-                  <span className="text-base font-semibold text-green-700 mt-1">Level</span>
+                
+                <div className="flex gap-2">
+                  {isFriend ? (
+                    <Badge className="bg-green-100 text-green-700 border-green-200">
+                      <Users className="w-4 h-4 mr-1" />
+                      Friend
+                    </Badge>
+                  ) : (
+                    <Button 
+                      onClick={handleAddFriend} 
+                      disabled={addFriendLoading}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                    >
+                      {addFriendLoading ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-2"></div>
+                      ) : (
+                        <UserPlus className="w-4 h-4 mr-2" />
+                      )}
+                      {addFriendLoading ? 'Sending...' : 'Add Friend'}
+                    </Button>
+                  )}
                 </div>
               </div>
-            </div>
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <span className="text-7xl font-extrabold text-white drop-shadow-lg animate-bounce">🏆</span>
-              <span className="text-xl text-white/80 mt-2 font-semibold">Challenge your friends!</span>
+              
+              {profile?.bio && (
+                <p className="text-gray-600 text-lg max-w-2xl">{profile.bio}</p>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {stats.map((stat, index) => {
+            const IconComponent = stat.icon;
+            return (
+              <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 text-center">
+                <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${stat.color} mb-3`}>
+                  <IconComponent className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-2xl font-bold text-gray-800 mb-1">{stat.value}</div>
+                <div className="text-sm text-gray-600">{stat.label}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Achievements */}
         <div className="mb-8">
           <AchievementsBadgesRow />
         </div>
-        {/* Purple Profile Box */}
-        <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl shadow-xl p-8 mb-10 flex flex-col md:flex-row items-center md:items-end gap-8 text-white relative overflow-hidden">
-          <div className="flex flex-col items-center md:items-start flex-1">
-            <Avatar className="h-24 w-24 mb-4 shadow-lg border-4 border-white/20">
-              <AvatarFallback className="text-3xl font-bold bg-indigo-500 text-white">{(profile?.display_name || profile?.username || 'U')[0]}</AvatarFallback>
-            </Avatar>
-            <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight drop-shadow-lg">{profile?.display_name || profile?.username}</h1>
-              <span className="bg-white/20 text-white border-white/30 px-3 py-1 text-base font-semibold flex items-center gap-1 rounded-full">@{profile?.username}</span>
-            </div>
-            {profile?.bio && <p className="text-white/90 text-lg mt-2 max-w-xl drop-shadow-sm">{profile.bio}</p>}
-            {isFriend ? (
-              <Badge variant="default" className="ml-2">Your Friend</Badge>
-            ) : (
-              <Button onClick={handleAddFriend} className="ml-2" disabled={addFriendLoading}>
-                {addFriendLoading ? 'Adding...' : 'Add Friend'}
-              </Button>
-            )}
-          </div>
-        </div>
+
         {/* Friends List */}
-        <div className="shadow-lg border-0 bg-white/90 rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-indigo-700 mb-4">Friends</h2>
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 border border-white/50">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-2xl">
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Friends</h2>
+              <p className="text-gray-600">{friends.length} connections</p>
+            </div>
+          </div>
+          
           {friends.length === 0 ? (
-            <div className="text-gray-500">No friends yet.</div>
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">👥</div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">No Friends Yet</h3>
+              <p className="text-gray-600">This user hasn't connected with anyone yet.</p>
+            </div>
           ) : (
-            <ul className="flex flex-wrap gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {friends.map((friend, i) => (
-                <li key={i} className="flex flex-col items-center bg-indigo-50 rounded-lg px-4 py-3 shadow-sm w-48">
-                  <div className="flex flex-col items-center w-full cursor-pointer" onClick={() => navigate(`/user/${friend.username}`, { state: { from: location.state?.from || null } })}>
-                    <Avatar className="h-10 w-10 mb-2">
-                      <AvatarFallback className="bg-indigo-400 text-white font-bold">
+                <div
+                  key={i}
+                  className="p-4 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer transform hover:-translate-y-1"
+                  onClick={() => navigate(`/user/${friend.username}`, { state: { from: location.state?.from || null } })}
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold">
                         {(friend.display_name || friend.username || 'U')[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="font-semibold text-indigo-800 text-center">{friend.display_name || friend.username}</span>
-                    {friend.bio && <span className="text-xs text-gray-500 text-center mt-1 block w-full">{friend.bio}</span>}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-gray-800 truncate">
+                        {friend.display_name || friend.username}
+                      </div>
+                      <div className="text-sm text-gray-500 truncate">@{friend.username}</div>
+                      {friend.bio && (
+                        <div className="text-xs text-gray-400 mt-1 truncate">{friend.bio}</div>
+                      )}
+                    </div>
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </div>
@@ -188,4 +257,4 @@ const UserProfile = () => {
   );
 };
 
-export default UserProfile; 
+export default UserProfile;

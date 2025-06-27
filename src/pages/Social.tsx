@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { UserPlus, Users, Check, PlusCircle } from 'lucide-react';
+import { UserPlus, Users, Check, PlusCircle, Sparkles, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Social = () => {
@@ -40,15 +41,17 @@ const Social = () => {
       // Filter out users who are already friends
       const potentials = (allUsers || []).filter((u: any) => !friendIds.includes(u.user_id));
       setPotentialFriends(potentials);
-      // Demo groups (static, since user_groups table does not exist)
+      // Demo groups (static)
       let groupList = [
-        { id: '1', name: 'Morning Warriors', description: 'Early risers and morning routine lovers', members: 24 },
-        { id: '2', name: 'Fitness Fanatics', description: 'Share workouts and motivate each other', members: 31 },
-        { id: '3', name: 'Book Club', description: 'Read and discuss a new book every month', members: 17 },
-        { id: '4', name: 'Mindfulness Circle', description: 'Meditation, journaling, and self-care', members: 12 },
+        { id: '1', name: 'Morning Warriors', description: 'Early risers and morning routine lovers', members: 24, icon: '🌅', color: 'from-amber-400 to-orange-500' },
+        { id: '2', name: 'Fitness Fanatics', description: 'Share workouts and motivate each other', members: 31, icon: '💪', color: 'from-red-400 to-pink-500' },
+        { id: '3', name: 'Book Club', description: 'Read and discuss a new book every month', members: 17, icon: '📚', color: 'from-blue-400 to-indigo-500' },
+        { id: '4', name: 'Mindfulness Circle', description: 'Meditation, journaling, and self-care', members: 12, icon: '🧘', color: 'from-green-400 to-emerald-500' },
+        { id: '5', name: 'Productivity Hub', description: 'Tips and tricks for maximum efficiency', members: 28, icon: '⚡', color: 'from-purple-400 to-violet-500' },
+        { id: '6', name: 'Nutrition Nerds', description: 'Healthy eating and meal planning', members: 19, icon: '🥗', color: 'from-lime-400 to-green-500' },
       ];
       setGroups(groupList);
-      setJoinedGroups([]); // No persistent group join state
+      setJoinedGroups([]);
       setLoading(false);
     };
     fetchSocialData();
@@ -63,7 +66,6 @@ const Social = () => {
 
   const handleJoinGroup = async (groupId: string) => {
     setJoiningGroup(groupId);
-    // Simulate join (replace with Supabase call if/when user_groups table exists)
     setTimeout(() => {
       setJoinedGroups((prev) => [...prev, groupId]);
       setJoiningGroup(null);
@@ -71,85 +73,168 @@ const Social = () => {
   };
 
   if (!user) return null;
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
       <Navbar />
-      <div className="max-w-4xl mx-auto px-4 py-10">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">Social</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Hero Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 px-4 py-2 rounded-full border border-purple-200 mb-6">
+            <Heart className="w-5 h-5 text-purple-600" />
+            <span className="text-sm font-medium text-purple-700">Connect & Grow</span>
+          </div>
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent mb-4">
+            Social Hub
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            Connect with like-minded people, join communities, and grow together on your wellness journey.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Potential Friends */}
-          <Card className="shadow-xl border-0 bg-white/90">
-            <CardHeader>
-              <CardTitle className="text-indigo-700 flex items-center gap-2"><UserPlus className="w-6 h-6" /> Potential Friends</CardTitle>
-              <CardDescription>Connect with new people and grow your circle</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {potentialFriends.length === 0 ? (
-                <div className="text-gray-500">No new friends to suggest right now.</div>
-              ) : (
-                <ul className="flex flex-col gap-4">
-                  {potentialFriends.map((friend) => (
-                    <li key={friend.user_id} className="flex items-center gap-4 bg-indigo-50 rounded-lg px-4 py-3 shadow-sm cursor-pointer"
-                      onClick={() => navigate(`/user/${friend.username}`)}>
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-indigo-400 text-white font-bold text-xl">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 border border-white/50">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-2xl shadow-lg">
+                <UserPlus className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Discover People</h2>
+                <p className="text-gray-600">Connect with new friends and expand your network</p>
+              </div>
+            </div>
+
+            {potentialFriends.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">👥</div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">All Caught Up!</h3>
+                <p className="text-gray-600">No new friend suggestions right now.</p>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {potentialFriends.map((friend) => (
+                  <div
+                    key={friend.user_id}
+                    className="p-4 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer transform hover:-translate-y-1"
+                    onClick={() => navigate(`/user/${friend.username}`)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-14 w-14 shadow-md">
+                        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-lg">
                           {(friend.display_name || friend.username || 'U')[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex-1">
-                        <div className="font-semibold text-indigo-800">{friend.display_name || friend.username}</div>
-                        {friend.bio && <div className="text-xs text-gray-500 mt-1">{friend.bio}</div>}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-gray-800 text-lg">
+                          {friend.display_name || friend.username}
+                        </div>
+                        <div className="text-sm text-gray-500">@{friend.username}</div>
+                        {friend.bio && (
+                          <div className="text-sm text-gray-600 mt-1 line-clamp-2">{friend.bio}</div>
+                        )}
                       </div>
                       <Button
                         onClick={(e) => { e.stopPropagation(); handleAddFriend(friend.user_id); }}
                         disabled={addingFriend === friend.user_id}
-                        className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-md"
+                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
                       >
-                        {addingFriend === friend.user_id ? <Check className="w-4 h-4 mr-1" /> : <UserPlus className="w-4 h-4 mr-1" />}
-                        {addingFriend === friend.user_id ? 'Request Sent' : 'Add Friend'}
+                        {addingFriend === friend.user_id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-2"></div>
+                            Sent
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Add
+                          </>
+                        )}
                       </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-          {/* Groups */}
-          <Card className="shadow-xl border-0 bg-white/90">
-            <CardHeader>
-              <CardTitle className="text-indigo-700 flex items-center gap-2"><Users className="w-6 h-6" /> Groups</CardTitle>
-              <CardDescription>Join a group to share, learn, and grow together</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="flex flex-col gap-4">
-                {groups.map((group) => (
-                  <li key={group.id} className="flex items-center gap-4 bg-indigo-50 rounded-lg px-4 py-3 shadow-sm">
-                    <div className="flex-1">
-                      <div className="font-semibold text-indigo-800 text-lg flex items-center gap-2">
-                        {group.name}
-                        <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-0 px-2 py-0.5 text-xs">{group.members} members</Badge>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">{group.description}</div>
                     </div>
-                    <Button
-                      onClick={() => handleJoinGroup(group.id)}
-                      disabled={joiningGroup === group.id || joinedGroups.includes(group.id)}
-                      className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-md"
-                    >
-                      {joinedGroups.includes(group.id) ? <Check className="w-4 h-4 mr-1" /> : <PlusCircle className="w-4 h-4 mr-1" />}
-                      {joinedGroups.includes(group.id) ? 'Joined' : joiningGroup === group.id ? 'Joining...' : 'Join Group'}
-                    </Button>
-                  </li>
+                  </div>
                 ))}
-              </ul>
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </div>
+
+          {/* Groups */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 border border-white/50">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-2xl shadow-lg">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Join Communities</h2>
+                <p className="text-gray-600">Find your tribe and grow together</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {groups.map((group) => (
+                <div
+                  key={group.id}
+                  className="p-6 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-200"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`p-3 rounded-xl bg-gradient-to-r ${group.color} shadow-md`}>
+                      <span className="text-2xl">{group.icon}</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-bold text-gray-800 text-lg">{group.name}</h3>
+                        <Badge className="bg-gray-100 text-gray-700 border-gray-200 text-xs">
+                          {group.members} members
+                        </Badge>
+                      </div>
+                      <p className="text-gray-600 text-sm mb-4">{group.description}</p>
+                      <Button
+                        onClick={() => handleJoinGroup(group.id)}
+                        disabled={joiningGroup === group.id || joinedGroups.includes(group.id)}
+                        className={`${
+                          joinedGroups.includes(group.id)
+                            ? 'bg-green-100 text-green-700 hover:bg-green-100'
+                            : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
+                        } shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all`}
+                      >
+                        {joinedGroups.includes(group.id) ? (
+                          <>
+                            <Check className="w-4 h-4 mr-2" />
+                            Joined
+                          </>
+                        ) : joiningGroup === group.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-2"></div>
+                            Joining...
+                          </>
+                        ) : (
+                          <>
+                            <PlusCircle className="w-4 h-4 mr-2" />
+                            Join Group
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default Social; 
+export default Social;

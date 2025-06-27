@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,6 +6,7 @@ import Navbar from '../components/Navbar';
 import JournalConfig from './JournalConfig';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+import { BookOpen, Calendar as CalendarIcon, PenTool, Sparkles } from 'lucide-react';
 
 const QUESTION_KEYS = [
   'q_grateful',
@@ -81,7 +83,12 @@ const Journal = () => {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        setEntries(data || []);
+        // Type assertion to handle the Json type from Supabase
+        const typedEntries = (data || []).map(entry => ({
+          ...entry,
+          answers: entry.answers as { [q: string]: string }
+        }));
+        setEntries(typedEntries);
         setLoading(false);
       });
   }, [user, config]);
@@ -100,7 +107,11 @@ const Journal = () => {
     }).select().single();
     setSaving(false);
     if (!error && data) {
-      setEntries([data, ...entries]);
+      const typedEntry = {
+        ...data,
+        answers: data.answers as { [q: string]: string }
+      };
+      setEntries([typedEntry, ...entries]);
       setAnswers({});
     }
   };
@@ -115,9 +126,16 @@ const Journal = () => {
     }
   };
 
-  if (configLoading) return <div>Loading...</div>;
+  if (configLoading) return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+      <Navbar />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600"></div>
+      </div>
+    </div>
+  );
+
   if (!config) {
-    // Show config questionnaire if not set
     return <JournalConfig onComplete={() => {
       // Refetch config after saving
       setConfigLoading(true);
@@ -152,77 +170,143 @@ const Journal = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
       <Navbar />
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-4xl font-bold text-indigo-800 mb-6">Journal</h1>
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <h2 className="text-2xl font-semibold mb-4 text-indigo-700">Write a new entry</h2>
-          {hasEntryToday ? (
-            <div className="text-green-700 font-semibold text-lg">You've already added a journal entry for today!</div>
-          ) : (
-            <form onSubmit={handleAddEntry} className="space-y-4">
-              {enabledQuestions.length === 0 ? (
-                <div className="text-gray-500">No questions selected. Please update your configuration.</div>
-              ) : (
-                enabledQuestions.map(q => (
-                  <div key={q} className="mb-4">
-                    <label className="block font-medium mb-1">{q}</label>
-                    <textarea
-                      className="w-full border rounded px-3 py-2"
-                      value={answers[q] || ''}
-                      onChange={e => handleAnswerChange(q, e.target.value)}
-                      required
-                    />
-                  </div>
-                ))
-              )}
-              <button
-                type="submit"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
-                disabled={saving || enabledQuestions.length === 0}
-              >
-                {saving ? 'Saving...' : 'Add Entry'}
-              </button>
-            </form>
-          )}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Hero Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 px-4 py-2 rounded-full border border-purple-200 mb-6">
+            <BookOpen className="w-5 h-5 text-purple-600" />
+            <span className="text-sm font-medium text-purple-700">Daily Reflection</span>
+          </div>
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent mb-4">
+            Journal
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            Capture your thoughts, reflect on your day, and track your personal growth journey.
+          </p>
         </div>
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h2 className="text-2xl font-semibold mb-4 text-indigo-700">Journal Calendar</h2>
-          <Calendar
-            onChange={handleCalendarChange}
-            value={selectedDate}
-            tileClassName={({ date }) =>
-              entryDates.has(date.toDateString())
-                ? 'bg-indigo-200 font-bold' // highlight days with entries
-                : undefined
-            }
-          />
-          <div className="mt-6">
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Write Entry Card */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 border border-white/50">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-3 rounded-2xl shadow-lg">
+                  <PenTool className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Today's Entry</h2>
+              </div>
+              
+              {hasEntryToday ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">✨</div>
+                  <h3 className="text-2xl font-bold text-green-700 mb-2">Entry Complete!</h3>
+                  <p className="text-gray-600">You've already journaled today. Great job!</p>
+                </div>
+              ) : (
+                <form onSubmit={handleAddEntry} className="space-y-6">
+                  {enabledQuestions.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <CalendarIcon className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p>No questions selected. Please update your configuration.</p>
+                    </div>
+                  ) : (
+                    enabledQuestions.map((q, index) => (
+                      <div key={q} className="group">
+                        <label className="block font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                          <span className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
+                            {index + 1}
+                          </span>
+                          {q}
+                        </label>
+                        <textarea
+                          className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 transition-all duration-200 resize-none"
+                          rows={3}
+                          value={answers[q] || ''}
+                          onChange={e => handleAnswerChange(q, e.target.value)}
+                          placeholder="Share your thoughts..."
+                          required
+                        />
+                      </div>
+                    ))
+                  )}
+                  <button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={saving || enabledQuestions.length === 0}
+                  >
+                    {saving ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white"></div>
+                        Saving...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2">
+                        <Sparkles className="w-5 h-5" />
+                        Save Entry
+                      </div>
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Calendar */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-white/50">
+              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <CalendarIcon className="w-5 h-5 text-purple-600" />
+                Journal Calendar
+              </h3>
+              <Calendar
+                onChange={handleCalendarChange}
+                value={selectedDate}
+                className="w-full"
+                tileClassName={({ date }: { date: Date }) =>
+                  entryDates.has(date.toDateString())
+                    ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-bold rounded-lg' 
+                    : undefined
+                }
+              />
+            </div>
+
+            {/* Selected Date Entries */}
             {selectedDate && (
-              <>
-                <h3 className="text-lg font-semibold mb-2">
-                  Entries for {selectedDate.toLocaleDateString()}
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-white/50">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                  {selectedDate.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
                 </h3>
                 {selectedEntries.length === 0 ? (
-                  <div className="text-gray-500">No entry for this day.</div>
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-2">📝</div>
+                    <p className="text-gray-500">No entry for this day</p>
+                  </div>
                 ) : (
-                  <ul className="space-y-6">
+                  <div className="space-y-4">
                     {selectedEntries.map(entry => (
-                      <li key={entry.id} className="border-l-4 border-indigo-300 pl-4 py-2">
+                      <div key={entry.id} className="border-l-4 border-purple-400 pl-4 py-2 bg-purple-50/50 rounded-r-lg">
                         {entry.answers &&
                           Object.entries(entry.answers).map(([q, a]) => (
-                            <div key={q} className="mb-2">
-                              <span className="font-semibold text-indigo-700">{q}</span>
-                              <div className="text-gray-700 whitespace-pre-line">{a}</div>
+                            <div key={q} className="mb-3">
+                              <span className="font-semibold text-purple-700 text-sm">{q}</span>
+                              <div className="text-gray-700 mt-1 text-sm leading-relaxed whitespace-pre-line">{a}</div>
                             </div>
                           ))}
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-gray-400 mt-2">
                           {new Date(entry.created_at).toLocaleString()}
                         </div>
-                      </li>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -231,4 +315,4 @@ const Journal = () => {
   );
 };
 
-export default Journal; 
+export default Journal;
