@@ -1,8 +1,9 @@
-import { User, Trophy, Settings, Menu, LogOut } from 'lucide-react';
+
+import { User, Trophy, Settings, Menu, LogOut, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 const Navbar = () => {
@@ -10,6 +11,7 @@ const Navbar = () => {
   const { user, signOut } = useAuth();
   const [level, setLevel] = useState<number | null>(null);
   const [levelLoading, setLevelLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     const fetchLevel = async () => {
@@ -26,57 +28,69 @@ const Navbar = () => {
     fetchLevel();
   }, [user]);
 
+  const navItems = [
+    { path: '/', label: 'Dashboard' },
+    { path: '/habits', label: 'Habits' },
+    { path: '/journal', label: 'Journal' },
+    { path: '/news', label: 'News' },
+    { path: '/meals', label: 'Meals' },
+    { path: '/fitness', label: 'Fitness' },
+    { path: '/social', label: 'Social' },
+  ];
+
+  const isActive = (path: string) => location.pathname === path;
+
   return (
-    <nav className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+    <nav className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-xl border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold">LifeQuest</h1>
+          <div className="flex items-center space-x-3">
+            <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+              <Sparkles className="w-6 h-6 text-yellow-300" />
+            </div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-200 to-white bg-clip-text text-transparent">
+              LifeQuest
+            </h1>
           </div>
           
           <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
-              <Link to="/" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Dashboard
-              </Link>
-              <Link to="/habits" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Habits
-              </Link>
-              <Link to="/journal" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Journal
-              </Link>
-              <Link to="/news" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                News
-              </Link>
-              <Link to="/meals" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Meals
-              </Link>
-              <Link to="/fitness" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Fitness
-              </Link>
-              <Link to="/social" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Social
-              </Link>
+            <div className="ml-10 flex items-baseline space-x-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    isActive(item.path)
+                      ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm'
+                      : 'hover:bg-white/10 hover:text-white/90'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-white/10 px-3 py-1 rounded-full">
-              <Trophy className="w-4 h-4 text-yellow-400" />
-              <span className="text-sm font-medium">
+            <div className="flex items-center space-x-2 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 px-4 py-2 rounded-full border border-yellow-400/30 backdrop-blur-sm">
+              <Trophy className="w-4 h-4 text-yellow-300" />
+              <span className="text-sm font-semibold">
                 {levelLoading ? '...' : `Level ${level}`}
               </span>
             </div>
-            <Link to="/profile" className="flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors">
+            <Link 
+              to="/profile" 
+              className="flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full p-2.5 transition-all duration-200 backdrop-blur-sm border border-white/20"
+            >
               <User className="w-5 h-5 text-white" />
             </Link>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm">{user?.email}</span>
+            <div className="flex items-center space-x-3 bg-white/5 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/10">
+              <span className="text-sm font-medium">{user?.email?.split('@')[0]}</span>
               <Button
                 onClick={signOut}
                 variant="ghost"
                 size="sm"
-                className="text-white hover:bg-white/10"
+                className="text-white hover:bg-white/10 h-8 w-8 p-0 rounded-full"
               >
                 <LogOut className="w-4 h-4" />
               </Button>
@@ -86,7 +100,7 @@ const Navbar = () => {
           <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-md hover:bg-white/10 transition-colors"
+              className="p-2 rounded-lg hover:bg-white/10 transition-colors backdrop-blur-sm"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -95,46 +109,43 @@ const Navbar = () => {
         
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <Link to="/" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
-                Dashboard
-              </Link>
-              <Link to="/habits" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
-                Habits
-              </Link>
-              <Link to="/journal" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
-                Journal
-              </Link>
-              <Link to="/news" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
-                News
-              </Link>
-              <Link to="/meals" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
-                Meals
-              </Link>
-              <Link to="/fitness" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
-                Fitness
-              </Link>
-              <Link to="/social" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
-                Social
-              </Link>
-              <Link to="/profile" className="flex items-center space-x-2 px-3 py-2 hover:bg-white/10 rounded-md text-base font-medium">
-                <User className="w-5 h-5 text-white" />
-                <span>Profile</span>
-              </Link>
-              <div className="border-t border-white/20 pt-4">
-                <div className="flex items-center px-3 py-2">
-                  <span className="text-sm">{user?.email}</span>
-                </div>
-                <Button
-                  onClick={signOut}
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-white/10 w-full justify-start"
+          <div className="md:hidden pb-4">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-black/10 rounded-lg mt-2 backdrop-blur-sm">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    isActive(item.path)
+                      ? 'bg-white/20 text-white'
+                      : 'hover:bg-white/10'
+                  }`}
+                  onClick={() => setIsMenuOpen(false)}
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
-                </Button>
+                  {item.label}
+                </Link>
+              ))}
+              <div className="border-t border-white/20 pt-4 mt-4">
+                <Link 
+                  to="/profile" 
+                  className="flex items-center space-x-2 px-3 py-2 hover:bg-white/10 rounded-md text-base font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <User className="w-5 h-5 text-white" />
+                  <span>Profile</span>
+                </Link>
+                <div className="flex items-center justify-between px-3 py-2">
+                  <span className="text-sm">{user?.email?.split('@')[0]}</span>
+                  <Button
+                    onClick={signOut}
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/10"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
