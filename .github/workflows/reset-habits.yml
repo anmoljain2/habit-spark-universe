@@ -2,7 +2,7 @@ name: Reset Habits Daily
 
 on:
   schedule:
-    - cron: '35 22 * * *' # 1am UTC
+    - cron: '0 23 * * *' # 1am UTC
 
 jobs:
   reset-habits:
