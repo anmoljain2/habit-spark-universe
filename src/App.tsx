@@ -16,6 +16,7 @@ import UserProfile from "./pages/UserProfile";
 import News from './pages/News';
 import Meals from './pages/Meals';
 import Fitness from './pages/Fitness';
+import Journal from './pages/Journal';
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,11 @@ const App = () => (
             <Route path="/fitness" element={
               <ProtectedRoute>
                 <Fitness />
+              </ProtectedRoute>
+            } />
+            <Route path="/journal" element={
+              <ProtectedRoute>
+                <Journal />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

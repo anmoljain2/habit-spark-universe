@@ -42,6 +42,9 @@ const Navbar = () => {
               <Link to="/habits" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 Habits
               </Link>
+              <Link to="/journal" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                Journal
+              </Link>
               <Link to="/news" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 News
               </Link>
@@ -99,6 +102,9 @@ const Navbar = () => {
               </Link>
               <Link to="/habits" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
                 Habits
+              </Link>
+              <Link to="/journal" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
+                Journal
               </Link>
               <Link to="/news" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
                 News
