@@ -71,95 +71,89 @@ const Index = () => {
             <HabitsList onXPChange={handleXPChange} hideAddButton />
           </div>
 
-          {/* Sidebar Content */}
+          {/* Sidebar Content - Reverted to smaller, side-by-side layout */}
           <div className="space-y-6">
-            {/* News Section */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-gradient-to-br from-indigo-500 to-blue-600 p-3 rounded-xl shadow-lg">
-                    <Newspaper className="w-6 h-6 text-white" />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-800">Latest News</h2>
+            {/* News Section - Smaller */}
+            <div className="bg-white/70 rounded-xl shadow-md p-4 border border-white/50">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="bg-gradient-to-br from-indigo-500 to-blue-600 p-2 rounded-lg shadow-sm">
+                  <Newspaper className="w-4 h-4 text-white" />
                 </div>
+                <h2 className="text-lg font-bold text-gray-800">Latest News</h2>
               </div>
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 mb-4">
                 {[
-                  "How Exercise Boosts Brain Health",
-                  "5 Habits of Highly Productive People", 
-                  "Nutrition Trends: What to Eat in 2024"
+                  "Exercise Boosts Brain Health",
+                  "5 Habits of Productive People", 
+                  "Nutrition Trends 2024"
                 ].map((title, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-gray-50/80 rounded-lg hover:bg-gray-100/80 transition-colors cursor-pointer">
-                    <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <span className="text-gray-700 text-sm leading-relaxed">{title}</span>
+                  <div key={index} className="flex items-start gap-2 p-2 bg-gray-50/60 rounded-md hover:bg-gray-100/60 transition-colors cursor-pointer text-sm">
+                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                    <span className="text-gray-700 leading-snug">{title}</span>
                   </div>
                 ))}
               </div>
               <Link 
                 to="/news" 
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-4 py-2 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="inline-flex items-center gap-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
               >
-                Explore News <ArrowRight className="w-4 h-4" />
+                View All <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
 
-            {/* Meals Section */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-xl shadow-lg">
-                    <Utensils className="w-6 h-6 text-white" />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-800">Today's Meals</h2>
+            {/* Meals Section - Smaller */}
+            <div className="bg-white/70 rounded-xl shadow-md p-4 border border-white/50">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-2 rounded-lg shadow-sm">
+                  <Utensils className="w-4 h-4 text-white" />
                 </div>
+                <h2 className="text-lg font-bold text-gray-800">Today's Meals</h2>
               </div>
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 mb-4">
                 {[
                   { meal: "Breakfast", food: "Oatmeal & Berries" },
-                  { meal: "Lunch", food: "Grilled Chicken Salad" },
+                  { meal: "Lunch", food: "Chicken Salad" },
                   { meal: "Dinner", food: "Salmon & Quinoa" }
                 ].map((item, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-gray-50/80 rounded-lg">
+                  <div key={index} className="flex justify-between items-center p-2 bg-gray-50/60 rounded-md text-sm">
                     <span className="font-medium text-gray-800">{item.meal}</span>
-                    <span className="text-gray-600 text-sm">{item.food}</span>
+                    <span className="text-gray-600 text-xs">{item.food}</span>
                   </div>
                 ))}
               </div>
               <Link 
                 to="/meals" 
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="inline-flex items-center gap-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
               >
-                Plan Meals <ArrowRight className="w-4 h-4" />
+                Plan Meals <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
 
-            {/* Fitness Section */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-white/50">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-gradient-to-br from-pink-500 to-rose-600 p-3 rounded-xl shadow-lg">
-                    <Dumbbell className="w-6 h-6 text-white" />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-800">Workout Plan</h2>
+            {/* Fitness Section - Smaller */}
+            <div className="bg-white/70 rounded-xl shadow-md p-4 border border-white/50">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="bg-gradient-to-br from-pink-500 to-rose-600 p-2 rounded-lg shadow-sm">
+                  <Dumbbell className="w-4 h-4 text-white" />
                 </div>
+                <h2 className="text-lg font-bold text-gray-800">Workout Plan</h2>
               </div>
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 mb-4">
                 {[
                   { type: "Warmup", activity: "5 min Jump Rope" },
                   { type: "Strength", activity: "Pushups & Squats" },
                   { type: "Cardio", activity: "20 min Run" }
                 ].map((item, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-gray-50/80 rounded-lg">
+                  <div key={index} className="flex justify-between items-center p-2 bg-gray-50/60 rounded-md text-sm">
                     <span className="font-medium text-gray-800">{item.type}</span>
-                    <span className="text-gray-600 text-sm">{item.activity}</span>
+                    <span className="text-gray-600 text-xs">{item.activity}</span>
                   </div>
                 ))}
               </div>
               <Link 
                 to="/fitness" 
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white px-4 py-2 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="inline-flex items-center gap-1 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
               >
-                Start Workout <ArrowRight className="w-4 h-4" />
+                Start Workout <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
           </div>
