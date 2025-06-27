@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Reset habits in Supabase
         run: |
-          curl -X PATCH "https://vafgzniebwbuunhmahtk.supabase.co/rest/v1/user_habits?completed_today=is.true" \
+          curl -X PATCH "https://vafgznielwbuumhmahtk.supabase.co/rest/v1/user_habits?completed_today=is.true" \
             -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json" \
