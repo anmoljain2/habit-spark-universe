@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import WelcomeStep from '@/components/onboarding/WelcomeStep';
 import HabitPersonalizationStep from '@/components/onboarding/HabitPersonalizationStep';
 import SocialSetupStep from '@/components/onboarding/SocialSetupStep';
-import NewsPreferencesStep from '@/components/onboarding/NewsPreferencesStep';
+// import NewsPreferencesStep from '@/components/onboarding/NewsPreferencesStep';
 import { toast } from '@/components/ui/use-toast';
 
 export interface OnboardingData {
@@ -26,12 +26,12 @@ export interface OnboardingData {
     bio: string;
     visibility: 'public' | 'private';
   };
-  newsPreferences: {
-    interests: string[];
-    frequency: string;
-    preferredTime?: string;
-    format: 'headlines' | 'summaries' | 'deep_dive';
-  };
+  // newsPreferences: {
+  //   interests: string[];
+  //   frequency: string;
+  //   preferredTime?: string;
+  //   format: 'headlines' | 'summaries' | 'deep_dive';
+  // };
 }
 
 const Onboarding = () => {
@@ -46,18 +46,18 @@ const Onboarding = () => {
       bio: '',
       visibility: 'public'
     },
-    newsPreferences: {
-      interests: [],
-      frequency: 'daily',
-      format: 'summaries'
-    }
+    // newsPreferences: {
+    //   interests: [],
+    //   frequency: 'daily',
+    //   format: 'summaries'
+    // }
   });
 
   const steps = [
     { title: 'Welcome', description: 'Get started with LifeQuest' },
     { title: 'Habits', description: 'Personalize your habit tracking' },
     { title: 'Social', description: 'Set up your profile' },
-    { title: 'News & Learning', description: 'Customize your content' }
+    // { title: 'News & Learning', description: 'Customize your content' }
   ];
 
   const progress = ((currentStep + 1) / steps.length) * 100;
@@ -127,18 +127,18 @@ const Onboarding = () => {
 
       if (profileError) throw profileError;
 
-      // Save news preferences
-      const { error: newsError } = await supabase
-        .from('user_news_preferences')
-        .insert({
-          user_id: user.id,
-          interests: onboardingData.newsPreferences.interests,
-          frequency: onboardingData.newsPreferences.frequency,
-          preferred_time: onboardingData.newsPreferences.preferredTime || null,
-          format: onboardingData.newsPreferences.format
-        });
+      // // Save news preferences
+      // const { error: newsError } = await supabase
+      //   .from('user_news_preferences')
+      //   .insert({
+      //     user_id: user.id,
+      //     interests: onboardingData.newsPreferences.interests,
+      //     frequency: onboardingData.newsPreferences.frequency,
+      //     preferred_time: onboardingData.newsPreferences.preferredTime || null,
+      //     format: onboardingData.newsPreferences.format
+      //   });
 
-      if (newsError) throw newsError;
+      // if (newsError) throw newsError;
 
       toast({
         title: "Welcome to LifeQuest!",
@@ -181,20 +181,20 @@ const Onboarding = () => {
           <SocialSetupStep
             data={onboardingData.profile}
             onUpdate={(profile) => updateOnboardingData('profile', profile)}
-            onNext={nextStep}
+            onNext={completeOnboarding}
             onPrev={prevStep}
           />
         );
-      case 3:
-        return (
-          <NewsPreferencesStep
-            data={onboardingData.newsPreferences}
-            onUpdate={(news) => updateOnboardingData('newsPreferences', news)}
-            onComplete={completeOnboarding}
-            onPrev={prevStep}
-            loading={loading}
-          />
-        );
+      // case 3:
+      //   return (
+      //     <NewsPreferencesStep
+      //       data={onboardingData.newsPreferences}
+      //       onUpdate={(news) => updateOnboardingData('newsPreferences', news)}
+      //       onComplete={completeOnboarding}
+      //       onPrev={prevStep}
+      //       loading={loading}
+      //     />
+      //   );
       default:
         return null;
     }
@@ -232,3 +232,4 @@ const Onboarding = () => {
 };
 
 export default Onboarding;
+

@@ -42,6 +42,15 @@ const Navbar = () => {
               <Link to="/habits" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 Habits
               </Link>
+              <Link to="/news" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                News
+              </Link>
+              <Link to="/meals" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                Meals
+              </Link>
+              <Link to="/fitness" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                Fitness
+              </Link>
               <Link to="/social" className="hover:bg-white/10 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 Social
               </Link>
@@ -90,6 +99,15 @@ const Navbar = () => {
               </Link>
               <Link to="/habits" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
                 Habits
+              </Link>
+              <Link to="/news" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
+                News
+              </Link>
+              <Link to="/meals" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
+                Meals
+              </Link>
+              <Link to="/fitness" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
+                Fitness
               </Link>
               <Link to="/social" className="hover:bg-white/10 block px-3 py-2 rounded-md text-base font-medium">
                 Social

@@ -159,32 +159,17 @@ const Auth = () => {
             variant: "destructive",
           });
         }
-      } else if (data.user) {
-        // If user.identities is empty, the email is already registered
-        if (data.user.identities && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-          toast({
-            title: "Account exists",
-            description: "This email is already registered. Please sign in instead.",
-            variant: "destructive",
-          });
-        } else if (!data.user.confirmed_at) {
-          toast({
-            title: "Email not confirmed",
-            description: "This email is already registered but not confirmed. Please check your email for a confirmation link.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Success!",
-            description: "Account created successfully. Please check your email for verification.",
-          });
-          // Clear form
-          setEmail('');
-          setPassword('');
-          setConfirmPassword('');
-          setUsername('');
-          setTriedSubmit(false);
-        }
+      } else {
+        toast({
+          title: "Email sent!",
+          description: "Please check your inbox for a confirmation link.",
+        });
+        // Clear form
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setUsername('');
+        setTriedSubmit(false);
       }
     } catch (error) {
       toast({

@@ -13,6 +13,9 @@ import Profile from "./pages/Profile";
 import Social from "./pages/Social";
 import Habits from "./pages/Habits";
 import UserProfile from "./pages/UserProfile";
+import News from './pages/News';
+import Meals from './pages/Meals';
+import Fitness from './pages/Fitness';
 
 const queryClient = new QueryClient();
 
@@ -53,6 +56,21 @@ const App = () => (
             <Route path="/user/:username" element={
               <ProtectedRoute>
                 <UserProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/news" element={
+              <ProtectedRoute>
+                <News />
+              </ProtectedRoute>
+            } />
+            <Route path="/meals" element={
+              <ProtectedRoute>
+                <Meals />
+              </ProtectedRoute>
+            } />
+            <Route path="/fitness" element={
+              <ProtectedRoute>
+                <Fitness />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

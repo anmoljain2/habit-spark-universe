@@ -17,6 +17,8 @@ const Profile = () => {
   const [profile, setProfile] = useState<any>(null);
   const [habits, setHabits] = useState<any[]>([]);
   const [newsPreferences, setNewsPreferences] = useState<any>(null);
+  const [nutritionPreferences, setNutritionPreferences] = useState<any>(null);
+  const [fitnessGoals, setFitnessGoals] = useState<any>(null);
   const [friends, setFriends] = useState<any[]>([]);
   const [pendingFriendRequests, setPendingFriendRequests] = useState<any[]>([]);
   const [sentFriendRequests, setSentFriendRequests] = useState<any[]>([]);
@@ -61,6 +63,20 @@ const Profile = () => {
         .eq('user_id', user.id)
         .single();
       setNewsPreferences(newsData);
+      // Fetch nutrition preferences
+      const { data: nutritionData } = await supabase
+        .from('user_nutrition_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      setNutritionPreferences(nutritionData);
+      // Fetch fitness goals
+      const { data: fitnessData } = await supabase
+        .from('user_fitness_goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      setFitnessGoals(fitnessData);
       // Fetch friends (accepted only)
       const { data: friendsData } = await supabase
         .from('friend_requests')
@@ -287,6 +303,49 @@ const Profile = () => {
                 </div>
               ) : (
                 <div className="text-gray-500">No news preferences found.</div>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg border-0 bg-white/90">
+            <CardHeader>
+              <CardTitle className="text-pink-700">Nutrition Preferences</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {nutritionPreferences ? (
+                <div className="space-y-1 text-gray-800">
+                  <div><span className="font-semibold">Calories Target:</span> {nutritionPreferences.calories_target || 'N/A'}</div>
+                  <div><span className="font-semibold">Protein Target:</span> {nutritionPreferences.protein_target || 'N/A'}g</div>
+                  <div><span className="font-semibold">Carbs Target:</span> {nutritionPreferences.carbs_target || 'N/A'}g</div>
+                  <div><span className="font-semibold">Fat Target:</span> {nutritionPreferences.fat_target || 'N/A'}g</div>
+                  <div><span className="font-semibold">Fiber Target:</span> {nutritionPreferences.fiber_target || 'N/A'}g</div>
+                  <div><span className="font-semibold">Sodium Limit:</span> {nutritionPreferences.sodium_limit || 'N/A'}mg</div>
+                  <div><span className="font-semibold">Sugar Limit:</span> {nutritionPreferences.sugar_limit || 'N/A'}g</div>
+                  <div><span className="font-semibold">Dietary Restrictions:</span> {nutritionPreferences.dietary_restrictions?.join(', ') || 'None'}</div>
+                  <div><span className="font-semibold">Allergies:</span> {nutritionPreferences.allergies?.join(', ') || 'None'}</div>
+                  <div><span className="font-semibold">Notes:</span> {nutritionPreferences.notes || 'None'}</div>
+                </div>
+              ) : (
+                <div className="text-gray-500">No nutrition preferences found.</div>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg border-0 bg-white/90">
+            <CardHeader>
+              <CardTitle className="text-pink-700">Fitness Goals</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {fitnessGoals ? (
+                <div className="space-y-1 text-gray-800">
+                  <div><span className="font-semibold">Goal Type:</span> {fitnessGoals.goal_type || 'N/A'}</div>
+                  <div><span className="font-semibold">Target Weight:</span> {fitnessGoals.target_weight || 'N/A'} kg</div>
+                  <div><span className="font-semibold">Current Weight:</span> {fitnessGoals.current_weight || 'N/A'} kg</div>
+                  <div><span className="font-semibold">Height:</span> {fitnessGoals.height || 'N/A'} cm</div>
+                  <div><span className="font-semibold">Start Date:</span> {fitnessGoals.start_date || 'N/A'}</div>
+                  <div><span className="font-semibold">End Date:</span> {fitnessGoals.end_date || 'N/A'}</div>
+                  <div><span className="font-semibold">Notes:</span> {fitnessGoals.notes || 'None'}</div>
+                </div>
+              ) : (
+                <div className="text-gray-500">No fitness goals found.</div>
               )}
             </CardContent>
           </Card>
