@@ -1,0 +1,17 @@
+name: Reset Habits Daily
+
+on:
+  schedule:
+    - cron: '0 1 * * *' # 1am UTC
+
+jobs:
+  reset-habits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reset habits in Supabase
+        run: |
+          curl -X POST "https://vafgznielwbuumhmahtk.supabase.co/rest/v1/rpc" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            --data '{"query":"update user_habits set completed_today = false;"}'
