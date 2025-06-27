@@ -1,8 +1,7 @@
-name: Reset Habits Daily
+name: Reset Habits (Manual)
 
 on:
-  schedule:
-    - cron: '0 23 * * *' # 1am UTC
+  workflow_dispatch:  # Allows you to trigger this manually from the GitHub Actions tab
 
 jobs:
   reset-habits:
@@ -10,8 +9,8 @@ jobs:
     steps:
       - name: Reset habits in Supabase
         run: |
-          curl -X PATCH "https://vafgznielwbuumhmahtk.supabase.co/rest/v1/user_habits?completed_today=is.true" \
-          -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-          -H "Content-Type: application/json" \
-          --data '{"completed_today": false}'
+          curl -X PATCH "https://vafgzniebwbuunhmahtk.supabase.co/rest/v1/user_habits?completed_today=is.true" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            --data '{"completed_today": false}'
