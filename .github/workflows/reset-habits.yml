@@ -1,7 +1,10 @@
-name: Reset Habits (Manual)
+name: Reset Habits Daily
 
 on:
-  workflow_dispatch:  # Allows you to trigger this manually from the GitHub Actions tab
+  schedule:
+    - cron: '0 0 * * *'  # 9:00 AM UTC daily
+  # You can keep workflow_dispatch for manual testing if you want
+  workflow_dispatch:
 
 jobs:
   reset-habits:
