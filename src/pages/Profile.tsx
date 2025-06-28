@@ -8,7 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { User, Mail, Eye, EyeOff, Users, UserPlus, XCircle, CheckCircle, Users as UsersIcon, Trophy, Target, Zap, Crown, Star, Award, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AchievementsBadgesRow } from '../components/AchievementBadge';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
 
@@ -257,13 +257,19 @@ const Profile = () => {
         <div className="relative mb-10">
           {/* Background Decoration */}
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/10 via-purple-600/10 to-pink-600/10 rounded-3xl blur-3xl"></div>
-          
+          {/* Edit Profile Button */}
           <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-3xl shadow-2xl p-8 border border-white/20 overflow-hidden">
             {/* Decorative elements */}
             <div className="absolute top-4 right-4 opacity-20">
               <Crown className="w-16 h-16 text-white" />
             </div>
-            
+            {/* Edit Profile Button - bottom right */}
+            <Link
+              to="/profile/edit"
+              className="absolute bottom-6 right-8 z-10 px-6 py-2 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200"
+            >
+              Edit Profile
+            </Link>
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8">
               {/* Avatar & Basic Info */}
               <div className="flex flex-col items-center lg:items-start">
@@ -271,12 +277,10 @@ const Profile = () => {
                   <AvatarImage src={profile?.avatar_url || ''} alt={profile?.display_name || profile?.username || user.email} />
                   <AvatarFallback className="text-5xl font-bold bg-gradient-to-br from-white/20 to-white/10 text-white backdrop-blur-sm">{avatarFallback}</AvatarFallback>
                 </Avatar>
-                
                 <div className="text-center lg:text-left">
                   <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 drop-shadow-lg">
                     {profile?.display_name || profile?.username || user.email}
                   </h1>
-                  
                   <div className="flex flex-wrap gap-3 justify-center lg:justify-start mb-4">
                     <Badge className="bg-white/20 text-white border-white/30 px-4 py-2 text-base font-semibold backdrop-blur-sm hover:bg-white/30 transition-colors">
                       <User className="w-4 h-4 mr-2" />
@@ -287,7 +291,6 @@ const Profile = () => {
                       {user.email}
                     </Badge>
                   </div>
-
                   <div className="flex flex-wrap gap-3 justify-center lg:justify-start mb-6">
                     <Badge className={`px-4 py-2 text-base font-semibold backdrop-blur-sm transition-colors ${
                       profile?.profile_visibility === 'public' 
@@ -302,20 +305,17 @@ const Profile = () => {
                       {friends.length} Friends
                     </Badge>
                   </div>
-
                   {profile?.bio && (
                     <p className="text-white/90 text-lg max-w-2xl leading-relaxed drop-shadow-sm mb-6">
                       {profile.bio}
                     </p>
                   )}
-
                   {/* Achievements Row */}
                   <div className="flex justify-center lg:justify-start">
                     <AchievementsBadgesRow />
                   </div>
                 </div>
               </div>
-
               {/* Stats Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 lg:ml-auto">
                 <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30 hover:bg-white/25 transition-all duration-300 shadow-lg">
@@ -329,7 +329,6 @@ const Profile = () => {
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30 hover:bg-white/25 transition-all duration-300 shadow-lg">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="bg-orange-400/30 p-3 rounded-xl">
@@ -341,7 +340,6 @@ const Profile = () => {
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30 hover:bg-white/25 transition-all duration-300 shadow-lg">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="bg-green-400/30 p-3 rounded-xl">
@@ -353,7 +351,6 @@ const Profile = () => {
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30 hover:bg-white/25 transition-all duration-300 shadow-lg">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="bg-blue-400/30 p-3 rounded-xl">
@@ -508,50 +505,59 @@ const Profile = () => {
           </Card>
 
           {/* Financial Profile Section */}
-          {financialProfile && (
-            <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 mb-8">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 to-yellow-600 bg-clip-text text-transparent">
-                  Financial Snapshot
-                </CardTitle>
-                <CardDescription className="text-gray-600">Your current financial overview</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
-                  <div className="text-center p-4 bg-gradient-to-br from-green-100 to-yellow-100 rounded-xl">
-                    <p className="text-sm text-gray-600">Net Worth</p>
-                    <p className="font-bold text-green-700 text-xl">${financialProfile.net_worth ?? 'N/A'}</p>
-                  </div>
-                  <div className="text-center p-4 bg-gradient-to-br from-green-100 to-yellow-100 rounded-xl">
-                    <p className="text-sm text-gray-600">Assets</p>
-                    <p className="font-bold text-green-700 text-xl">${financialProfile.total_assets ?? 'N/A'}</p>
-                  </div>
-                  <div className="text-center p-4 bg-gradient-to-br from-green-100 to-yellow-100 rounded-xl">
-                    <p className="text-sm text-gray-600">Liabilities</p>
-                    <p className="font-bold text-yellow-700 text-xl">${financialProfile.total_liabilities ?? 'N/A'}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-yellow-50 rounded-xl">
-                    <p className="text-sm text-gray-600">Monthly Income</p>
-                    <p className="font-bold text-green-700">${financialProfile.monthly_income ?? 'N/A'}</p>
-                  </div>
-                  <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-green-50 rounded-xl">
-                    <p className="text-sm text-gray-600">Monthly Expenses</p>
-                    <p className="font-bold text-yellow-700">${financialProfile.monthly_expenses ?? 'N/A'}</p>
-                  </div>
-                </div>
-                {financialProfile.goals && financialProfile.goals.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="font-semibold text-gray-800 mb-2">Main Financial Goal</h4>
-                    <div className="bg-green-50 rounded-lg p-3 text-green-800">
-                      {financialProfile.goals[0].goal} (Target: {financialProfile.goals[0].target}, By: {financialProfile.goals[0].by})
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 mb-8">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 to-yellow-600 bg-clip-text text-transparent">
+                Financial Snapshot
+              </CardTitle>
+              <CardDescription className="text-gray-600">Your current financial overview</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {financialProfile ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                    <div className="text-center p-4 bg-gradient-to-br from-green-100 to-yellow-100 rounded-xl">
+                      <p className="text-sm text-gray-600">Net Worth</p>
+                      <p className="font-bold text-green-700 text-xl">${financialProfile.net_worth ?? 'N/A'}</p>
+                    </div>
+                    <div className="text-center p-4 bg-gradient-to-br from-green-100 to-yellow-100 rounded-xl">
+                      <p className="text-sm text-gray-600">Assets</p>
+                      <p className="font-bold text-green-700 text-xl">${financialProfile.total_assets ?? 'N/A'}</p>
+                    </div>
+                    <div className="text-center p-4 bg-gradient-to-br from-green-100 to-yellow-100 rounded-xl">
+                      <p className="text-sm text-gray-600">Liabilities</p>
+                      <p className="font-bold text-yellow-700 text-xl">${financialProfile.total_liabilities ?? 'N/A'}</p>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    <div className="text-center p-4 bg-gradient-to-br from-green-50 to-yellow-50 rounded-xl">
+                      <p className="text-sm text-gray-600">Monthly Income</p>
+                      <p className="font-bold text-green-700">${financialProfile.monthly_income ?? 'N/A'}</p>
+                    </div>
+                    <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-green-50 rounded-xl">
+                      <p className="text-sm text-gray-600">Monthly Expenses</p>
+                      <p className="font-bold text-yellow-700">${financialProfile.monthly_expenses ?? 'N/A'}</p>
+                    </div>
+                  </div>
+                  {financialProfile.goals && financialProfile.goals.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-semibold text-gray-800 mb-2">Main Financial Goal</h4>
+                      <div className="bg-green-50 rounded-lg p-3 text-green-800">
+                        {financialProfile.goals[0].goal} (Target: {financialProfile.goals[0].target}, By: {financialProfile.goals[0].by})
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Award className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 font-medium">No financial data found. Add your financial profile to get started.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Fitness Goals */}
           <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">

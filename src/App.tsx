@@ -18,6 +18,7 @@ import Meals from './pages/Meals';
 import Fitness from './pages/Fitness';
 import Journal from './pages/Journal';
 import Finances from './pages/Finances';
+import EditProfile from './pages/EditProfile';
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,11 @@ const App = () => (
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/edit" element={
+              <ProtectedRoute>
+                <EditProfile />
               </ProtectedRoute>
             } />
             <Route path="/social" element={
