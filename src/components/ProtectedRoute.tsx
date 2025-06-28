@@ -1,4 +1,3 @@
-
 import { useAuth } from '@/hooks/useAuth';
 import { useOnboardingCheck } from '@/hooks/useOnboardingCheck';
 import { useEffect } from 'react';
@@ -8,14 +7,14 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { needsOnboarding, loading: onboardingLoading } = useOnboardingCheck();
 
   useEffect(() => {
     if (!authLoading && !user) {
-      window.location.href = '/auth';
+      signOut(); // Sign out and redirect to /auth
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, signOut]);
 
   useEffect(() => {
     if (!authLoading && !onboardingLoading && user && needsOnboarding) {

@@ -1,4 +1,3 @@
-
 import { User, Trophy, Settings, Menu, LogOut, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,6 +34,7 @@ const Navbar = () => {
     { path: '/news', label: 'News' },
     { path: '/meals', label: 'Meals' },
     { path: '/fitness', label: 'Fitness' },
+    { path: '/finances', label: 'Finances' },
     { path: '/social', label: 'Social' },
   ];
 

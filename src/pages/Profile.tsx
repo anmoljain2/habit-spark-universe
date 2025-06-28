@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { User, Mail, Eye, EyeOff, Users, UserPlus, XCircle, CheckCircle, Users as UsersIcon, Trophy, Target, Zap, Crown, Star } from 'lucide-react';
+import { User, Mail, Eye, EyeOff, Users, UserPlus, XCircle, CheckCircle, Users as UsersIcon, Trophy, Target, Zap, Crown, Star, Award, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AchievementsBadgesRow } from '../components/AchievementBadge';
 import { useNavigate } from 'react-router-dom';
@@ -26,6 +26,8 @@ const Profile = () => {
   const [mainStats, setMainStats] = useState({ total_xp: 0, streak: 0, habits_completed_percent: 0, level: 1 });
   const navigate = useNavigate();
   const [unfriendDialog, setUnfriendDialog] = useState<{ open: boolean, friendUserId: string | null, friendUsername: string | null }>({ open: false, friendUserId: null, friendUsername: null });
+  const [financialProfile, setFinancialProfile] = useState<any>(null);
+  const [journalQuestions, setJournalQuestions] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -77,6 +79,13 @@ const Profile = () => {
         .eq('user_id', user.id)
         .single();
       setFitnessGoals(fitnessData);
+      // Fetch financial profile
+      const { data: financialData } = await supabase
+        .from('financial_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      setFinancialProfile(financialData);
       // Fetch friends (accepted only)
       const { data: friendsData } = await supabase
         .from('friend_requests')
@@ -135,6 +144,43 @@ const Profile = () => {
         }));
       }
       setSentFriendRequests(sentPendingWithUser);
+      // Fetch journal questions
+      const { data: journalConfig } = await supabase
+        .from('journal_config')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      if (journalConfig) {
+        const QUESTION_KEYS = [
+          'q_grateful',
+          'q_highlight',
+          'q_challenged',
+          'q_selfcare',
+          'q_learned',
+          'q_goals',
+          'q_feeling',
+          'q_letgo',
+          'q_smile',
+          'q_improve',
+        ];
+        const COMMON_JOURNAL_QUESTIONS = [
+          'What are you grateful for today?',
+          'What was the highlight of your day?',
+          'What challenged you today?',
+          'How did you take care of yourself today?',
+          'What did you learn today?',
+          'What are your goals for tomorrow?',
+          'How are you feeling right now?',
+          'What is something you want to let go of?',
+          'What made you smile today?',
+          'What is one thing you could improve on?'
+        ];
+        const selected: string[] = [];
+        QUESTION_KEYS.forEach((key, i) => {
+          if (journalConfig[key]) selected.push(COMMON_JOURNAL_QUESTIONS[i]);
+        });
+        setJournalQuestions(selected);
+      }
       setLoading(false);
     };
     fetchProfileData();
@@ -206,7 +252,7 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
       <Navbar />
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="w-full px-4 py-8">
         {/* Hero Profile Section */}
         <div className="relative mb-10">
           {/* Background Decoration */}
@@ -460,6 +506,113 @@ const Profile = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Financial Profile Section */}
+          {financialProfile && (
+            <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 mb-8">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 to-yellow-600 bg-clip-text text-transparent">
+                  Financial Snapshot
+                </CardTitle>
+                <CardDescription className="text-gray-600">Your current financial overview</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                  <div className="text-center p-4 bg-gradient-to-br from-green-100 to-yellow-100 rounded-xl">
+                    <p className="text-sm text-gray-600">Net Worth</p>
+                    <p className="font-bold text-green-700 text-xl">${financialProfile.net_worth ?? 'N/A'}</p>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-green-100 to-yellow-100 rounded-xl">
+                    <p className="text-sm text-gray-600">Assets</p>
+                    <p className="font-bold text-green-700 text-xl">${financialProfile.total_assets ?? 'N/A'}</p>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-green-100 to-yellow-100 rounded-xl">
+                    <p className="text-sm text-gray-600">Liabilities</p>
+                    <p className="font-bold text-yellow-700 text-xl">${financialProfile.total_liabilities ?? 'N/A'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-yellow-50 rounded-xl">
+                    <p className="text-sm text-gray-600">Monthly Income</p>
+                    <p className="font-bold text-green-700">${financialProfile.monthly_income ?? 'N/A'}</p>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-green-50 rounded-xl">
+                    <p className="text-sm text-gray-600">Monthly Expenses</p>
+                    <p className="font-bold text-yellow-700">${financialProfile.monthly_expenses ?? 'N/A'}</p>
+                  </div>
+                </div>
+                {financialProfile.goals && financialProfile.goals.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-gray-800 mb-2">Main Financial Goal</h4>
+                    <div className="bg-green-50 rounded-lg p-3 text-green-800">
+                      {financialProfile.goals[0].goal} (Target: {financialProfile.goals[0].target}, By: {financialProfile.goals[0].by})
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Fitness Goals */}
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+                Fitness Goals
+              </CardTitle>
+              <CardDescription className="text-gray-600">Your health and fitness objectives</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {fitnessGoals ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
+                    <h4 className="font-semibold text-gray-800 mb-2">Goal Type</h4>
+                    <p className="text-2xl font-bold text-pink-600">{fitnessGoals.goal_type || 'N/A'}</p>
+                  </div>
+                  <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
+                    <h4 className="font-semibold text-gray-800 mb-2">Target Weight</h4>
+                    <p className="text-2xl font-bold text-pink-600">{fitnessGoals.target_weight || 'N/A'} kg</p>
+                  </div>
+                  <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
+                    <h4 className="font-semibold text-gray-800 mb-2">Current Weight</h4>
+                    <p className="text-2xl font-bold text-pink-600">{fitnessGoals.current_weight || 'N/A'} kg</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Award className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 font-medium">No fitness goals set</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Journal Questions Section */}
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Journal Prompts
+              </CardTitle>
+              <CardDescription className="text-gray-600">Your selected daily reflection questions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {journalQuestions.length > 0 ? (
+                <ul className="list-disc pl-6 space-y-2">
+                  {journalQuestions.map((q, i) => (
+                    <li key={i} className="text-gray-800 text-base">{q}</li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <BookOpen className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 font-medium">No journal prompts selected</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Friends Section */}
@@ -607,42 +760,6 @@ const Profile = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Fitness Goals Card */}
-        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 mb-8">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
-              Fitness Goals
-            </CardTitle>
-            <CardDescription className="text-gray-600">Your health and fitness objectives</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {fitnessGoals ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
-                  <h4 className="font-semibold text-gray-800 mb-2">Goal Type</h4>
-                  <p className="text-2xl font-bold text-pink-600">{fitnessGoals.goal_type || 'N/A'}</p>
-                </div>
-                <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
-                  <h4 className="font-semibold text-gray-800 mb-2">Target Weight</h4>
-                  <p className="text-2xl font-bold text-pink-600">{fitnessGoals.target_weight || 'N/A'} kg</p>
-                </div>
-                <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
-                  <h4 className="font-semibold text-gray-800 mb-2">Current Weight</h4>
-                  <p className="text-2xl font-bold text-pink-600">{fitnessGoals.current_weight || 'N/A'} kg</p>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Target className="w-8 h-8 text-gray-400" />
-                </div>
-                <p className="text-gray-500 font-medium text-lg">No fitness goals set</p>
-                <p className="text-gray-400">Set up your fitness goals to start tracking progress!</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

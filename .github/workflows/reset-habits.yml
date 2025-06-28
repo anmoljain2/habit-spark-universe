@@ -2,7 +2,7 @@ name: Reset Habits Daily
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # 9:00 AM UTC daily
+    - cron: '0 9 * * *'  # 9:00 AM UTC daily
   # You can keep workflow_dispatch for manual testing if you want
   workflow_dispatch:
 
