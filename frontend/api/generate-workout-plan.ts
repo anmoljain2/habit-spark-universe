@@ -2,6 +2,7 @@ import { OpenAI } from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { startOfWeek, endOfWeek, formatISO } from 'date-fns';
+import { jsonrepair } from 'jsonrepair';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -82,7 +83,7 @@ If a day is a rest day, set workout_type to 'Rest' and exercises to an empty arr
       const codeBlocks = [...content.matchAll(/```json([\s\S]*?)```/g)].map(m => m[1].trim());
       for (const block of codeBlocks) {
         try {
-          plan = JSON.parse(block);
+          plan = JSON.parse(jsonrepair(block));
           break;
         } catch (e) {}
       }
@@ -91,7 +92,7 @@ If a day is a rest day, set workout_type to 'Rest' and exercises to an empty arr
         const arrEnd = content.lastIndexOf(']');
         if (arrStart !== -1 && arrEnd !== -1 && arrEnd > arrStart) {
           try {
-            plan = JSON.parse(content.slice(arrStart, arrEnd + 1));
+            plan = JSON.parse(jsonrepair(content.slice(arrStart, arrEnd + 1)));
           } catch (e) {}
         }
       }
