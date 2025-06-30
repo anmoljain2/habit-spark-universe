@@ -614,19 +614,91 @@ const Profile = () => {
             </CardHeader>
             <CardContent>
               {fitnessGoals ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
-                    <h4 className="font-semibold text-gray-800 mb-2">Goal Type</h4>
-                    <p className="text-2xl font-bold text-pink-600">{fitnessGoals.goal_type || 'N/A'}</p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-800 mb-2">Goal Type</h4>
+                      <p className="text-2xl font-bold text-pink-600">{fitnessGoals.goal_type || 'N/A'}</p>
+                    </div>
+                    <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-800 mb-2">Target Weight</h4>
+                      <p className="text-2xl font-bold text-pink-600">{fitnessGoals.target_weight || 'N/A'} kg</p>
+                    </div>
+                    <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-800 mb-2">Current Weight</h4>
+                      <p className="text-2xl font-bold text-pink-600">{fitnessGoals.current_weight || 'N/A'} kg</p>
+                    </div>
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
-                    <h4 className="font-semibold text-gray-800 mb-2">Target Weight</h4>
-                    <p className="text-2xl font-bold text-pink-600">{fitnessGoals.target_weight || 'N/A'} kg</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-3 bg-pink-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Height</p>
+                      <p className="font-semibold text-pink-700">{fitnessGoals.height || 'N/A'} cm</p>
+                    </div>
+                    <div className="text-center p-3 bg-pink-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Days/Week</p>
+                      <p className="font-semibold text-pink-700">{fitnessGoals.days_per_week || 'N/A'}</p>
+                    </div>
+                    <div className="text-center p-3 bg-pink-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Minutes/Session</p>
+                      <p className="font-semibold text-pink-700">{fitnessGoals.minutes_per_session || 'N/A'}</p>
+                    </div>
+                    <div className="text-center p-3 bg-pink-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Intensity</p>
+                      <p className="font-semibold text-pink-700">{fitnessGoals.intensity ? fitnessGoals.intensity.charAt(0).toUpperCase() + fitnessGoals.intensity.slice(1) : 'N/A'}</p>
+                    </div>
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl">
-                    <h4 className="font-semibold text-gray-800 mb-2">Current Weight</h4>
-                    <p className="text-2xl font-bold text-pink-600">{fitnessGoals.current_weight || 'N/A'} kg</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-rose-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-800 mb-2">Cardio Preferences</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {(fitnessGoals.cardio_preferences || []).length > 0 ? fitnessGoals.cardio_preferences.map((c: string, i: number) => (
+                          <Badge key={i} className="bg-pink-100 text-pink-700 border-0 text-xs">{c}</Badge>
+                        )) : <span className="text-gray-400">None</span>}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-rose-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-800 mb-2">Muscle Focus</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {(fitnessGoals.muscle_focus || []).length > 0 ? fitnessGoals.muscle_focus.map((m: string, i: number) => (
+                          <Badge key={i} className="bg-pink-100 text-pink-700 border-0 text-xs">{m}</Badge>
+                        )) : <span className="text-gray-400">None</span>}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-rose-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-800 mb-2">Equipment</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {(fitnessGoals.equipment_available || []).length > 0 ? fitnessGoals.equipment_available.map((e: string, i: number) => (
+                          <Badge key={i} className="bg-pink-100 text-pink-700 border-0 text-xs">{e}</Badge>
+                        )) : <span className="text-gray-400">None</span>}
+                      </div>
+                    </div>
                   </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="text-center p-3 bg-pink-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Preferred Time</p>
+                      <p className="font-semibold text-pink-700">{fitnessGoals.preferred_time_of_day ? fitnessGoals.preferred_time_of_day.charAt(0).toUpperCase() + fitnessGoals.preferred_time_of_day.slice(1) : 'N/A'}</p>
+                    </div>
+                    <div className="text-center p-3 bg-pink-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Start Date</p>
+                      <p className="font-semibold text-pink-700">{fitnessGoals.start_date || 'N/A'}</p>
+                    </div>
+                    <div className="text-center p-3 bg-pink-50 rounded-lg">
+                      <p className="text-sm text-gray-600">End Date</p>
+                      <p className="font-semibold text-pink-700">{fitnessGoals.end_date || 'N/A'}</p>
+                    </div>
+                  </div>
+                  {fitnessGoals.injury_limitations && (
+                    <div className="p-4 bg-rose-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-800 mb-2">Injury Limitations</h4>
+                      <p className="text-gray-700 text-sm">{fitnessGoals.injury_limitations}</p>
+                    </div>
+                  )}
+                  {fitnessGoals.notes && (
+                    <div className="p-4 bg-gray-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-800 mb-2">Notes</h4>
+                      <p className="text-gray-700 text-sm">{fitnessGoals.notes}</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">

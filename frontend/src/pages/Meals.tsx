@@ -17,10 +17,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Tables } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/types';
 import Confetti from 'react-confetti';
 
-type Meal = Tables<'user_meals'>;
+type Meal = Database['public']['Tables']['user_meals']['Row'];
 
 const Meals = () => {
   const { user } = useAuth();

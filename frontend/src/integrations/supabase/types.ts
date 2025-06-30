@@ -1,3 +1,6 @@
+Need to install the following packages:
+supabase@2.26.9
+Ok to proceed? (y) 
 export type Json =
   | string
   | number
@@ -226,37 +229,61 @@ export type Database = {
       }
       user_fitness_goals: {
         Row: {
+          cardio_preferences: string[] | null
           created_at: string | null
           current_weight: number | null
+          days_per_week: number | null
           end_date: string | null
+          equipment_available: string[] | null
           goal_type: string | null
           height: number | null
           id: string
+          injury_limitations: string | null
+          intensity: string | null
+          minutes_per_session: number | null
+          muscle_focus: string[] | null
           notes: string | null
+          preferred_time_of_day: string | null
           start_date: string | null
           target_weight: number | null
           user_id: string | null
         }
         Insert: {
+          cardio_preferences?: string[] | null
           created_at?: string | null
           current_weight?: number | null
+          days_per_week?: number | null
           end_date?: string | null
+          equipment_available?: string[] | null
           goal_type?: string | null
           height?: number | null
           id?: string
+          injury_limitations?: string | null
+          intensity?: string | null
+          minutes_per_session?: number | null
+          muscle_focus?: string[] | null
           notes?: string | null
+          preferred_time_of_day?: string | null
           start_date?: string | null
           target_weight?: number | null
           user_id?: string | null
         }
         Update: {
+          cardio_preferences?: string[] | null
           created_at?: string | null
           current_weight?: number | null
+          days_per_week?: number | null
           end_date?: string | null
+          equipment_available?: string[] | null
           goal_type?: string | null
           height?: number | null
           id?: string
+          injury_limitations?: string | null
+          intensity?: string | null
+          minutes_per_session?: number | null
+          muscle_focus?: string[] | null
           notes?: string | null
+          preferred_time_of_day?: string | null
           start_date?: string | null
           target_weight?: number | null
           user_id?: string | null

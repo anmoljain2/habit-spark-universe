@@ -67,6 +67,15 @@ const EditProfile = () => {
   const [fitnessHeight, setFitnessHeight] = useState('');
   const [fitnessStartDate, setFitnessStartDate] = useState('');
   const [fitnessEndDate, setFitnessEndDate] = useState('');
+  // New fitness preferences state
+  const [fitnessDaysPerWeek, setFitnessDaysPerWeek] = useState('');
+  const [fitnessMinutesPerSession, setFitnessMinutesPerSession] = useState('');
+  const [fitnessIntensity, setFitnessIntensity] = useState('moderate');
+  const [fitnessCardioPreferences, setFitnessCardioPreferences] = useState<string[]>([]);
+  const [fitnessMuscleFocus, setFitnessMuscleFocus] = useState<string[]>([]);
+  const [fitnessEquipmentAvailable, setFitnessEquipmentAvailable] = useState<string[]>([]);
+  const [fitnessInjuryLimitations, setFitnessInjuryLimitations] = useState('');
+  const [fitnessPreferredTimeOfDay, setFitnessPreferredTimeOfDay] = useState('any');
   // Financial Profile form state
   const [netWorth, setNetWorth] = useState('');
   const [totalAssets, setTotalAssets] = useState('');
@@ -188,6 +197,14 @@ const EditProfile = () => {
       setFitnessHeight(fitnessData?.height?.toString() || '');
       setFitnessStartDate(fitnessData?.start_date || '');
       setFitnessEndDate(fitnessData?.end_date || '');
+      setFitnessDaysPerWeek(fitnessData?.days_per_week?.toString() || '');
+      setFitnessMinutesPerSession(fitnessData?.minutes_per_session?.toString() || '');
+      setFitnessIntensity(fitnessData?.intensity || 'moderate');
+      setFitnessCardioPreferences(fitnessData?.cardio_preferences || []);
+      setFitnessMuscleFocus(fitnessData?.muscle_focus || []);
+      setFitnessEquipmentAvailable(fitnessData?.equipment_available || []);
+      setFitnessInjuryLimitations(fitnessData?.injury_limitations || '');
+      setFitnessPreferredTimeOfDay(fitnessData?.preferred_time_of_day || 'any');
       // Fetch financial profile
       const { data: financialData } = await supabase
         .from('financial_profiles')
@@ -290,6 +307,14 @@ const EditProfile = () => {
           start_date: fitnessStartDate || null,
           end_date: fitnessEndDate || null,
           notes: fitnessNotes,
+          days_per_week: fitnessDaysPerWeek ? parseInt(fitnessDaysPerWeek, 10) : null,
+          minutes_per_session: fitnessMinutesPerSession ? parseInt(fitnessMinutesPerSession, 10) : null,
+          intensity: fitnessIntensity,
+          cardio_preferences: fitnessCardioPreferences,
+          muscle_focus: fitnessMuscleFocus,
+          equipment_available: fitnessEquipmentAvailable,
+          injury_limitations: fitnessInjuryLimitations,
+          preferred_time_of_day: fitnessPreferredTimeOfDay,
         }, { onConflict: 'user_id' }),
         supabase.from('financial_profiles').upsert({
           user_id: user.id,
@@ -821,6 +846,67 @@ const EditProfile = () => {
                   <Label>End Date</Label>
                   <Input type="date" value={fitnessEndDate} onChange={e => setFitnessEndDate(e.target.value)} />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Days per Week</Label>
+                  <Input type="number" min={1} max={7} value={fitnessDaysPerWeek} onChange={e => setFitnessDaysPerWeek(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Minutes per Session</Label>
+                  <Input type="number" min={10} max={180} value={fitnessMinutesPerSession} onChange={e => setFitnessMinutesPerSession(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Intensity</Label>
+                  <Select value={fitnessIntensity} onValueChange={setFitnessIntensity}>
+                    <SelectTrigger><SelectValue placeholder="Select intensity" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="moderate">Moderate</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Preferred Time of Day</Label>
+                  <Select value={fitnessPreferredTimeOfDay} onValueChange={setFitnessPreferredTimeOfDay}>
+                    <SelectTrigger><SelectValue placeholder="Select time of day" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="morning">Morning</SelectItem>
+                      <SelectItem value="afternoon">Afternoon</SelectItem>
+                      <SelectItem value="evening">Evening</SelectItem>
+                      <SelectItem value="any">Any</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Cardio Preferences</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['Running','Swimming','Biking','Rowing','Walking','HIIT','Elliptical','Other'].map(opt => (
+                    <Button key={opt} type="button" size="sm" variant={fitnessCardioPreferences.includes(opt) ? 'default' : 'outline'} className={fitnessCardioPreferences.includes(opt) ? 'bg-pink-500 text-white' : ''} onClick={() => setFitnessCardioPreferences(prev => prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt])}>{opt}</Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label>Muscle Focus</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['Legs','Upper Body','Core','Full Body','Back','Chest','Arms','Shoulders','Glutes'].map(opt => (
+                    <Button key={opt} type="button" size="sm" variant={fitnessMuscleFocus.includes(opt) ? 'default' : 'outline'} className={fitnessMuscleFocus.includes(opt) ? 'bg-pink-500 text-white' : ''} onClick={() => setFitnessMuscleFocus(prev => prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt])}>{opt}</Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label>Equipment Available</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['Dumbbells','Resistance Bands','Barbell','Kettlebell','Bodyweight Only','Machines','None'].map(opt => (
+                    <Button key={opt} type="button" size="sm" variant={fitnessEquipmentAvailable.includes(opt) ? 'default' : 'outline'} className={fitnessEquipmentAvailable.includes(opt) ? 'bg-pink-500 text-white' : ''} onClick={() => setFitnessEquipmentAvailable(prev => prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt])}>{opt}</Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label>Injury Limitations</Label>
+                <Input value={fitnessInjuryLimitations} onChange={e => setFitnessInjuryLimitations(e.target.value)} placeholder="e.g. knee pain, shoulder injury, etc." />
               </div>
               <div>
                 <Label>Notes</Label>
