@@ -1,157 +1,135 @@
+
 import { useEffect, useState } from 'react';
-import { Trophy, Star, Target, Flame, Award } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
-
-const ACHIEVEMENTS = [
-  {
-    key: 'first_steps',
-    name: 'First Steps',
-    description: 'Complete your first habit',
-    icon: <Star className="w-6 h-6" />,
-  },
-  {
-    key: 'streak_starter',
-    name: 'Streak Starter',
-    description: 'Achieve a 3-day streak',
-    icon: <Flame className="w-6 h-6" />,
-  },
-  {
-    key: 'consistency_king',
-    name: 'Consistency King',
-    description: 'Complete all habits for 7 days in a row',
-    icon: <Award className="w-6 h-6" />,
-  },
-  {
-    key: 'habit_collector',
-    name: 'Habit Collector',
-    description: 'Add 5 different habits',
-    icon: <Target className="w-6 h-6" />,
-  },
-  {
-    key: 'level_up',
-    name: 'Level Up',
-    description: 'Reach Level 5',
-    icon: <Trophy className="w-6 h-6" />,
-  },
-];
-
-const AchievementBadge = ({ achievement, unlocked, unlockedAt }: { achievement: typeof ACHIEVEMENTS[0], unlocked: boolean, unlockedAt?: string }) => {
-  return (
-    <div className={`p-4 rounded-lg border-2 transition-all duration-300 ${
-      unlocked
-        ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300 shadow-lg'
-        : 'bg-gray-50 border-gray-200 opacity-60'
-    }`}>
-      <div className="text-center">
-        <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
-          unlocked ? 'bg-yellow-400 text-white' : 'bg-gray-300 text-gray-500'
-        }`}>
-          {achievement.icon}
-        </div>
-        <h3 className={`font-semibold text-sm mb-1 ${
-          unlocked ? 'text-gray-900' : 'text-gray-500'
-        }`}>
-          {achievement.name}
-        </h3>
-        <p className={`text-xs ${
-          unlocked ? 'text-gray-600' : 'text-gray-400'
-        }`}>
-          {achievement.description}
-        </p>
-        {unlocked && unlockedAt && (
-          <p className="text-xs text-yellow-600 mt-1 font-medium">
-            Unlocked {new Date(unlockedAt).toLocaleDateString()}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-};
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Trophy, Award, Star, Target } from 'lucide-react';
 
 const AchievementsSection = () => {
   const { user } = useAuth();
-  const [userAchievements, setUserAchievements] = useState<{ [key: string]: { unlocked: boolean, unlocked_at?: string } }>({});
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAchievements = async () => {
       if (!user) return;
-      const { data } = await supabase
-        .from('achievements')
-        .select('achievement_key, unlocked, unlocked_at')
-        .eq('user_id', user.id);
-      const map: { [key: string]: { unlocked: boolean, unlocked_at?: string } } = {};
-      (data || []).forEach((a: any) => {
-        map[a.achievement_key] = { unlocked: a.unlocked, unlocked_at: a.unlocked_at };
-      });
-      setUserAchievements(map);
+      
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('achievements')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('unlocked', true)
+          .order('unlocked_at', { ascending: false })
+          .limit(6);
+
+        if (error) {
+          console.error('Error fetching achievements:', error);
+          setAchievements([]);
+        } else {
+          setAchievements(data || []);
+        }
+      } catch (error) {
+        console.error('Error in fetchAchievements:', error);
+        setAchievements([]);
+      } finally {
+        setLoading(false);
+      }
     };
+
     fetchAchievements();
   }, [user]);
 
-  return (
-    <div className="mt-8">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Achievements</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {ACHIEVEMENTS.map((achievement) => (
-          <AchievementBadge
-            key={achievement.key}
-            achievement={achievement}
-            unlocked={!!userAchievements[achievement.key]?.unlocked}
-            unlockedAt={userAchievements[achievement.key]?.unlocked_at}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
+  // Mock achievements if none exist
+  const mockAchievements = [
+    { achievement_key: 'first_habit', title: 'First Steps', description: 'Complete your first habit' },
+    { achievement_key: 'week_streak', title: 'Consistent', description: 'Maintain a 7-day streak' },
+    { achievement_key: 'level_up', title: 'Level Up', description: 'Reach level 2' }
+  ];
 
-export const AchievementsBadgesRow = () => {
-  const { user } = useAuth();
-  const [userAchievements, setUserAchievements] = useState<{ [key: string]: { unlocked: boolean, unlocked_at?: string } }>({});
+  const displayAchievements = achievements.length > 0 ? achievements : mockAchievements.slice(0, 3);
 
-  useEffect(() => {
-    const fetchAchievements = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('achievements')
-        .select('achievement_key, unlocked, unlocked_at')
-        .eq('user_id', user.id);
-      const map: { [key: string]: { unlocked: boolean, unlocked_at?: string } } = {};
-      (data || []).forEach((a: any) => {
-        map[a.achievement_key] = { unlocked: a.unlocked, unlocked_at: a.unlocked_at };
-      });
-      setUserAchievements(map);
-    };
-    fetchAchievements();
-  }, [user]);
+  const getAchievementIcon = (key: string) => {
+    switch (key) {
+      case 'first_habit':
+        return Target;
+      case 'week_streak':
+        return Star;
+      case 'level_up':
+        return Trophy;
+      default:
+        return Award;
+    }
+  };
 
-  const unlockedBadges = ACHIEVEMENTS.filter((achievement) => userAchievements[achievement.key]?.unlocked);
-  if (unlockedBadges.length === 0) return null;
-
-  return (
-    <TooltipProvider>
-      <div className="flex flex-wrap gap-2 items-center">
-        {unlockedBadges.map((achievement) => (
-          <Tooltip key={achievement.key}>
-            <TooltipTrigger asChild>
-              <div className="flex flex-col items-center cursor-pointer">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-yellow-400 text-white shadow border-2 border-yellow-300">
-                  {achievement.icon}
+  if (loading) {
+    return (
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Trophy className="w-5 h-5 text-yellow-600" />
+            <span>Recent Achievements</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg animate-pulse">
+                <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                  <div className="h-3 bg-gray-200 rounded w-32"></div>
                 </div>
               </div>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <div className="text-center">
-                <div className="font-bold">{achievement.name}</div>
-                <div className="text-xs">{achievement.description}</div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        ))}
-      </div>
-    </TooltipProvider>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="mt-8">
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <Trophy className="w-5 h-5 text-yellow-600" />
+          <span>Recent Achievements</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {displayAchievements.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Award className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p>Complete habits to unlock achievements!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {displayAchievements.map((achievement, index) => {
+              const IconComponent = getAchievementIcon(achievement.achievement_key);
+              return (
+                <div
+                  key={achievement.achievement_key || index}
+                  className="flex items-center space-x-3 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200"
+                >
+                  <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-2 rounded-full">
+                    <IconComponent className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900">
+                      {achievement.title || achievement.achievement_key}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {achievement.description || 'Achievement unlocked!'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

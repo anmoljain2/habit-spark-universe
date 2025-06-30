@@ -1,111 +1,133 @@
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { TrendingUp, Target, Flame } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Activity, Target, TrendingUp, Calendar } from 'lucide-react';
 
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  color: string;
-  subtitle?: string;
+interface StatsOverviewProps {
+  xpRefresh?: number;
 }
 
-const StatCard = ({ title, value, icon, color, subtitle }: StatCardProps) => {
-  return (
-    <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 hover:shadow-xl transition-shadow duration-300" style={{ borderLeftColor: color }}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
-          {subtitle && <p className="text-gray-500 text-xs mt-1">{subtitle}</p>}
-        </div>
-        <div className="p-3 rounded-full" style={{ backgroundColor: `${color}15` }}>
-          <div style={{ color }}>{icon}</div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const StatsOverview = ({ xpRefresh }: { xpRefresh?: number }) => {
+const StatsOverview = ({ xpRefresh }: StatsOverviewProps) => {
   const { user } = useAuth();
+  const [stats, setStats] = useState({
+    totalXP: 0,
+    habitsCompleted: 0,
+    currentStreak: 0,
+    weeklyProgress: 0
+  });
   const [loading, setLoading] = useState(true);
-  const [totalXP, setTotalXP] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [habitsCompleted, setHabitsCompleted] = useState(0);
-  const [habitsTotal, setHabitsTotal] = useState(0);
-  const [habitsCompletedPercent, setHabitsCompletedPercent] = useState(0);
 
   useEffect(() => {
-    if (!user) return;
-    setLoading(true);
-    let xpFetched = false;
-    let habitsFetched = false;
-    // Fetch XP and streak and habits_completed_percent from profiles
-    supabase
-      .from('profiles')
-      .select('total_xp, streak, habits_completed_percent')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => {
-        setTotalXP(data?.total_xp || 0);
-        setStreak(data?.streak || 0);
-        setHabitsCompletedPercent(data?.habits_completed_percent || 0);
-        xpFetched = true;
-        if (xpFetched && habitsFetched) setLoading(false);
-      });
-    // Fetch habits for completion percentage (no longer used for percent)
-    supabase
-      .from('user_habits')
-      .select('streak_goal')
-      .eq('user_id', user.id)
-      .then(({ data }) => {
-        if (!data) {
-          setHabitsCompleted(0);
-          setHabitsTotal(0);
-          habitsFetched = true;
-          if (xpFetched && habitsFetched) setLoading(false);
-          return;
+    const fetchStats = async () => {
+      if (!user) return;
+      
+      setLoading(true);
+      try {
+        // Get profile data
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('total_xp, streak, habits_completed_percent')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        // Get today's completed habits
+        const today = new Date().toISOString().split('T')[0];
+        const { data: completedHabits, error: habitsError } = await supabase
+          .from('user_habits')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('completed_today', true);
+
+        if (habitsError) {
+          console.error('Error fetching habits:', habitsError);
         }
-        const total = data.length;
-        setHabitsTotal(total);
-        setHabitsCompleted(0); // No completed column, so always 0
-        habitsFetched = true;
-        if (xpFetched && habitsFetched) setLoading(false);
-      });
+
+        setStats({
+          totalXP: profile?.total_xp || 0,
+          habitsCompleted: completedHabits?.length || 0,
+          currentStreak: profile?.streak || 0,
+          weeklyProgress: profile?.habits_completed_percent || 0
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
   }, [user, xpRefresh]);
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard title="Total XP" value="..." icon={<TrendingUp className="w-6 h-6" />} color="#10B981" />
-        <StatCard title="Current Streak" value="..." icon={<Flame className="w-6 h-6" />} color="#F59E0B" />
-        <StatCard title="Habits Completed" value="..." icon={<Target className="w-6 h-6" />} color="#8B5CF6" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader className="pb-2">
+              <div className="h-4 bg-gray-200 rounded w-24"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-gray-200 rounded w-16"></div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     );
   }
 
+  const statsData = [
+    {
+      title: 'Total XP',
+      value: stats.totalXP.toLocaleString(),
+      icon: Activity,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100'
+    },
+    {
+      title: 'Habits Today',
+      value: stats.habitsCompleted.toString(),
+      icon: Target,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100'
+    },
+    {
+      title: 'Current Streak',
+      value: `${stats.currentStreak} days`,
+      icon: TrendingUp,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-100'
+    },
+    {
+      title: 'Weekly Progress',
+      value: `${stats.weeklyProgress}%`,
+      icon: Calendar,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100'
+    }
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <StatCard
-        title="Total XP"
-        value={totalXP.toLocaleString()}
-        icon={<TrendingUp className="w-6 h-6" />}
-        color="#10B981"
-      />
-      <StatCard
-        title="Current Streak"
-        value={streak > 0 ? `${streak} days` : '0 days'}
-        icon={<Flame className="w-6 h-6" />}
-        color="#F59E0B"
-      />
-      <StatCard
-        title="Habits Completed"
-        value={`${habitsCompletedPercent}%`}
-        icon={<Target className="w-6 h-6" />}
-        color="#8B5CF6"
-      />
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {statsData.map((stat, index) => {
+        const IconComponent = stat.icon;
+        return (
+          <Card key={index} className="hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                {stat.title}
+              </CardTitle>
+              <div className={`p-2 rounded-full ${stat.bgColor}`}>
+                <IconComponent className={`w-4 h-4 ${stat.color}`} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };

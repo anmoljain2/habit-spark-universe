@@ -1,3 +1,4 @@
+
 import { useAuth } from '@/hooks/useAuth';
 import Navbar from '../components/Navbar';
 import StatsOverview from '../components/StatsCard';
@@ -12,6 +13,8 @@ const Index = () => {
   const { user } = useAuth();
   const [xpRefresh, setXPRefresh] = useState(0);
   
+  console.log('Index page rendering for user:', user?.email);
+  
   // Get user's display name from email or username
   const displayName = user?.user_metadata?.username || user?.email?.split('@')[0] || 'Adventurer';
 
@@ -22,6 +25,16 @@ const Index = () => {
     { label: 'Weekly Streak', value: '7 days', color: 'from-orange-400 to-red-500', icon: TrendingUp },
     { label: 'Total XP', value: '2,340', color: 'from-purple-400 to-pink-500', icon: Sparkles },
   ];
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
@@ -66,6 +79,7 @@ const Index = () => {
         <LevelCard xpRefresh={xpRefresh} />
         <StatsOverview xpRefresh={xpRefresh} />
         <HabitsList onXPChange={handleXPChange} hideAddButton />
+        
         {/* Horizontal Info Sections - Full Width */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
           {/* News Section */}
@@ -95,6 +109,7 @@ const Index = () => {
               View All <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
+          
           {/* Meals Section */}
           <div className="bg-white/70 rounded-xl shadow-md p-4 border border-white/50">
             <div className="flex items-center gap-2 mb-3">
@@ -122,6 +137,7 @@ const Index = () => {
               Plan Meals <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
+          
           {/* Fitness Section */}
           <div className="bg-white/70 rounded-xl shadow-md p-4 border border-white/50">
             <div className="flex items-center gap-2 mb-3">

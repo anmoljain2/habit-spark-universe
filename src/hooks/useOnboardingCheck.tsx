@@ -12,22 +12,28 @@ export const useOnboardingCheck = () => {
     const checkOnboardingStatus = async () => {
       if (!user) {
         setLoading(false);
+        setNeedsOnboarding(null);
         return;
       }
 
       try {
+        console.log('Checking onboarding status for user:', user.email);
+        
         // Check if user has completed onboarding by checking if they have a profile
         const { data: profile, error } = await supabase
           .from('user_profiles')
           .select('user_id')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error('Error checking onboarding status:', error);
+          // If there's an error, assume they need onboarding to be safe
           setNeedsOnboarding(true);
         } else {
-          setNeedsOnboarding(!profile);
+          const needsOnboarding = !profile;
+          console.log('Onboarding check result:', { hasProfile: !!profile, needsOnboarding });
+          setNeedsOnboarding(needsOnboarding);
         }
       } catch (error) {
         console.error('Error checking onboarding status:', error);
