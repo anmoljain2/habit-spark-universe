@@ -91,7 +91,16 @@ const Meals = () => {
       console.error('Error generating meals:', err);
       if (axios.isAxiosError(err)) {
         const errorMessage = err.response?.data?.error || err.message;
-        toast.error(`Failed to generate meal plan: ${errorMessage}`);
+        if (errorMessage.includes('Daily meal limit of 4 has been reached.')) {
+          // Defensive: If there are 0 meals, inform the user and suggest regeneration
+          if ((todaysMeals?.length ?? 0) === 0) {
+            toast.error('No meals found for today, but the daily meal limit was hit. Please try regenerating your meals or contact support.');
+          } else {
+            toast.error('You have reached the daily meal limit of 4.');
+          }
+        } else {
+          toast.error(`Failed to generate meal plan: ${errorMessage}`);
+        }
         console.error('API Error details:', err.response?.data);
       } else {
         toast.error('Failed to generate meal plan: Unknown error');

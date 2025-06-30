@@ -29,17 +29,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const date_only_str = `${yyyy}-${mm}-${dd}`;
-    // Check if user already has 5 or more meals for today
+    // Check if user already has 4 or more meals for today
     const { count, error: countError } = await supabase
       .from('user_meals')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user_id)
       .eq('date_only', date_only_str);
-    if (countError) {
-      return res.status(500).json({ error: "Failed to count today's meals" });
+    console.log('Meal count for user', user_id, 'on', date_only_str, ':', count);
+    if (typeof count !== 'number') {
+      return res.status(500).json({ error: "Could not determine today's meal count" });
     }
-    if (!count || count >= 5) {
-      return res.status(400).json({ error: 'Daily meal limit of 5 has been reached.' });
+    if (count >= 4) {
+      return res.status(400).json({ error: 'Daily meal limit of 4 has been reached.' });
     }
     const { data: preferences, error } = await supabase
       .from('user_nutrition_preferences')
