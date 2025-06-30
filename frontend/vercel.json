@@ -1,6 +1,6 @@
 {
   "routes": [
-    { "src": "/api/generate-meal-plan", "dest": "/api/generate-meal-plan.mts" },
+    { "src"s: "/api/generate-meal-plan", "dest": "/api/generate-meal-plan.ts" },
     { "src": "/(.*\\.(js|css|svg|png|jpg|jpeg|ico|json|txt|woff2?|ttf|eot|map))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
