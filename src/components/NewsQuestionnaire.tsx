@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Newspaper, Clock, Zap, BookOpen, Check, X } from 'lucide-react';

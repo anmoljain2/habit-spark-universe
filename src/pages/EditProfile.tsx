@@ -706,7 +706,7 @@ const EditProfile = () => {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {newsFormatOptions.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label.replace(/_/g, ' ')}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

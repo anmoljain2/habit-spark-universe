@@ -1,27 +1,214 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '../components/Navbar';
 import MealsQuestionnaire from '../components/MealsQuestionnaire';
-import { Utensils, ChefHat, Calendar, Clock, Heart, Zap } from 'lucide-react';
+import { Utensils, ChefHat, Calendar, Clock, Heart, Zap, CheckCircle } from 'lucide-react';
+import axios from 'axios';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Tables } from '@/integrations/supabase/types';
+import Confetti from 'react-confetti';
+
+type Meal = Tables<'user_meals'>;
 
 const Meals = () => {
   const { user } = useAuth();
-  const [nutritionPrefs, setNutritionPrefs] = useState(null);
+  const [nutritionPrefs, setNutritionPrefs] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [todaysMeals, setTodaysMeals] = useState<Meal[]>([]);
+  const [mealsLoading, setMealsLoading] = useState(true);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const prevTodaysMeals = useRef<Meal[]>();
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const [xpAwardedForMealsToday, setXpAwardedForMealsToday] = useState(() => localStorage.getItem('lastMealXpDate') === todayStr);
+
+  const fetchOrGenerateMeals = useCallback(async () => {
+    if (!user) return;
+    setMealsLoading(true);
+
+    const { data: todaysMeals, error } = await supabase
+      .from('user_meals')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date_only', todayStr)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast.error(`Error fetching meals: ${error.message}`);
+      setMealsLoading(false);
+      return;
+    }
+    
+    const mealCount = todaysMeals?.length ?? 0;
+
+    if (mealCount >= 4) {
+      setTodaysMeals(todaysMeals.slice(0, 4));
+      setMealsLoading(false);
+      return;
+    }
+
+    try {
+      await axios.post('http://localhost:3001/generate-meal-plan', { user_id: user.id });
+      // Fetch again after generation
+      const { data: newMeals, error: newFetchError } = await supabase
+        .from('user_meals')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date_only', todayStr)
+        .order('created_at', { ascending: false });
+      
+      if (newFetchError) {
+        toast.error(`Failed to fetch newly generated meals: ${newFetchError.message}`);
+      } else {
+        setTodaysMeals(newMeals?.slice(0, 4) || []);
+      }
+    } catch (err) {
+      toast.error('Failed to generate meal plan');
+    }
+    setMealsLoading(false);
+  }, [user, todayStr]);
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from('user_nutrition_preferences')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => {
-        setNutritionPrefs(data);
-        setLoading(false);
-      });
+
+    const initialize = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('user_nutrition_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      setNutritionPrefs(data);
+      setLoading(false);
+
+      if (data) {
+        fetchOrGenerateMeals();
+      } else {
+        setMealsLoading(false);
+      }
+    };
+    
+    initialize();
+  }, [user, fetchOrGenerateMeals]);
+
+  const updateUserXp = useCallback(async (amount: number) => {
+    if (!user) return;
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('total_xp')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      toast.error("Could not fetch your profile for XP update.");
+      return;
+    }
+
+    const newXp = (profile.total_xp || 0) + amount;
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ total_xp: newXp })
+      .eq('id', user.id);
+
+    if (updateError) {
+      toast.error("Failed to update XP.");
+    }
   }, [user]);
+
+  useEffect(() => {
+    const prevAllComplete = prevTodaysMeals.current ? prevTodaysMeals.current.length >= 4 && prevTodaysMeals.current.every(meal => meal.completed) : false;
+
+    const allComplete = todaysMeals.length >= 4 && todaysMeals.every(meal => meal.completed);
+
+    if (allComplete && !prevAllComplete) {
+      setShowConfetti(true);
+      if (!xpAwardedForMealsToday) {
+        toast.success("You've conquered your kitchen! All meals logged for today! 🎉 You've earned 200 XP!");
+        updateUserXp(200);
+        setXpAwardedForMealsToday(true);
+        localStorage.setItem('lastMealXpDate', todayStr);
+      }
+    }
+
+    prevTodaysMeals.current = todaysMeals;
+  }, [todaysMeals, xpAwardedForMealsToday, todayStr, updateUserXp]);
+
+  const handleCompleteMeal = async (mealId: string) => {
+    const { data, error } = await supabase
+      .from('user_meals')
+      .update({ completed: true })
+      .eq('id', mealId)
+      .select()
+      .single();
+
+    if (error) {
+      toast.error('Failed to update meal status.');
+    } else {
+      toast.success('Meal marked as complete!');
+      setTodaysMeals(prevMeals =>
+        prevMeals.map(meal => (meal.id === mealId ? data : meal))
+      );
+    }
+  };
+
+  const handleUncompleteMeal = async (mealId: string) => {
+    const { data, error } = await supabase
+      .from('user_meals')
+      .update({ completed: false })
+      .eq('id', mealId)
+      .select()
+      .single();
+
+    if (error) {
+      toast.error('Failed to update meal status.');
+    } else {
+      toast.info('Meal unmarked.');
+      setTodaysMeals(prevMeals =>
+        prevMeals.map(meal => (meal.id === mealId ? data : meal))
+      );
+    }
+  };
+
+  const handleRegenerateMeals = async () => {
+    if (!user) return;
+    setIsConfirming(true);
+  };
+
+  const confirmAndRegenerate = async () => {
+    if (!user) return;
+
+    setMealsLoading(true); 
+    setIsConfirming(false);
+
+    const { error } = await supabase
+      .from('user_meals')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('date_only', todayStr);
+
+    if (error) {
+      toast.error(`Failed to delete meals: ${error.message}`);
+      setMealsLoading(false);
+    } else {
+      toast.success("Meals are being regenerated!");
+      fetchOrGenerateMeals();
+    }
+  };
 
   if (loading) {
     return (
@@ -56,50 +243,24 @@ const Meals = () => {
     );
   }
 
-  const todaysMeals = [
-    {
-      type: "Breakfast",
-      time: "8:00 AM",
-      dish: "Avocado Toast with Poached Eggs",
-      calories: 420,
-      protein: "18g",
-      image: "🥑",
-      status: "completed"
-    },
-    {
-      type: "Lunch",
-      time: "12:30 PM", 
-      dish: "Mediterranean Quinoa Bowl",
-      calories: 520,
-      protein: "22g",
-      image: "🥗",
-      status: "upcoming"
-    },
-    {
-      type: "Snack",
-      time: "3:30 PM",
-      dish: "Greek Yogurt with Mixed Berries",
-      calories: 180,
-      protein: "15g",
-      image: "🫐",
-      status: "upcoming"
-    },
-    {
-      type: "Dinner",
-      time: "7:00 PM",
-      dish: "Grilled Salmon with Roasted Vegetables",
-      calories: 480,
-      protein: "35g",
-      image: "🐟",
-      status: "planned"
-    }
-  ];
+  const completedMeals = todaysMeals.filter(meal => meal.completed);
+  const totalCalories = completedMeals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
+  const totalProtein = completedMeals.reduce((sum, meal) => sum + (meal.protein || 0), 0);
+  const totalCarbs = completedMeals.reduce((sum, meal) => sum + (meal.carbs || 0), 0);
+  const totalFat = completedMeals.reduce((sum, meal) => sum + (meal.fat || 0), 0);
+
+  const sortedMeals = [...todaysMeals].sort((a, b) => {
+    const mealOrder = ['breakfast', 'snack', 'lunch', 'dinner'];
+    const aIndex = mealOrder.indexOf(a.meal_type.toLowerCase());
+    const bIndex = mealOrder.indexOf(b.meal_type.toLowerCase());
+    return aIndex - bIndex;
+  });
 
   const nutritionStats = [
-    { label: "Calories", current: 420, target: 1600, color: "from-blue-500 to-cyan-500" },
-    { label: "Protein", current: 18, target: 90, color: "from-red-500 to-pink-500" },
-    { label: "Carbs", current: 45, target: 200, color: "from-yellow-500 to-orange-500" },
-    { label: "Fat", current: 28, target: 70, color: "from-green-500 to-emerald-500" }
+    { label: "Calories", current: totalCalories, target: nutritionPrefs?.target_calories || 2000, color: "from-blue-500 to-cyan-500" },
+    { label: "Protein", current: totalProtein, target: nutritionPrefs?.target_protein || 120, color: "from-red-500 to-pink-500" },
+    { label: "Carbs", current: totalCarbs, target: nutritionPrefs?.target_carbs || 250, color: "from-yellow-500 to-orange-500" },
+    { label: "Fat", current: totalFat, target: nutritionPrefs?.target_fat || 70, color: "from-green-500 to-emerald-500" }
   ];
 
   const weeklyPlan = [
@@ -115,6 +276,21 @@ const Meals = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/50">
       <Navbar />
+      {showConfetti && <Confetti recycle={false} onConfettiComplete={() => setShowConfetti(false)} />}
+      <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will delete your current meals for today and generate a new set.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmAndRegenerate} className="bg-green-600 hover:bg-green-700">Regenerate</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className="w-full px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
@@ -140,50 +316,85 @@ const Meals = () => {
                   <Calendar className="w-6 h-6 text-green-600" />
                   Today's Meals
                 </h2>
-                <button className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all">
-                  Add Meal
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleRegenerateMeals}
+                    className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Regenerate
+                  </button>
+                  <button className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all">
+                    Add Meal
+                  </button>
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {todaysMeals.map((meal, index) => (
-                  <div key={index} className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                    meal.status === 'completed' 
-                      ? 'bg-green-50 border-green-200' 
-                      : meal.status === 'upcoming'
-                      ? 'bg-blue-50 border-blue-200'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{meal.image}</span>
-                        <div>
-                          <h3 className="font-semibold text-gray-800">{meal.type}</h3>
-                          <div className="flex items-center gap-1 text-gray-500 text-sm">
-                            <Clock className="w-3 h-3" />
-                            {meal.time}
+              {mealsLoading ? (
+                <div className="flex items-center justify-center min-h-[20vh]">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600"></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {sortedMeals.map((meal, index) => (
+                    <div key={index} className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${meal.completed ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
+                      {meal.completed && <div className="absolute top-2 right-2 text-green-500"><CheckCircle className="w-5 h-5" /></div>}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">🍽️</span>
+                          <div>
+                            <h3 className="font-semibold text-gray-800">{meal.meal_type}</h3>
+                            <div className="flex items-center gap-1 text-gray-500 text-sm">
+                              <Clock className="w-3 h-3" />
+                              {meal.time || ''}
+                            </div>
                           </div>
                         </div>
                       </div>
-                      {meal.status === 'completed' && (
-                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs">✓</span>
-                        </div>
+                      <h4 className="font-medium text-gray-800 mb-2">{meal.description}</h4>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <Zap className="w-3 h-3 text-orange-400" />
+                          {meal.calories} cal
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Heart className="w-3 h-3 text-red-400" />
+                          {meal.protein}g protein
+                        </span>
+                         <span className="flex items-center gap-1">
+                          <span className="font-bold text-yellow-500">C</span>
+                          {meal.carbs}g carbs
+                        </span>
+                         <span className="flex items-center gap-1">
+                          <span className="font-bold text-green-500">F</span>
+                          {meal.fat}g fat
+                        </span>
+                      </div>
+                      {meal.serving_size && (
+                        <div className="text-xs text-gray-500 mt-1">Serving size: {meal.serving_size}</div>
+                      )}
+                      {meal.recipe && (
+                        <div className="text-xs text-gray-700 mt-2"><b>Recipe:</b> {meal.recipe}</div>
+                      )}
+                      {meal.completed ? (
+                        <button 
+                          onClick={() => handleUncompleteMeal(meal.id)}
+                          className="mt-4 w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-all flex items-center justify-center gap-2"
+                        >
+                          Undo
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => handleCompleteMeal(meal.id)}
+                          className="mt-4 w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Mark as Complete
+                        </button>
                       )}
                     </div>
-                    <h4 className="font-medium text-gray-800 mb-2">{meal.dish}</h4>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <Zap className="w-3 h-3" />
-                        {meal.calories} cal
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Heart className="w-3 h-3" />
-                        {meal.protein} protein
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Weekly Plan */}

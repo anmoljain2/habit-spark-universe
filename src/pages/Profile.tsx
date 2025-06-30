@@ -429,7 +429,7 @@ const Profile = () => {
                     <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
                       <h4 className="font-semibold text-gray-800 mb-2">Interests</h4>
                       <div className="flex flex-wrap gap-2">
-                        {newsPreferences.interests.slice(0, 3).map((interest: string, i: number) => (
+                        {newsPreferences.interests.map((interest: string, i: number) => (
                           <Badge key={i} className="bg-blue-100 text-blue-700 border-0">
                             {interest}
                           </Badge>
@@ -444,7 +444,7 @@ const Profile = () => {
                     </div>
                     <div className="text-center p-3 bg-gray-50 rounded-lg">
                       <p className="text-sm text-gray-600">Format</p>
-                      <p className="font-semibold text-gray-800">{newsPreferences.format}</p>
+                      <p className="font-semibold text-gray-800">{newsPreferences.format ? newsPreferences.format.replace(/_/g, ' ') : ''}</p>
                     </div>
                   </div>
                 </div>
@@ -470,26 +470,71 @@ const Profile = () => {
             <CardContent>
               {nutritionPreferences ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Macronutrients */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <div className="text-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
                       <p className="text-sm text-gray-600">Calories</p>
-                      <p className="font-bold text-green-600">{nutritionPreferences.calories_target || 'N/A'}</p>
+                      <p className="font-bold text-green-600">{nutritionPreferences.calories_target ?? 'N/A'}</p>
                     </div>
                     <div className="text-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
                       <p className="text-sm text-gray-600">Protein</p>
-                      <p className="font-bold text-green-600">{nutritionPreferences.protein_target || 'N/A'}g</p>
+                      <p className="font-bold text-green-600">{nutritionPreferences.protein_target ?? 'N/A'}g</p>
+                    </div>
+                    <div className="text-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Carbs</p>
+                      <p className="font-bold text-green-600">{nutritionPreferences.carbs_target ?? 'N/A'}g</p>
+                    </div>
+                    <div className="text-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Fat</p>
+                      <p className="font-bold text-green-600">{nutritionPreferences.fat_target ?? 'N/A'}g</p>
+                    </div>
+                    <div className="text-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Fiber</p>
+                      <p className="font-bold text-green-600">{nutritionPreferences.fiber_target ?? 'N/A'}g</p>
                     </div>
                   </div>
+                  {/* Limits */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="text-center p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Sodium Limit</p>
+                      <p className="font-bold text-yellow-700">{nutritionPreferences.sodium_limit ?? 'N/A'}mg</p>
+                    </div>
+                    <div className="text-center p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg">
+                      <p className="text-sm text-gray-600">Sugar Limit</p>
+                      <p className="font-bold text-yellow-700">{nutritionPreferences.sugar_limit ?? 'N/A'}g</p>
+                    </div>
+                  </div>
+                  {/* Dietary Restrictions */}
                   {nutritionPreferences.dietary_restrictions && nutritionPreferences.dietary_restrictions.length > 0 && (
                     <div className="p-4 bg-orange-50 rounded-xl">
                       <h4 className="font-semibold text-gray-800 mb-2">Dietary Restrictions</h4>
                       <div className="flex flex-wrap gap-2">
-                        {nutritionPreferences.dietary_restrictions.slice(0, 2).map((restriction: string, i: number) => (
+                        {nutritionPreferences.dietary_restrictions.map((restriction: string, i: number) => (
                           <Badge key={i} className="bg-orange-100 text-orange-700 border-0 text-xs">
                             {restriction}
                           </Badge>
                         ))}
                       </div>
+                    </div>
+                  )}
+                  {/* Allergies */}
+                  {nutritionPreferences.allergies && nutritionPreferences.allergies.length > 0 && (
+                    <div className="p-4 bg-red-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-800 mb-2">Allergies</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {nutritionPreferences.allergies.map((allergy: string, i: number) => (
+                          <Badge key={i} className="bg-red-100 text-red-700 border-0 text-xs">
+                            {allergy}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Notes */}
+                  {nutritionPreferences.notes && (
+                    <div className="p-4 bg-gray-50 rounded-xl">
+                      <h4 className="font-semibold text-gray-800 mb-2">Notes</h4>
+                      <p className="text-gray-700 text-sm">{nutritionPreferences.notes}</p>
                     </div>
                   )}
                 </div>

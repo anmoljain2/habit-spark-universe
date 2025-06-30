@@ -265,7 +265,7 @@ export type Database = {
           {
             foreignKeyName: "user_fitness_goals_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -316,29 +316,59 @@ export type Database = {
       user_meals: {
         Row: {
           calories: number | null
+          carbs: number | null
+          completed: boolean | null
           created_at: string | null
           date: string
+          date_only: string | null
           description: string | null
+          fat: number | null
           id: string
+          ingredients: Json | null
           meal_type: string | null
+          protein: number | null
+          recipe: string | null
+          serving_size: string | null
+          tags: string[] | null
+          time: string | null
           user_id: string | null
         }
         Insert: {
           calories?: number | null
+          carbs?: number | null
+          completed?: boolean | null
           created_at?: string | null
           date: string
+          date_only?: string | null
           description?: string | null
+          fat?: number | null
           id?: string
+          ingredients?: Json | null
           meal_type?: string | null
+          protein?: number | null
+          recipe?: string | null
+          serving_size?: string | null
+          tags?: string[] | null
+          time?: string | null
           user_id?: string | null
         }
         Update: {
           calories?: number | null
+          carbs?: number | null
+          completed?: boolean | null
           created_at?: string | null
           date?: string
+          date_only?: string | null
           description?: string | null
+          fat?: number | null
           id?: string
+          ingredients?: Json | null
           meal_type?: string | null
+          protein?: number | null
+          recipe?: string | null
+          serving_size?: string | null
+          tags?: string[] | null
+          time?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -463,7 +493,7 @@ export type Database = {
           {
             foreignKeyName: "user_nutrition_preferences_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
