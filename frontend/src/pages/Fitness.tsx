@@ -6,6 +6,7 @@ import FitnessQuestionnaire from '../components/FitnessQuestionnaire';
 import { Dumbbell, Target, Timer, TrendingUp, Zap, Award, Play, Calendar } from 'lucide-react';
 import axios from 'axios';
 import { formatISO, startOfWeek, endOfWeek } from 'date-fns';
+import { toast } from 'sonner';
 
 const Fitness = () => {
   const { user } = useAuth();
@@ -38,17 +39,19 @@ const Fitness = () => {
       .lte('week_start', weekEnd);
     if (fetchError) {
       setError('Failed to fetch workouts: ' + fetchError.message);
+      toast.error('Failed to fetch workouts: ' + fetchError.message);
       setWorkoutsLoading(false);
       return;
     }
     if (workouts && workouts.length > 0) {
       setWeeklyWorkouts(workouts);
+      toast.success(`You have ${workouts.length} workouts for this week!`);
       setWorkoutsLoading(false);
       return;
     }
-    // 2. Generate new plan
+    // 2. Generate new plan only if no workouts exist
     try {
-      await axios.post('/api/generate-workout-plan', { user_id: user.id });
+      const response = await axios.post('/api/generate-workout-plan', { user_id: user.id });
       // Fetch again
       const { data: newWorkouts, error: newFetchError } = await supabase
         .from('user_workouts')
@@ -58,11 +61,14 @@ const Fitness = () => {
         .lte('week_start', weekEnd);
       if (newFetchError) {
         setError('Failed to fetch generated workouts: ' + newFetchError.message);
+        toast.error('Failed to fetch generated workouts: ' + newFetchError.message);
       } else {
         setWeeklyWorkouts(newWorkouts || []);
+        toast.success(`Generated ${newWorkouts?.length || 0} workouts for this week!`);
       }
     } catch (err: any) {
       setError('Failed to generate workout plan: ' + (err.response?.data?.error || err.message));
+      toast.error('Failed to generate workout plan: ' + (err.response?.data?.error || err.message));
     }
     setWorkoutsLoading(false);
   };
@@ -184,6 +190,9 @@ const Fitness = () => {
           >
             {regenerating ? 'Regenerating...' : 'Regenerate Plan'}
           </button>
+        </div>
+        <div className="mb-4 text-center text-pink-700 font-semibold">
+          {weeklyWorkouts.length > 0 && `You have ${weeklyWorkouts.length} workouts for this week.`}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}

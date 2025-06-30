@@ -102,15 +102,37 @@ If a day is a rest day, set workout_type to 'Rest' and exercises to an empty arr
     }
 
     // 5. Save plan to user_workouts (one row per day)
-    for (const day of plan) {
-      await supabase.from('user_workouts').insert({
+    const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const weekStartDate = new Date(weekStart);
+    for (let i = 0; i < plan.length; i++) {
+      const day = plan[i];
+      // Calculate the date for this day
+      const workoutDate = new Date(weekStartDate);
+      workoutDate.setDate(weekStartDate.getDate() + i);
+      const dateStr = workoutDate.toISOString().slice(0, 10);
+
+      // Calculate total sets and reps for the day
+      let totalSets = null;
+      let totalReps = null;
+      if (Array.isArray(day.exercises) && day.exercises.length > 0) {
+        totalSets = day.exercises.reduce((sum, ex) => sum + (parseInt(ex.sets) || 0), 0);
+        totalReps = day.exercises.reduce((sum, ex) => sum + (parseInt(ex.reps) || 0), 0);
+      }
+
+      const { error: insertError } = await supabase.from('user_workouts').insert({
         user_id,
-        date: null, // You can parse the date if you want, or leave null
+        date: dateStr,
         workout_type: day.workout_type,
         details: day,
         completed: false,
         week_start: weekStart,
+        sets: totalSets,
+        reps: totalReps,
       });
+
+      if (insertError) {
+        console.error('Failed to insert workout for', day.day, insertError);
+      }
     }
 
     res.status(200).json({ plan });
