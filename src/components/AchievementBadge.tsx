@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Award, Star, Target } from 'lucide-react';
 
-const AchievementsSection = () => {
+const AchievementsBadgesRow = () => {
   const { user } = useAuth();
   const [achievements, setAchievements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,4 +133,6 @@ const AchievementsSection = () => {
   );
 };
 
-export default AchievementsSection;
+// Export both the component and as default
+export { AchievementsBadgesRow };
+export default AchievementsBadgesRow;
