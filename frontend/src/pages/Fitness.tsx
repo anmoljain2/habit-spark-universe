@@ -4,14 +4,72 @@ import { supabase } from '@/integrations/supabase/client';
 import Navbar from '../components/Navbar';
 import FitnessQuestionnaire from '../components/FitnessQuestionnaire';
 import { Dumbbell, Target, Timer, TrendingUp, Zap, Award, Play, Calendar } from 'lucide-react';
+import axios from 'axios';
+import { formatISO, startOfWeek, endOfWeek } from 'date-fns';
 
 const Fitness = () => {
   const { user } = useAuth();
   const [fitnessGoals, setFitnessGoals] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [weeklyWorkouts, setWeeklyWorkouts] = useState<any[]>([]);
+  const [workoutsLoading, setWorkoutsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [regenerating, setRegenerating] = useState(false);
+
+  const getWeekRange = () => {
+    const now = new Date();
+    return {
+      weekStart: formatISO(startOfWeek(now, { weekStartsOn: 1 }), { representation: 'date' }),
+      weekEnd: formatISO(endOfWeek(now, { weekStartsOn: 1 }), { representation: 'date' })
+    };
+  };
+
+  const fetchOrGenerateWorkouts = async () => {
+    if (!user) return;
+    setWorkoutsLoading(true);
+    setError('');
+    const { weekStart, weekEnd } = getWeekRange();
+    // 1. Check for existing workouts
+    const { data: workouts, error: fetchError } = await supabase
+      .from('user_workouts')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('week_start', weekStart)
+      .lte('week_start', weekEnd);
+    if (fetchError) {
+      setError('Failed to fetch workouts: ' + fetchError.message);
+      setWorkoutsLoading(false);
+      return;
+    }
+    if (workouts && workouts.length > 0) {
+      setWeeklyWorkouts(workouts);
+      setWorkoutsLoading(false);
+      return;
+    }
+    // 2. Generate new plan
+    try {
+      await axios.post('/api/generate-workout-plan', { user_id: user.id });
+      // Fetch again
+      const { data: newWorkouts, error: newFetchError } = await supabase
+        .from('user_workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('week_start', weekStart)
+        .lte('week_start', weekEnd);
+      if (newFetchError) {
+        setError('Failed to fetch generated workouts: ' + newFetchError.message);
+      } else {
+        setWeeklyWorkouts(newWorkouts || []);
+      }
+    } catch (err: any) {
+      setError('Failed to generate workout plan: ' + (err.response?.data?.error || err.message));
+    }
+    setWorkoutsLoading(false);
+  };
 
   useEffect(() => {
     if (!user) return;
+    setLoading(true);
     supabase
       .from('user_fitness_goals')
       .select('*')
@@ -21,7 +79,30 @@ const Fitness = () => {
         setFitnessGoals(data);
         setLoading(false);
       });
+    fetchOrGenerateWorkouts();
+    // eslint-disable-next-line
   }, [user]);
+
+  const handleRegenerate = async () => {
+    if (!user) return;
+    setRegenerating(true);
+    setError('');
+    const { weekStart, weekEnd } = getWeekRange();
+    // Delete existing workouts for the week
+    await supabase
+      .from('user_workouts')
+      .delete()
+      .eq('user_id', user.id)
+      .gte('week_start', weekStart)
+      .lte('week_start', weekEnd);
+    await fetchOrGenerateWorkouts();
+    setRegenerating(false);
+  };
+
+  // Find today's workout
+  const today = new Date();
+  const todayName = today.toLocaleDateString('en-US', { weekday: 'long' });
+  const todayWorkout = weeklyWorkouts.find(w => w.details && w.details.day && w.details.day.toLowerCase().includes(todayName.toLowerCase()));
 
   if (loading) {
     return (
@@ -55,17 +136,6 @@ const Fitness = () => {
       </div>
     );
   }
-
-  const todaysWorkout = {
-    name: "Upper Body Strength",
-    duration: "45 min",
-    exercises: [
-      { name: "Push-ups", sets: 3, reps: "12-15", status: "completed" },
-      { name: "Pull-ups", sets: 3, reps: "8-10", status: "current" },
-      { name: "Dumbbell Press", sets: 3, reps: "10-12", status: "pending" },
-      { name: "Plank", sets: 3, reps: "30s", status: "pending" }
-    ]
-  };
 
   const weeklyStats = [
     { label: "Workouts", current: 4, target: 5, color: "from-pink-500 to-rose-500" },
@@ -105,7 +175,16 @@ const Fitness = () => {
             Track your progress, follow personalized workouts, and achieve your fitness goals with data-driven insights.
           </p>
         </div>
-
+        {error && <div className="text-center text-red-600 font-semibold mb-4">{error}</div>}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={handleRegenerate}
+            className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+            disabled={regenerating || workoutsLoading}
+          >
+            {regenerating ? 'Regenerating...' : 'Regenerate Plan'}
+          </button>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
@@ -113,15 +192,11 @@ const Fitness = () => {
             <div className="bg-gradient-to-br from-pink-600 to-rose-600 rounded-2xl p-8 text-white shadow-2xl">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-3xl font-bold mb-2">{todaysWorkout.name}</h2>
+                  <h2 className="text-3xl font-bold mb-2">{todayWorkout?.details?.workout_type || 'Rest Day'}</h2>
                   <div className="flex items-center gap-4 text-pink-100">
                     <div className="flex items-center gap-1">
                       <Timer className="w-4 h-4" />
-                      <span>{todaysWorkout.duration}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Target className="w-4 h-4" />
-                      <span>{todaysWorkout.exercises.length} exercises</span>
+                      <span>{todayWorkout?.details?.exercises?.length || 0} exercises</span>
                     </div>
                   </div>
                 </div>
@@ -131,25 +206,16 @@ const Fitness = () => {
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {todaysWorkout.exercises.map((exercise, index) => (
-                  <div key={index} className={`p-4 rounded-xl backdrop-blur-sm border transition-all ${
-                    exercise.status === 'completed' 
-                      ? 'bg-green-500/20 border-green-300/30' 
-                      : exercise.status === 'current'
-                      ? 'bg-yellow-400/20 border-yellow-300/30'
-                      : 'bg-white/10 border-white/20'
-                  }`}>
+                {todayWorkout?.details?.exercises?.length > 0 ? todayWorkout.details.exercises.map((exercise: any, index: number) => (
+                  <div key={index} className="p-4 rounded-xl backdrop-blur-sm border transition-all bg-white/10 border-white/20">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-semibold">{exercise.name}</h3>
-                      {exercise.status === 'completed' && (
-                        <div className="w-6 h-6 bg-green-400 rounded-full flex items-center justify-center">
-                          <span className="text-green-900 text-xs">✓</span>
-                        </div>
-                      )}
                     </div>
                     <p className="text-pink-100 text-sm">{exercise.sets} sets × {exercise.reps}</p>
+                    {exercise.rest && <p className="text-pink-200 text-xs">Rest: {exercise.rest}</p>}
+                    {exercise.notes && <p className="text-pink-200 text-xs">{exercise.notes}</p>}
                   </div>
-                ))}
+                )) : <div className="text-center text-pink-200">Rest day or no workout scheduled.</div>}
               </div>
             </div>
 
@@ -160,28 +226,26 @@ const Fitness = () => {
                   <Calendar className="w-6 h-6 text-pink-600" />
                   This Week's Schedule
                 </h2>
-                <button className="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all">
-                  Customize Plan
-                </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {upcomingWorkouts.map((workout, index) => (
+                {weeklyWorkouts.map((workout, index) => (
                   <div key={index} className="p-4 bg-gray-50/80 rounded-xl hover:bg-gray-100/80 transition-colors">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-gray-800">{workout.day}</h3>
+                      <h3 className="font-semibold text-gray-800">{workout.details?.day || 'Day'}</h3>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        workout.intensity === 'High' ? 'bg-red-100 text-red-700' :
-                        workout.intensity === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-green-100 text-green-700'
+                        workout.details?.workout_type === 'Rest' ? 'bg-green-100 text-green-700' : 'bg-pink-100 text-pink-700'
                       }`}>
-                        {workout.intensity}
+                        {workout.details?.workout_type || 'Rest'}
                       </span>
                     </div>
-                    <h4 className="font-medium text-gray-800 mb-1">{workout.workout}</h4>
-                    <p className="text-gray-600 text-sm flex items-center gap-1">
-                      <Timer className="w-3 h-3" />
-                      {workout.duration}
-                    </p>
+                    <h4 className="font-medium text-gray-800 mb-1">{workout.details?.summary || ''}</h4>
+                    {workout.details?.exercises?.length > 0 && (
+                      <ul className="text-gray-700 text-sm list-disc pl-5">
+                        {workout.details.exercises.map((ex: any, i: number) => (
+                          <li key={i}>{ex.name} ({ex.sets} sets × {ex.reps}){ex.rest ? `, Rest: ${ex.rest}` : ''}{ex.notes ? `, ${ex.notes}` : ''}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 ))}
               </div>
