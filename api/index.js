@@ -116,7 +116,7 @@ Return ONLY a JSON array of 4 objects, one for each meal type, with no extra tex
 
     console.log('Calling OpenAI API...');
     const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || "gpt-4o",
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
     });
@@ -257,5 +257,13 @@ app.get('/api/test-supabase', async (req, res) => {
   }
 });
 
-// Export the Express app
+// For Vercel serverless functions, we need to export the app
 module.exports = app;
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  const port = process.env.PORT || 3001;
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
