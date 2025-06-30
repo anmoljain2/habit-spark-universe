@@ -60,7 +60,7 @@ const Meals = () => {
     }
 
     try {
-      await axios.post('http://localhost:3001/generate-meal-plan', { user_id: user.id });
+      await axios.post('/api/generate-meal-plan', { user_id: user.id });
       // Fetch again after generation
       const { data: newMeals, error: newFetchError } = await supabase
         .from('user_meals')
