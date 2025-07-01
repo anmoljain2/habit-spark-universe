@@ -34,6 +34,7 @@ const Auth = () => {
   useEffect(() => {
     // Get redirect and mode params from query string
     const params = new URLSearchParams(location.search);
+    const redirect = params.get('redirect');
     const mode = params.get('mode');
     setIsLogin(mode !== 'signup'); // Always sync isLogin with mode param
     setShowForgotForm(false); // Reset forgot form on mode change
@@ -46,19 +47,25 @@ const Auth = () => {
     } else {
       setResetPassword(false);
     }
-    // Remove all navigation on auth state change
+    // Restore navigation on auth state change for successful login
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        if (session?.user) {
+          navigate(redirect || '/dashboard');
+        }
       }
     );
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        navigate(redirect || '/dashboard');
+      }
     });
     return () => subscription.unsubscribe();
-  }, [location.search]);
+  }, [navigate, location.search]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
