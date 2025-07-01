@@ -147,9 +147,8 @@ const Auth = () => {
         }
       }
 
-      // Use environment variable for redirect URL if available, fallback to window.location.origin
-      // Set VITE_PUBLIC_SITE_URL in your .env file to your deployed site URL (e.g., https://yourdomain.com)
-      const redirectUrl = import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin + '/';
+      // Always use production URL for email confirmation
+      const redirectUrl = "https://habit-spark-universe.vercel.app/auth";
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -250,7 +249,8 @@ const Auth = () => {
     setLoading(true);
     setForgotSent(false);
     try {
-      const redirectUrl = import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin + '/auth?mode=reset';
+      // Always use production URL for password reset
+      const redirectUrl = "https://habit-spark-universe.vercel.app/auth?mode=reset";
       const { data, error } = await supabase.auth.resetPasswordForEmail(forgotEmail, { redirectTo: redirectUrl });
       if (error) {
         toast({
@@ -509,17 +509,6 @@ const Auth = () => {
                   </button>
                 </div>
               )}
-            </div>
-          )}
-          {!resetPassword && !showForgot && isLogin && (
-            <div className="mt-2 text-center">
-              <button
-                type="button"
-                onClick={() => setShowForgot(true)}
-                className="text-sm text-indigo-600 hover:text-indigo-500"
-              >
-                Forgot password?
-              </button>
             </div>
           )}
         </CardContent>
