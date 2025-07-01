@@ -9,8 +9,10 @@ import { supabase } from '@/integrations/supabase/client';
 const Landing = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [userCount, setUserCount] = useState<string | null>(null);
+  const [habitsCount, setHabitsCount] = useState<string | null>(null);
   const [reviews, setReviews] = useState<any[] | null>(null);
   const [loadingReviews, setLoadingReviews] = useState(true);
+  const [satisfaction, setSatisfaction] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserCount = async () => {
@@ -27,6 +29,19 @@ const Landing = () => {
   }, []);
 
   useEffect(() => {
+    const fetchHabitsCount = async () => {
+      const { count } = await supabase
+        .from('user_habits')
+        .select('id', { count: 'exact', head: true });
+      if (typeof count === 'number') {
+        const rounded = Math.round(count / 100) * 100;
+        setHabitsCount(`${rounded.toLocaleString()}+`);
+      }
+    };
+    fetchHabitsCount();
+  }, []);
+
+  useEffect(() => {
     const fetchReviews = async () => {
       setLoadingReviews(true);
       const { data, error } = await supabase
@@ -39,6 +54,23 @@ const Landing = () => {
       setLoadingReviews(false);
     };
     fetchReviews();
+  }, []);
+
+  useEffect(() => {
+    const fetchSatisfaction = async () => {
+      const { data, error } = await supabase
+        .from('product_reviews')
+        .select('stars');
+      if (data && data.length > 0) {
+        const total = data.reduce((sum, r) => sum + (r.stars || 0), 0);
+        const avg = total / data.length;
+        const percent = Math.round((avg / 5) * 100);
+        setSatisfaction(`${percent}%`);
+      } else {
+        setSatisfaction('N/A');
+      }
+    };
+    fetchSatisfaction();
   }, []);
 
   const features = [
@@ -76,8 +108,8 @@ const Landing = () => {
 
   const stats = [
     { number: userCount || '', label: "Active Users" },
-    { number: "500K+", label: "Goals Achieved" },
-    { number: "95%", label: "User Satisfaction" },
+    { number: habitsCount || '', label: "Habits Formed" },
+    { number: satisfaction || '', label: "User Satisfaction" },
     { number: "24/7", label: "Community Support" }
   ];
 
@@ -126,7 +158,9 @@ const Landing = () => {
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-indigo-600 mb-2">
-                  {stat.label === 'Active Users' && !userCount ? (
+                  {(stat.label === 'Active Users' && !userCount) ||
+                   (stat.label === 'Habits Formed' && !habitsCount) ||
+                   (stat.label === 'User Satisfaction' && !satisfaction) ? (
                     <span className="inline-block w-16 h-7 bg-indigo-100 animate-pulse rounded" />
                   ) : stat.number}
                 </div>
@@ -266,7 +300,7 @@ const Landing = () => {
               </Button>
             </Link>
             <Link to="/about">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 text-lg px-8 py-3">
+              <Button size="lg" className="bg-white/80 border border-indigo-300 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900 text-lg px-8 py-3 transition-colors">
                 Learn More
               </Button>
             </Link>

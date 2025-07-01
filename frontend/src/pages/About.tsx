@@ -37,6 +37,8 @@ const About = () => {
   ];
 
   const [teamMembers, setTeamMembers] = useState([]);
+  const [userCount, setUserCount] = useState<string | null>(null);
+  const [habitsCount, setHabitsCount] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -44,6 +46,33 @@ const About = () => {
       setTeamMembers(data || []);
     };
     fetchTeam();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      const { count } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true });
+      if (typeof count === 'number') {
+        // Round to nearest 100 and format with comma
+        const rounded = Math.round(count / 100) * 100;
+        setUserCount(`${rounded.toLocaleString()}+`);
+      }
+    };
+    fetchUserCount();
+  }, []);
+
+  useEffect(() => {
+    const fetchHabitsCount = async () => {
+      const { count } = await supabase
+        .from('user_habits')
+        .select('id', { count: 'exact', head: true });
+      if (typeof count === 'number') {
+        const rounded = Math.round(count / 100) * 100;
+        setHabitsCount(`${rounded.toLocaleString()}+`);
+      }
+    };
+    fetchHabitsCount();
   }, []);
 
   const milestones = [
@@ -111,12 +140,16 @@ const About = () => {
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-indigo-600 mb-1">10K+</div>
+                  <div className="text-2xl font-bold text-indigo-600 mb-1">
+                    {userCount ? userCount : <span className="inline-block w-16 h-7 bg-indigo-100 animate-pulse rounded" />}
+                  </div>
                   <div className="text-sm text-gray-600">Lives Transformed</div>
                 </div>
                 <div className="text-center p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600 mb-1">500K+</div>
-                  <div className="text-sm text-gray-600">Goals Achieved</div>
+                  <div className="text-2xl font-bold text-purple-600 mb-1">
+                    {habitsCount ? habitsCount : <span className="inline-block w-16 h-7 bg-purple-100 animate-pulse rounded" />}
+                  </div>
+                  <div className="text-sm text-gray-600">Habits Formed</div>
                 </div>
               </div>
             </div>
@@ -202,20 +235,24 @@ const About = () => {
                     {member.description}
                   </p>
                   <div className="flex justify-center space-x-3">
-                    <a 
-                      href={member.linkedin} 
-                      className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Linkedin className="w-5 h-5" />
-                    </a>
-                    <a 
-                      href={`mailto:${member.email}`} 
-                      className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                    >
-                      <Mail className="w-5 h-5" />
-                    </a>
+                    {member.linkedin && (
+                      <a 
+                        href={member.linkedin} 
+                        className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Linkedin className="w-5 h-5" />
+                      </a>
+                    )}
+                    {member.email && (
+                      <a 
+                        href={`mailto:${member.email}`} 
+                        className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                      >
+                        <Mail className="w-5 h-5" />
+                      </a>
+                    )}
                   </div>
                   <div>{monthsAtLifeQuest(member.start_date)} months at LifeQuest</div>
                 </CardContent>
