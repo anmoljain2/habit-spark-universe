@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 Return a JSON array of 7 objects, one for each day (Monday to Sunday). Each object should include:
 - day (e.g., 'Monday')
 - workout_type (e.g., 'Upper Body', 'Cardio', etc.)
-- exercises: array of { name, sets, reps, rest, notes }
+- exercises: array of { name, sets, reps, rest, notes, duration } (duration is required, in minutes, for each exercise)
 - summary: string
 If a day is a rest day, set workout_type to 'Rest' and exercises to an empty array. Do not include any extra text.`;
 
@@ -114,9 +114,19 @@ If a day is a rest day, set workout_type to 'Rest' and exercises to an empty arr
       // Calculate total sets and reps for the day
       let totalSets = null;
       let totalReps = null;
+      let totalDuration = null;
       if (Array.isArray(day.exercises) && day.exercises.length > 0) {
         totalSets = day.exercises.reduce((sum, ex) => sum + (parseInt(ex.sets) || 0), 0);
         totalReps = day.exercises.reduce((sum, ex) => sum + (parseInt(ex.reps) || 0), 0);
+        // Sum up duration in minutes if present, fallback to 10 per exercise if missing
+        totalDuration = day.exercises.reduce((sum, ex) => {
+          let d = parseInt(ex.duration);
+          if (isNaN(d) || d <= 0) d = 10;
+          return sum + d;
+        }, 0);
+        if (!totalDuration || isNaN(totalDuration)) totalDuration = 60; // fallback default
+      } else {
+        totalDuration = 60;
       }
 
       const { error: insertError } = await supabase.from('user_workouts').insert({
@@ -128,6 +138,7 @@ If a day is a rest day, set workout_type to 'Rest' and exercises to an empty arr
         week_start: weekStart,
         sets: totalSets,
         reps: totalReps,
+        duration: totalDuration,
       });
 
       if (insertError) {

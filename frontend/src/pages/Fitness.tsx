@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '../components/Navbar';
@@ -16,6 +16,15 @@ const Fitness = () => {
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
   const [error, setError] = useState('');
   const [regenerating, setRegenerating] = useState(false);
+  const [timerActive, setTimerActive] = useState(false);
+  const [timerPaused, setTimerPaused] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [timerPhase, setTimerPhase] = useState<'work' | 'rest'>('work');
+  const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0);
+  const [currentSet, setCurrentSet] = useState(1);
+  const [showSwitchModal, setShowSwitchModal] = useState(false);
+  const timerInterval = useRef<NodeJS.Timeout | null>(null);
+  const switchTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const getWeekRange = () => {
     const now = new Date();
@@ -108,6 +117,105 @@ const Fitness = () => {
   const today = new Date();
   const todayName = today.toLocaleDateString('en-US', { weekday: 'long' });
   const todayWorkout = weeklyWorkouts.find(w => w.details && w.details.day && w.details.day.toLowerCase().includes(todayName.toLowerCase()));
+
+  // Build the workout queue: [{ phase: 'work'|'rest', seconds, exerciseIdx, setNum }]
+  const buildWorkoutQueue = () => {
+    const exercises = todayWorkout?.details?.exercises || [];
+    const queue = [];
+    for (let i = 0; i < exercises.length; i++) {
+      const ex = exercises[i];
+      const sets = parseInt(ex.sets) || 1;
+      const workDuration = parseInt(ex.duration) * 60 || 600; // default 10 min
+      const restDuration = ex.rest ? parseInt(ex.rest) * 60 : 60; // default 1 min
+      for (let s = 1; s <= sets; s++) {
+        queue.push({ phase: 'work', seconds: workDuration, exerciseIdx: i, setNum: s });
+        if (s < sets) queue.push({ phase: 'rest', seconds: restDuration, exerciseIdx: i, setNum: s });
+      }
+      // Rest after last set before next exercise (optional)
+      if (i < exercises.length - 1) {
+        queue.push({ phase: 'rest', seconds: restDuration, exerciseIdx: i, setNum: sets });
+      }
+    }
+    return queue;
+  };
+
+  const [workoutQueue, setWorkoutQueue] = useState<any[]>([]);
+  const [queueIdx, setQueueIdx] = useState(0);
+
+  const startTimer = () => {
+    const queue = buildWorkoutQueue();
+    setWorkoutQueue(queue);
+    setQueueIdx(0);
+    if (queue.length > 0) {
+      setTimerSeconds(queue[0].seconds);
+      setTimerPhase(queue[0].phase);
+      setCurrentExerciseIdx(queue[0].exerciseIdx);
+      setCurrentSet(queue[0].setNum);
+      setTimerActive(true);
+      setTimerPaused(false);
+    }
+  };
+
+  useEffect(() => {
+    if (timerActive && !timerPaused && timerSeconds > 0) {
+      timerInterval.current = setInterval(() => {
+        setTimerSeconds((s) => s - 1);
+      }, 1000);
+    } else if (timerInterval.current) {
+      clearInterval(timerInterval.current);
+      timerInterval.current = null;
+    }
+    return () => {
+      if (timerInterval.current) clearInterval(timerInterval.current);
+    };
+  }, [timerActive, timerPaused]);
+
+  // Handle phase switching
+  useEffect(() => {
+    if (!timerActive) return;
+    if (timerSeconds === 0) {
+      if (queueIdx < workoutQueue.length - 1) {
+        // Show switch modal for 1s
+        setShowSwitchModal(true);
+        switchTimeout.current = setTimeout(() => {
+          setShowSwitchModal(false);
+          const next = workoutQueue[queueIdx + 1];
+          setTimerSeconds(next.seconds);
+          setTimerPhase(next.phase);
+          setCurrentExerciseIdx(next.exerciseIdx);
+          setCurrentSet(next.setNum);
+          setQueueIdx(queueIdx + 1);
+        }, 1000);
+      } else {
+        setTimerActive(false);
+        setTimerPaused(false);
+        setTimerSeconds(0);
+        setQueueIdx(0);
+        setCurrentExerciseIdx(0);
+        setCurrentSet(1);
+        setWorkoutQueue([]);
+        toast.success('Workout complete!');
+      }
+    }
+    return () => {
+      if (switchTimeout.current) clearTimeout(switchTimeout.current);
+    };
+  }, [timerSeconds, timerActive, queueIdx, workoutQueue]);
+
+  const handlePause = () => setTimerPaused(true);
+  const handleResume = () => setTimerPaused(false);
+  const handleReset = () => {
+    setTimerActive(false);
+    setTimerPaused(false);
+    setTimerSeconds(0);
+    setQueueIdx(0);
+    setCurrentExerciseIdx(0);
+    setCurrentSet(1);
+    setWorkoutQueue([]);
+  };
+
+  const exercises = todayWorkout?.details?.exercises || [];
+  const currentExercise = exercises[currentExerciseIdx] || {};
 
   if (loading) {
     return (
@@ -218,10 +326,43 @@ const Fitness = () => {
                     </div>
                   </div>
                 </div>
-                <button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm p-4 rounded-2xl transition-all duration-200 flex items-center gap-2">
-                  <Play className="w-6 h-6" />
-                  <span className="font-medium">Start Workout</span>
-                </button>
+                {/* Inline Timer or Start Button */}
+                {timerActive ? (
+                  <div className="flex flex-col items-center gap-2 w-56">
+                    <div className={`text-3xl font-mono w-full text-center py-2 rounded-lg ${timerPhase === 'work' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
+                      {String(Math.floor(timerSeconds / 60)).padStart(2, '0')}:{String(timerSeconds % 60).padStart(2, '0')}
+                    </div>
+                    <div className="text-center mt-1 font-bold text-lg">
+                      {timerPhase === 'work' ? 'Go!' : 'Rest'}
+                    </div>
+                    <div className="text-center text-sm text-gray-800 mt-1">
+                      {currentExercise.name ? `Exercise: ${currentExercise.name}` : ''} {currentSet ? `| Set ${currentSet}` : ''}
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      {timerPaused ? (
+                        <button onClick={handleResume} className="bg-green-500 text-white px-3 py-1 rounded-lg font-medium">Resume</button>
+                      ) : (
+                        <button onClick={handlePause} className="bg-yellow-400 text-white px-3 py-1 rounded-lg font-medium">Pause</button>
+                      )}
+                      <button onClick={handleReset} className="bg-gray-300 text-gray-800 px-3 py-1 rounded-lg font-medium">Reset</button>
+                    </div>
+                    {showSwitchModal && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                        <div className={`rounded-2xl shadow-2xl px-10 py-8 flex flex-col items-center border-4 border-white/80 animate-pop ${timerPhase === 'work' ? 'bg-red-500' : 'bg-green-500'}` }>
+                          <div className="text-6xl mb-4 animate-bounce">{timerPhase === 'work' ? '🏋️‍♂️' : '🛌'}</div>
+                          <h2 className="text-3xl font-extrabold text-white drop-shadow mb-2 text-center">
+                            {timerPhase === 'work' ? 'GO TIME!' : 'REST NOW!'}
+                          </h2>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button onClick={startTimer} className="bg-white/20 hover:bg-white/30 backdrop-blur-sm p-4 rounded-2xl transition-all duration-200 flex items-center gap-2">
+                    <Play className="w-6 h-6" />
+                    <span className="font-medium">Start Workout</span>
+                  </button>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {todayWorkout?.details?.exercises?.length > 0 ? todayWorkout.details.exercises.map((exercise: any, index: number) => (
