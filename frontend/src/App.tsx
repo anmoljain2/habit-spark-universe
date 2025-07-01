@@ -19,8 +19,26 @@ import Fitness from './pages/Fitness';
 import Journal from './pages/Journal';
 import Finances from './pages/Finances';
 import EditProfile from './pages/EditProfile';
+import Landing from './pages/Landing';
+import About from './pages/About';
+import Navbar from './components/Navbar';
+import PublicNavbar from './components/PublicNavbar';
 
 const queryClient = new QueryClient();
+
+const PublicLayout = ({ children }: { children: React.ReactNode }) => (
+  <>
+    <PublicNavbar />
+    {children}
+  </>
+);
+
+const PrivateLayout = ({ children }: { children: React.ReactNode }) => (
+  <>
+    <Navbar />
+    {children}
+  </>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -30,68 +48,25 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/onboarding" element={
-              <ProtectedRoute>
-                <Onboarding />
-              </ProtectedRoute>
-            } />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile/edit" element={
-              <ProtectedRoute>
-                <EditProfile />
-              </ProtectedRoute>
-            } />
-            <Route path="/social" element={
-              <ProtectedRoute>
-                <Social />
-              </ProtectedRoute>
-            } />
-            <Route path="/habits" element={
-              <ProtectedRoute>
-                <Habits />
-              </ProtectedRoute>
-            } />
-            <Route path="/user/:username" element={
-              <ProtectedRoute>
-                <UserProfile />
-              </ProtectedRoute>
-            } />
-            <Route path="/news" element={
-              <ProtectedRoute>
-                <News />
-              </ProtectedRoute>
-            } />
-            <Route path="/meals" element={
-              <ProtectedRoute>
-                <Meals />
-              </ProtectedRoute>
-            } />
-            <Route path="/fitness" element={
-              <ProtectedRoute>
-                <Fitness />
-              </ProtectedRoute>
-            } />
-            <Route path="/journal" element={
-              <ProtectedRoute>
-                <Journal />
-              </ProtectedRoute>
-            } />
-            <Route path="/finances" element={
-              <ProtectedRoute>
-                <Finances />
-              </ProtectedRoute>
-            } />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            {/* Public routes */}
+            <Route path="/" element={<PublicLayout><Landing /></PublicLayout>} />
+            <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
+            <Route path="/auth" element={<PublicLayout><Auth /></PublicLayout>} />
+
+            {/* Protected routes */}
+            <Route path="/onboarding" element={<PrivateLayout><ProtectedRoute><Onboarding /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/profile" element={<PrivateLayout><ProtectedRoute><Profile /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/profile/edit" element={<PrivateLayout><ProtectedRoute><EditProfile /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/social" element={<PrivateLayout><ProtectedRoute><Social /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/habits" element={<PrivateLayout><ProtectedRoute><Habits /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/user/:username" element={<PrivateLayout><ProtectedRoute><UserProfile /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/news" element={<PrivateLayout><ProtectedRoute><News /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/meals" element={<PrivateLayout><ProtectedRoute><Meals /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/fitness" element={<PrivateLayout><ProtectedRoute><Fitness /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/journal" element={<PrivateLayout><ProtectedRoute><Journal /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/finances" element={<PrivateLayout><ProtectedRoute><Finances /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/" element={<PrivateLayout><ProtectedRoute><Index /></ProtectedRoute></PrivateLayout>} />
+            {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
