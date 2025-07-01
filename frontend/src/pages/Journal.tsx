@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import Navbar from '../components/Navbar';
 import JournalConfig from './JournalConfig';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
@@ -127,7 +126,6 @@ const Journal = () => {
 
   if (configLoading) return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
-      <Navbar />
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600"></div>
       </div>
@@ -168,7 +166,6 @@ const Journal = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
-      <Navbar />
       <div className="w-full px-4 py-8">
         {/* Hero Header */}
         <div className="text-center mb-12">
@@ -203,14 +200,23 @@ const Journal = () => {
                   <p className="text-gray-600">You've already journaled today. Great job!</p>
                 </div>
               ) : (
-                <form onSubmit={handleAddEntry} className="space-y-6">
-                  {enabledQuestions.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <CalendarIcon className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>No questions selected. Please update your configuration.</p>
-                    </div>
-                  ) : (
-                    enabledQuestions.map((q, index) => (
+                enabledQuestions.length === 0 ? (
+                  <JournalConfig onComplete={() => {
+                    // Refetch config after saving
+                    setConfigLoading(true);
+                    supabase
+                      .from('journal_config')
+                      .select('*')
+                      .eq('user_id', user.id)
+                      .single()
+                      .then(({ data }) => {
+                        setConfig(data);
+                        setConfigLoading(false);
+                      });
+                  }} />
+                ) : (
+                  <form onSubmit={handleAddEntry} className="space-y-6">
+                    {enabledQuestions.map((q, index) => (
                       <div key={q} className="group">
                         <label className="block font-semibold text-gray-800 mb-3 flex items-center gap-2">
                           <span className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">
@@ -227,26 +233,26 @@ const Journal = () => {
                           required
                         />
                       </div>
-                    ))
-                  )}
-                  <button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={saving || enabledQuestions.length === 0}
-                  >
-                    {saving ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white"></div>
-                        Saving...
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center gap-2">
-                        <Sparkles className="w-5 h-5" />
-                        Save Entry
-                      </div>
-                    )}
-                  </button>
-                </form>
+                    ))}
+                    <button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={saving || enabledQuestions.length === 0}
+                    >
+                      {saving ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white"></div>
+                          Saving...
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                          <Sparkles className="w-5 h-5" />
+                          Save Entry
+                        </div>
+                      )}
+                    </button>
+                  </form>
+                )
               )}
             </div>
           </div>

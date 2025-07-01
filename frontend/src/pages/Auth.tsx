@@ -20,6 +20,13 @@ const Auth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [triedSubmit, setTriedSubmit] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [resetPassword, setResetPassword] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetError, setResetError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,6 +36,15 @@ const Auth = () => {
     const redirect = params.get('redirect');
     const mode = params.get('mode');
     setIsLogin(mode !== 'signup'); // Always sync isLogin with mode param
+    setShowForgot(false); // Reset forgot state on mode change
+    setForgotSent(false);
+    setResetSuccess(false);
+    setResetError('');
+    if (mode === 'reset') {
+      setResetPassword(true);
+    } else {
+      setResetPassword(false);
+    }
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -131,7 +147,9 @@ const Auth = () => {
         }
       }
 
-      const redirectUrl = `${window.location.origin}/`;
+      // Use environment variable for redirect URL if available, fallback to window.location.origin
+      // Set VITE_PUBLIC_SITE_URL in your .env file to your deployed site URL (e.g., https://yourdomain.com)
+      const redirectUrl = import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin + '/';
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -189,13 +207,11 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
           toast({
@@ -203,6 +219,7 @@ const Auth = () => {
             description: "Please check your email and password.",
             variant: "destructive",
           });
+          setShowForgot(true); // Show forgot password link
         } else {
           toast({
             title: "Error",
@@ -228,6 +245,72 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setForgotSent(false);
+    try {
+      const redirectUrl = import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin + '/auth?mode=reset';
+      const { data, error } = await supabase.auth.resetPasswordForEmail(forgotEmail, { redirectTo: redirectUrl });
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setForgotSent(true);
+        toast({
+          title: "Reset email sent!",
+          description: "If this email exists, a reset link has been sent.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetLoading(true);
+    setResetError('');
+    if (password.length < 8) {
+      setResetError('Password must be at least 8 characters long');
+      setResetLoading(false);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setResetError('Passwords do not match');
+      setResetLoading(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setResetError(error.message);
+      } else {
+        setResetSuccess(true);
+        toast({
+          title: "Password updated!",
+          description: "You can now sign in with your new password.",
+        });
+        setTimeout(() => {
+          navigate('/auth');
+        }, 1500);
+      }
+    } catch (error) {
+      setResetError('Something went wrong. Please try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -238,124 +321,207 @@ const Auth = () => {
             </div>
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">
-            {isLogin ? 'Welcome Back!' : 'Join LifeQuest'}
+            {resetPassword ? 'Reset Password' : isLogin ? 'Welcome Back!' : 'Join LifeQuest'}
           </CardTitle>
           <CardDescription>
-            {isLogin 
-              ? 'Sign in to continue your journey' 
-              : 'Start your adventure today'
+            {resetPassword
+              ? 'Enter your new password below.'
+              : isLogin
+                ? 'Sign in to continue your journey'
+                : 'Start your adventure today'
             }
           </CardDescription>
         </CardHeader>
-        
         <CardContent>
-          <form onSubmit={isLogin ? handleSignIn : handleSignUp} className="space-y-4">
-            {!isLogin && (
+          {resetPassword ? (
+            <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-                {triedSubmit && username.trim().length === 0 && (
-                  <p className="text-sm text-red-500">Username is required</p>
-                )}
-              </div>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              {triedSubmit && email.trim().length === 0 && (
-                <p className="text-sm text-red-500">Email is required</p>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
+                <Label htmlFor="password">New Password</Label>
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder="Enter your new password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
               </div>
-              {triedSubmit && password.trim().length === 0 && (
-                <p className="text-sm text-red-500">Password is required</p>
-              )}
-              {triedSubmit && password.length > 0 && password.length < 8 && (
-                <p className="text-sm text-red-500">Password must be at least 8 characters long</p>
-              )}
-            </div>
-            
-            {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Confirm your password"
+                  placeholder="Confirm your new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
-                {triedSubmit && confirmPassword.trim().length === 0 && (
-                  <p className="text-sm text-red-500">Confirm password is required</p>
-                )}
-                {triedSubmit && password !== confirmPassword && confirmPassword.length > 0 && (
-                  <p className="text-sm text-red-500">Passwords do not match</p>
+              </div>
+              {resetError && <p className="text-sm text-red-500">{resetError}</p>}
+              <Button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700" disabled={resetLoading}>
+                {resetLoading ? 'Saving...' : 'Save New Password'}
+              </Button>
+              {resetSuccess && <p className="text-green-600 text-center mt-2">Password updated! Redirecting to login...</p>}
+            </form>
+          ) : showForgot ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="forgotEmail">Email</Label>
+                <Input
+                  id="forgotEmail"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700" disabled={loading}>
+                {loading ? 'Sending...' : 'Send Reset Link'}
+              </Button>
+              {forgotSent && <p className="text-green-600 text-center mt-2">If this email exists, a reset link has been sent.</p>}
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowForgot(false)}
+                  className="text-sm text-indigo-600 hover:text-indigo-500"
+                >
+                  Back to sign in
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={isLogin ? handleSignIn : handleSignUp} className="space-y-4">
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
+                  {triedSubmit && username.trim().length === 0 && (
+                    <p className="text-sm text-red-500">Username is required</p>
+                  )}
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                {triedSubmit && email.trim().length === 0 && (
+                  <p className="text-sm text-red-500">Email is required</p>
                 )}
               </div>
-            )}
-            
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-              disabled={loading}
-            >
-              {loading ? 'Loading...' : (isLogin ? 'Sign In' : 'Create Account')}
-            </Button>
-          </form>
-          
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                if (isLogin) {
-                  navigate('/auth?mode=signup' + (location.search.includes('redirect=') ? '&' + location.search.split('?')[1].split('&').filter(q => q.startsWith('redirect=')).join('&') : ''));
-                } else {
-                  navigate('/auth' + (location.search.includes('redirect=') ? '?'+ location.search.split('?')[1].split('&').filter(q => q.startsWith('redirect=')).join('&') : ''));
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {triedSubmit && password.trim().length === 0 && (
+                  <p className="text-sm text-red-500">Password is required</p>
+                )}
+                {triedSubmit && password.length > 0 && password.length < 8 && (
+                  <p className="text-sm text-red-500">Password must be at least 8 characters long</p>
+                )}
+              </div>
+              
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                  {triedSubmit && confirmPassword.trim().length === 0 && (
+                    <p className="text-sm text-red-500">Confirm password is required</p>
+                  )}
+                  {triedSubmit && password !== confirmPassword && confirmPassword.length > 0 && (
+                    <p className="text-sm text-red-500">Passwords do not match</p>
+                  )}
+                </div>
+              )}
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                disabled={loading}
+              >
+                {loading ? 'Loading...' : (isLogin ? 'Sign In' : 'Create Account')}
+              </Button>
+            </form>
+          )}
+          {!resetPassword && !showForgot && (
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  if (isLogin) {
+                    navigate('/auth?mode=signup' + (location.search.includes('redirect=') ? '&' + location.search.split('?')[1].split('&').filter(q => q.startsWith('redirect=')).join('&') : ''));
+                  } else {
+                    navigate('/auth' + (location.search.includes('redirect=') ? '?'+ location.search.split('?')[1].split('&').filter(q => q.startsWith('redirect=')).join('&') : ''));
+                  }
+                }}
+                className="text-sm text-indigo-600 hover:text-indigo-500"
+              >
+                {isLogin 
+                  ? "Don't have an account? Sign up" 
+                  : "Already have an account? Sign in"
                 }
-              }}
-              className="text-sm text-indigo-600 hover:text-indigo-500"
-            >
-              {isLogin 
-                ? "Don't have an account? Sign up" 
-                : "Already have an account? Sign in"
-              }
-            </button>
-          </div>
+              </button>
+              {isLogin && showForgot && (
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgot(true)}
+                    className="text-sm text-indigo-600 hover:text-indigo-500"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {!resetPassword && !showForgot && isLogin && (
+            <div className="mt-2 text-center">
+              <button
+                type="button"
+                onClick={() => setShowForgot(true)}
+                className="text-sm text-indigo-600 hover:text-indigo-500"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
