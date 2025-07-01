@@ -183,13 +183,23 @@ const Fitness = () => {
         </div>
         {error && <div className="text-center text-red-600 font-semibold mb-4">{error}</div>}
         <div className="flex justify-end mb-4">
-          <button
-            onClick={handleRegenerate}
-            className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-            disabled={regenerating || workoutsLoading}
-          >
-            {regenerating ? 'Regenerating...' : 'Regenerate Plan'}
-          </button>
+          {weeklyWorkouts.length === 0 ? (
+            <button
+              onClick={fetchOrGenerateWorkouts}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+              disabled={workoutsLoading}
+            >
+              {workoutsLoading ? 'Generating...' : 'Generate Workouts'}
+            </button>
+          ) : (
+            <button
+              onClick={handleRegenerate}
+              className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+              disabled={regenerating || workoutsLoading}
+            >
+              {regenerating ? 'Regenerating...' : 'Regenerate Plan'}
+            </button>
+          )}
         </div>
         <div className="mb-4 text-center text-pink-700 font-semibold">
           {weeklyWorkouts.length > 0 && `You have ${weeklyWorkouts.length} workouts for this week.`}
