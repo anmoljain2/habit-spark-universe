@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -40,6 +40,15 @@ const PrivateLayout = ({ children }: { children: React.ReactNode }) => (
   </>
 );
 
+const HomeRouter = () => {
+  const { user, loading } = useAuth();
+  if (loading) return null; // or a spinner
+  if (user) {
+    return <PrivateLayout><Index /></PrivateLayout>;
+  }
+  return <PublicLayout><Landing /></PublicLayout>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -49,7 +58,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<PublicLayout><Landing /></PublicLayout>} />
+            <Route path="/" element={<HomeRouter />} />
             <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
             <Route path="/auth" element={<PublicLayout><Auth /></PublicLayout>} />
 
@@ -65,7 +74,6 @@ const App = () => (
             <Route path="/fitness" element={<PrivateLayout><ProtectedRoute><Fitness /></ProtectedRoute></PrivateLayout>} />
             <Route path="/journal" element={<PrivateLayout><ProtectedRoute><Journal /></ProtectedRoute></PrivateLayout>} />
             <Route path="/finances" element={<PrivateLayout><ProtectedRoute><Finances /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/" element={<PrivateLayout><ProtectedRoute><Index /></ProtectedRoute></PrivateLayout>} />
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
