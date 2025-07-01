@@ -20,7 +20,8 @@ const Auth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [triedSubmit, setTriedSubmit] = useState(false);
-  const [showForgot, setShowForgot] = useState(false);
+  const [showForgotLink, setShowForgotLink] = useState(false);
+  const [showForgotForm, setShowForgotForm] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [resetPassword, setResetPassword] = useState(false);
@@ -33,10 +34,10 @@ const Auth = () => {
   useEffect(() => {
     // Get redirect and mode params from query string
     const params = new URLSearchParams(location.search);
-    const redirect = params.get('redirect');
     const mode = params.get('mode');
     setIsLogin(mode !== 'signup'); // Always sync isLogin with mode param
-    setShowForgot(false); // Reset forgot state on mode change
+    setShowForgotForm(false); // Reset forgot form on mode change
+    setShowForgotLink(false); // Reset forgot link on mode change
     setForgotSent(false);
     setResetSuccess(false);
     setResetError('');
@@ -45,27 +46,19 @@ const Auth = () => {
     } else {
       setResetPassword(false);
     }
-    // Set up auth state listener
+    // Remove all navigation on auth state change
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        if (session?.user) {
-          // Redirect to redirect param if present, else to main page
-          navigate(redirect || '/');
-        }
       }
     );
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        navigate(redirect || '/');
-      }
     });
     return () => subscription.unsubscribe();
-  }, [navigate, location.search]);
+  }, [location.search]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,7 +211,7 @@ const Auth = () => {
             description: "Please check your email and password.",
             variant: "destructive",
           });
-          setShowForgot(true); // Show forgot password link
+          setShowForgotLink(true); // Only show the link
         } else {
           toast({
             title: "Error",
@@ -231,7 +224,7 @@ const Auth = () => {
           title: "Welcome back!",
           description: "Successfully signed in.",
         });
-        // Redirect will happen automatically via the auth state change
+        // Do not redirect here
       }
     } catch (error) {
       toast({
@@ -323,7 +316,7 @@ const Auth = () => {
           <CardTitle className="text-2xl font-bold text-gray-900">
             {resetPassword
               ? 'Reset Password'
-              : showForgot
+              : showForgotForm
                 ? 'Forgot Password'
                 : isLogin
                   ? 'Welcome Back!'
@@ -332,7 +325,7 @@ const Auth = () => {
           <CardDescription>
             {resetPassword
               ? 'Enter your new password below.'
-              : showForgot
+              : showForgotForm
                 ? 'Input email to receive a link to change your password!'
                 : isLogin
                   ? 'Sign in to continue your journey'
@@ -370,7 +363,7 @@ const Auth = () => {
               </Button>
               {resetSuccess && <p className="text-green-600 text-center mt-2">Password updated! Redirecting to login...</p>}
             </form>
-          ) : showForgot ? (
+          ) : showForgotForm ? (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="forgotEmail">Email</Label>
@@ -390,7 +383,10 @@ const Auth = () => {
               <div className="mt-4 text-center">
                 <button
                   type="button"
-                  onClick={() => setShowForgot(false)}
+                  onClick={() => {
+                    setShowForgotForm(false);
+                    setShowForgotLink(false);
+                  }}
                   className="text-sm text-indigo-600 hover:text-indigo-500"
                 >
                   Back to sign in
@@ -487,7 +483,7 @@ const Auth = () => {
               </Button>
             </form>
           )}
-          {!resetPassword && !showForgot && (
+          {!resetPassword && !showForgotForm && (
             <div className="mt-6 text-center">
               <button
                 type="button"
@@ -505,11 +501,14 @@ const Auth = () => {
                   : "Already have an account? Sign in"
                 }
               </button>
-              {isLogin && showForgot && (
+              {isLogin && showForgotLink && (
                 <div className="mt-2">
                   <button
                     type="button"
-                    onClick={() => setShowForgot(true)}
+                    onClick={() => {
+                      setShowForgotForm(true);
+                      setShowForgotLink(false);
+                    }}
                     className="text-sm text-indigo-600 hover:text-indigo-500"
                   >
                     Forgot password?
