@@ -13,7 +13,7 @@ const Fitness = () => {
   const [fitnessGoals, setFitnessGoals] = useState(null);
   const [loading, setLoading] = useState(true);
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<any[]>([]);
-  const [workoutsLoading, setWorkoutsLoading] = useState(true);
+  const [workoutsLoading, setWorkoutsLoading] = useState(false);
   const [error, setError] = useState('');
   const [regenerating, setRegenerating] = useState(false);
 
