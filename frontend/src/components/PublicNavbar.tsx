@@ -6,6 +6,8 @@ const PublicNavbar = () => {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
 
+  const loginTarget = location.pathname === '/auth' && location.search.includes('mode=signup') ? '/auth' : '/auth';
+
   return (
     <nav className="bg-gradient-to-r from-rose-500 via-indigo-500 to-purple-600 text-white shadow-xl border-b border-white/10 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -23,7 +25,7 @@ const PublicNavbar = () => {
             <Link to="/about" className={`text-gray-600 hover:text-indigo-600 transition-colors ${isActive('/about') ? 'font-bold underline' : ''}`}>About</Link>
           </nav>
           <div className="flex items-center space-x-4">
-            <Link to="/auth">
+            <Link to={loginTarget}>
               <Button className="hidden sm:inline-flex bg-indigo-600 text-white hover:bg-indigo-700">
                 Login
               </Button>

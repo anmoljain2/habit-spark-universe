@@ -135,7 +135,7 @@ const Landing = () => {
               and level up your life with our all-in-one self-improvement ecosystem.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link to="/auth">
+              <Link to="/auth?mode=signup">
                 <Button size="lg" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-lg px-8 py-3">
                   Start Your Journey
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -294,7 +294,7 @@ const Landing = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/auth?mode=signup">
-              <Button size="lg" className="bg-white text-indigo-600 hover:bg-gray-50 text-lg px-8 py-3">
+              <Button size="lg" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-lg px-8 py-3">
                 Get Started for Free
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>

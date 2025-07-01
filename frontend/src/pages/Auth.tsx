@@ -24,32 +24,30 @@ const Auth = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Get redirect param from query string
+    // Get redirect and mode params from query string
     const params = new URLSearchParams(location.search);
     const redirect = params.get('redirect');
+    const mode = params.get('mode');
+    if (mode === 'signup') setIsLogin(false);
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
         if (session?.user) {
           // Redirect to redirect param if present, else to main page
           navigate(redirect || '/');
         }
       }
     );
-
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
       if (session?.user) {
         navigate(redirect || '/');
       }
     });
-
     return () => subscription.unsubscribe();
   }, [navigate, location.search]);
 

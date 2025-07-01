@@ -84,6 +84,24 @@ const Fitness = () => {
     setRegenerating(false);
   };
 
+  const generateWorkouts = async () => {
+    if (!user) return;
+    setWorkoutsLoading(true);
+    setError('');
+    try {
+      const res = await axios.post('/api/generate-workout-plan', { user_id: user.id });
+      if (res.data && res.data.plan) {
+        await fetchWorkouts();
+        toast.success('Workout plan generated!');
+      } else {
+        setError('Failed to generate workout plan.');
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to generate workout plan.');
+    }
+    setWorkoutsLoading(false);
+  };
+
   // Find today's workout
   const today = new Date();
   const todayName = today.toLocaleDateString('en-US', { weekday: 'long' });
@@ -295,11 +313,11 @@ const Fitness = () => {
         <div className="flex justify-end mb-4">
           {weeklyWorkouts.length === 0 ? (
             <button
-              onClick={fetchWorkouts}
+              onClick={generateWorkouts}
               className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
               disabled={workoutsLoading}
             >
-              {workoutsLoading ? 'Loading...' : 'Load Workouts'}
+              {workoutsLoading ? 'Generating...' : 'Generate Plan'}
             </button>
           ) : (
             <button
