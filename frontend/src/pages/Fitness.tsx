@@ -85,7 +85,6 @@ const Fitness = () => {
         setFitnessGoals(data);
         setLoading(false);
       });
-    fetchOrGenerateWorkouts();
     // eslint-disable-next-line
   }, [user]);
 
