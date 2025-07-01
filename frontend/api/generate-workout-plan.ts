@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 Return a JSON array of 7 objects, one for each day (Monday to Sunday). Each object should include:
 - day (e.g., 'Monday')
 - workout_type (e.g., 'Upper Body', 'Cardio', etc.)
-- exercises: array of { name, sets, reps, rest, notes, duration } (duration is required, in minutes, for each exercise)
+- exercises: array of { name, sets, reps, rest, notes, duration, calories_burned } (duration and calories_burned are required, in minutes and kcal, for each exercise)
 - summary: string
 If a day is a rest day, set workout_type to 'Rest' and exercises to an empty array. Do not include any extra text.`;
 
@@ -115,6 +115,7 @@ If a day is a rest day, set workout_type to 'Rest' and exercises to an empty arr
       let totalSets = null;
       let totalReps = null;
       let totalDuration = null;
+      let totalCalories = 0;
       if (Array.isArray(day.exercises) && day.exercises.length > 0) {
         totalSets = day.exercises.reduce((sum, ex) => sum + (parseInt(ex.sets) || 0), 0);
         totalReps = day.exercises.reduce((sum, ex) => sum + (parseInt(ex.reps) || 0), 0);
@@ -125,8 +126,15 @@ If a day is a rest day, set workout_type to 'Rest' and exercises to an empty arr
           return sum + d;
         }, 0);
         if (!totalDuration || isNaN(totalDuration)) totalDuration = 60; // fallback default
+        // Sum up calories burned
+        totalCalories = day.exercises.reduce((sum, ex) => {
+          let c = parseInt(ex.calories_burned);
+          if (isNaN(c) || c <= 0) c = 50;
+          return sum + c;
+        }, 0);
       } else {
         totalDuration = 60;
+        totalCalories = 0;
       }
 
       const { error: insertError } = await supabase.from('user_workouts').insert({
@@ -139,6 +147,7 @@ If a day is a rest day, set workout_type to 'Rest' and exercises to an empty arr
         sets: totalSets,
         reps: totalReps,
         duration: totalDuration,
+        calories_burned: totalCalories,
       });
 
       if (insertError) {

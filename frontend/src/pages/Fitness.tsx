@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '../components/Navbar';
 import FitnessQuestionnaire from '../components/FitnessQuestionnaire';
-import { Dumbbell, Target, Timer, TrendingUp, Zap, Award, Play, Calendar } from 'lucide-react';
+import { Dumbbell, Target, Timer, TrendingUp, Zap, Award, Play, Calendar, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import { formatISO, startOfWeek, endOfWeek } from 'date-fns';
 import { toast } from 'sonner';
@@ -34,12 +34,11 @@ const Fitness = () => {
     };
   };
 
-  const fetchOrGenerateWorkouts = async () => {
+  const fetchWorkouts = async () => {
     if (!user) return;
     setWorkoutsLoading(true);
     setError('');
     const { weekStart, weekEnd } = getWeekRange();
-    // 1. Check for existing workouts
     const { data: workouts, error: fetchError } = await supabase
       .from('user_workouts')
       .select('*')
@@ -48,36 +47,8 @@ const Fitness = () => {
       .lte('week_start', weekEnd);
     if (fetchError) {
       setError('Failed to fetch workouts: ' + fetchError.message);
-      toast.error('Failed to fetch workouts: ' + fetchError.message);
-      setWorkoutsLoading(false);
-      return;
-    }
-    if (workouts && workouts.length > 0) {
-      setWeeklyWorkouts(workouts);
-      toast.success(`You have ${workouts.length} workouts for this week!`);
-      setWorkoutsLoading(false);
-      return;
-    }
-    // 2. Generate new plan only if no workouts exist
-    try {
-      const response = await axios.post('/api/generate-workout-plan', { user_id: user.id });
-      // Fetch again
-      const { data: newWorkouts, error: newFetchError } = await supabase
-        .from('user_workouts')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('week_start', weekStart)
-        .lte('week_start', weekEnd);
-      if (newFetchError) {
-        setError('Failed to fetch generated workouts: ' + newFetchError.message);
-        toast.error('Failed to fetch generated workouts: ' + newFetchError.message);
-      } else {
-        setWeeklyWorkouts(newWorkouts || []);
-        toast.success(`Generated ${newWorkouts?.length || 0} workouts for this week!`);
-      }
-    } catch (err: any) {
-      setError('Failed to generate workout plan: ' + (err.response?.data?.error || err.message));
-      toast.error('Failed to generate workout plan: ' + (err.response?.data?.error || err.message));
+    } else {
+      setWeeklyWorkouts(workouts || []);
     }
     setWorkoutsLoading(false);
   };
@@ -94,6 +65,7 @@ const Fitness = () => {
         setFitnessGoals(data);
         setLoading(false);
       });
+    fetchWorkouts();
     // eslint-disable-next-line
   }, [user]);
 
@@ -109,7 +81,7 @@ const Fitness = () => {
       .eq('user_id', user.id)
       .gte('week_start', weekStart)
       .lte('week_start', weekEnd);
-    await fetchOrGenerateWorkouts();
+    await fetchWorkouts();
     setRegenerating(false);
   };
 
@@ -217,6 +189,62 @@ const Fitness = () => {
   const exercises = todayWorkout?.details?.exercises || [];
   const currentExercise = exercises[currentExerciseIdx] || {};
 
+  // Calculate weekly progress
+  const completedWorkouts = weeklyWorkouts.filter(w => w.completed);
+  const totalActiveMinutes = completedWorkouts.reduce((sum, w) => sum + (w.duration || 0), 0);
+  const totalCaloriesBurned = completedWorkouts.reduce((sum, w) => sum + (w.calories_burned || 0), 0);
+  const weeklyStats = [
+    { label: "Workouts", current: completedWorkouts.length, target: fitnessGoals?.days_per_week || 5, color: "from-pink-500 to-rose-500" },
+    { label: "Active Minutes", current: totalActiveMinutes, target: (fitnessGoals?.days_per_week || 5) * (fitnessGoals?.minutes_per_session || 45), color: "from-purple-500 to-indigo-500" },
+    { label: "Calories Burned", current: totalCaloriesBurned, target: (fitnessGoals?.days_per_week || 5) * 300, color: "from-orange-500 to-red-500" },
+    { label: "Steps", current: 0, target: 10000, color: "from-green-500 to-emerald-500" } // Placeholder, update if you track steps
+  ];
+
+  const upcomingWorkouts = [
+    { day: "Tomorrow", workout: "Cardio HIIT", duration: "30 min", intensity: "High" },
+    { day: "Friday", workout: "Lower Body", duration: "50 min", intensity: "Medium" },
+    { day: "Saturday", workout: "Yoga Flow", duration: "40 min", intensity: "Low" },
+    { day: "Sunday", workout: "Full Body", duration: "60 min", intensity: "High" }
+  ];
+
+  const achievements = [
+    { title: "7-Day Streak", icon: "🔥", unlocked: true },
+    { title: "First 5K", icon: "🏃‍♂️", unlocked: true },
+    { title: "Strength Master", icon: "💪", unlocked: false },
+    { title: "Consistency King", icon: "👑", unlocked: false }
+  ];
+
+  // Mark today's workout as complete (and update UI)
+  const markWorkoutComplete = async () => {
+    setTimerActive(false);
+    setTimerPaused(false);
+    setTimerSeconds(0);
+    setQueueIdx(0);
+    setCurrentExerciseIdx(0);
+    setCurrentSet(1);
+    setWorkoutQueue([]);
+    if (todayWorkout && todayWorkout.id && !todayWorkout.completed) {
+      const { error } = await supabase
+        .from('user_workouts')
+        .update({ completed: true } as any)
+        .eq('id', todayWorkout.id);
+      if (!error) {
+        toast.success('Workout marked as complete!');
+        setWeeklyWorkouts(ws => ws.map(w => w.id === todayWorkout.id ? { ...w, completed: true } : w));
+      } else {
+        toast.error('Failed to mark workout as complete.');
+      }
+    }
+  };
+
+  // When timer finishes naturally, mark workout complete
+  useEffect(() => {
+    if (!timerActive && !timerPaused && timerSeconds === 0 && todayWorkout && !todayWorkout.completed) {
+      markWorkoutComplete();
+    }
+    // eslint-disable-next-line
+  }, [timerActive, timerPaused, timerSeconds]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-rose-50/50">
@@ -250,27 +278,6 @@ const Fitness = () => {
     );
   }
 
-  const weeklyStats = [
-    { label: "Workouts", current: 4, target: 5, color: "from-pink-500 to-rose-500" },
-    { label: "Active Minutes", current: 180, target: 300, color: "from-purple-500 to-indigo-500" },
-    { label: "Calories Burned", current: 1250, target: 2000, color: "from-orange-500 to-red-500" },
-    { label: "Steps", current: 8500, target: 10000, color: "from-green-500 to-emerald-500" }
-  ];
-
-  const upcomingWorkouts = [
-    { day: "Tomorrow", workout: "Cardio HIIT", duration: "30 min", intensity: "High" },
-    { day: "Friday", workout: "Lower Body", duration: "50 min", intensity: "Medium" },
-    { day: "Saturday", workout: "Yoga Flow", duration: "40 min", intensity: "Low" },
-    { day: "Sunday", workout: "Full Body", duration: "60 min", intensity: "High" }
-  ];
-
-  const achievements = [
-    { title: "7-Day Streak", icon: "🔥", unlocked: true },
-    { title: "First 5K", icon: "🏃‍♂️", unlocked: true },
-    { title: "Strength Master", icon: "💪", unlocked: false },
-    { title: "Consistency King", icon: "👑", unlocked: false }
-  ];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-rose-50/50">
       <Navbar />
@@ -292,11 +299,11 @@ const Fitness = () => {
         <div className="flex justify-end mb-4">
           {weeklyWorkouts.length === 0 ? (
             <button
-              onClick={fetchOrGenerateWorkouts}
+              onClick={fetchWorkouts}
               className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
               disabled={workoutsLoading}
             >
-              {workoutsLoading ? 'Generating...' : 'Generate Workouts'}
+              {workoutsLoading ? 'Loading...' : 'Load Workouts'}
             </button>
           ) : (
             <button
@@ -315,7 +322,7 @@ const Fitness = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Today's Workout */}
-            <div className="bg-gradient-to-br from-pink-600 to-rose-600 rounded-2xl p-8 text-white shadow-2xl">
+            <div className="bg-gradient-to-br from-pink-600 to-rose-600 rounded-2xl p-8 text-white shadow-2xl relative">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-3xl font-bold mb-2">{todayWorkout?.details?.workout_type || 'Rest Day'}</h2>
@@ -356,6 +363,22 @@ const Fitness = () => {
                         </div>
                       </div>
                     )}
+                    {/* Finish Workout Button (only during timer) */}
+                    {!todayWorkout?.completed && (
+                      <button
+                        onClick={markWorkoutComplete}
+                        className="absolute bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2 z-10"
+                      >
+                        <CheckCircle className="w-5 h-5" />
+                        Finish Workout
+                      </button>
+                    )}
+                  </div>
+                ) : todayWorkout?.completed ? (
+                  <div className="flex flex-col items-center gap-2 w-56">
+                    <div className="text-2xl font-bold text-indigo-600 flex items-center gap-2">
+                      <CheckCircle className="w-6 h-6" /> Workout Completed
+                    </div>
                   </div>
                 ) : (
                   <button onClick={startTimer} className="bg-white/20 hover:bg-white/30 backdrop-blur-sm p-4 rounded-2xl transition-all duration-200 flex items-center gap-2">
@@ -449,7 +472,7 @@ const Fitness = () => {
                     <div key={index}>
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-medium text-gray-700">{stat.label}</span>
-                        <span className="text-sm text-gray-600">{stat.current}/{stat.target}</span>
+                        <span className="text-sm text-gray-600">{stat.current}/{stat.target}{stat.label === 'Calories Burned' ? ' kcal' : stat.label === 'Active Minutes' ? ' min' : ''}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div 
