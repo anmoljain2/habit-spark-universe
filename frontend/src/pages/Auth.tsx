@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
@@ -21,8 +21,12 @@ const Auth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [triedSubmit, setTriedSubmit] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    // Get redirect param from query string
+    const params = new URLSearchParams(location.search);
+    const redirect = params.get('redirect');
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -30,8 +34,8 @@ const Auth = () => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Redirect to main page if user is authenticated
-          navigate('/');
+          // Redirect to redirect param if present, else to main page
+          navigate(redirect || '/');
         }
       }
     );
@@ -42,12 +46,12 @@ const Auth = () => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        navigate('/');
+        navigate(redirect || '/');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location.search]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();

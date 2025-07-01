@@ -1,6 +1,3 @@
-Need to install the following packages:
-supabase@2.26.9
-Ok to proceed? (y) 
 export type Json =
   | string
   | number
@@ -193,6 +190,44 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      product_reviews: {
+        Row: {
+          affiliation: string | null
+          comment: string
+          created_at: string | null
+          id: string
+          name: string
+          stars: number
+          user_id: string | null
+        }
+        Insert: {
+          affiliation?: string | null
+          comment: string
+          created_at?: string | null
+          id?: string
+          name: string
+          stars: number
+          user_id?: string | null
+        }
+        Update: {
+          affiliation?: string | null
+          comment?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          stars?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -555,27 +590,45 @@ export type Database = {
       }
       user_workouts: {
         Row: {
+          calories_burned: number | null
+          completed: boolean | null
           created_at: string | null
           date: string
           details: Json | null
+          duration: number | null
           id: string
+          reps: number | null
+          sets: number | null
           user_id: string | null
+          week_start: string | null
           workout_type: string | null
         }
         Insert: {
+          calories_burned?: number | null
+          completed?: boolean | null
           created_at?: string | null
           date: string
           details?: Json | null
+          duration?: number | null
           id?: string
+          reps?: number | null
+          sets?: number | null
           user_id?: string | null
+          week_start?: string | null
           workout_type?: string | null
         }
         Update: {
+          calories_burned?: number | null
+          completed?: boolean | null
           created_at?: string | null
           date?: string
           details?: Json | null
+          duration?: number | null
           id?: string
+          reps?: number | null
+          sets?: number | null
           user_id?: string | null
+          week_start?: string | null
           workout_type?: string | null
         }
         Relationships: [

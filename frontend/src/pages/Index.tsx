@@ -1,6 +1,4 @@
-
 import { useAuth } from '@/hooks/useAuth';
-import Navbar from '../components/Navbar';
 import StatsOverview from '../components/StatsCard';
 import LevelCard from '../components/LevelCard';
 import HabitsList from '../components/HabitsList';
@@ -38,8 +36,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
-      <Navbar />
-      
       <div className="px-4 py-8">
         {/* Hero Section */}
         <div className="mb-12 text-center">
