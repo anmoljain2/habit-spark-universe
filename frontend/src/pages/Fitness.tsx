@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import Navbar from '../components/Navbar';
 import FitnessQuestionnaire from '../components/FitnessQuestionnaire';
 import { Dumbbell, Target, Timer, TrendingUp, Zap, Award, Play, Calendar, CheckCircle } from 'lucide-react';
 import axios from 'axios';
@@ -248,7 +247,6 @@ const Fitness = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-rose-50/50">
-        <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-pink-600"></div>
         </div>
@@ -259,7 +257,6 @@ const Fitness = () => {
   if (!fitnessGoals) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-rose-50/50">
-        <Navbar />
         <div className="max-w-4xl mx-auto px-4 py-12">
           <div className="text-center mb-8">
             <div className="bg-gradient-to-br from-pink-500 to-rose-600 p-4 rounded-2xl shadow-lg inline-block mb-4">
@@ -280,7 +277,6 @@ const Fitness = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-rose-50/50">
-      <Navbar />
       <div className="w-full px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">

@@ -315,7 +315,7 @@ const About = () => {
               </Button>
             </Link>
             <Link to="/">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 text-lg px-8 py-3">
+              <Button size="lg" className="bg-white/80 border border-indigo-300 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900 text-lg px-8 py-3 transition-colors">
                 Back to Home
               </Button>
             </Link>
