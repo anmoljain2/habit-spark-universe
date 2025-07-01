@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ const Auth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [triedSubmit, setTriedSubmit] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Set up auth state listener
@@ -29,7 +31,7 @@ const Auth = () => {
         
         if (session?.user) {
           // Redirect to main page if user is authenticated
-          window.location.href = '/';
+          navigate('/');
         }
       }
     );
@@ -40,12 +42,12 @@ const Auth = () => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        window.location.href = '/';
+        navigate('/');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();

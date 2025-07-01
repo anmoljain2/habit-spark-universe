@@ -1,12 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Users, Trophy, Target, Heart, Zap, Star, ArrowRight, Play, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Landing = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [userCount, setUserCount] = useState<string>('10K+');
+
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      const { count } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true });
+      if (typeof count === 'number') {
+        // Round to nearest 100 and format with comma
+        const rounded = Math.round(count / 100) * 100;
+        setUserCount(`${rounded.toLocaleString()}+`);
+      }
+    };
+    fetchUserCount();
+  }, []);
 
   const features = [
     {
@@ -63,7 +79,7 @@ const Landing = () => {
   ];
 
   const stats = [
-    { number: "10K+", label: "Active Users" },
+    { number: userCount, label: "Active Users" },
     { number: "500K+", label: "Goals Achieved" },
     { number: "95%", label: "User Satisfaction" },
     { number: "24/7", label: "Community Support" }
@@ -71,45 +87,12 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-2 rounded-lg">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                LifeQuest
-              </h1>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <Link to="#features" className="text-gray-600 hover:text-indigo-600 transition-colors">Features</Link>
-              <Link to="/about" className="text-gray-600 hover:text-indigo-600 transition-colors">About</Link>
-              <Link to="#testimonials" className="text-gray-600 hover:text-indigo-600 transition-colors">Reviews</Link>
-            </nav>
-            <div className="flex items-center space-x-4">
-              <Link to="/auth">
-                <Button variant="outline" className="hidden sm:inline-flex">
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/auth">
-                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <section className="pt-16 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 border-indigo-200">
-              🚀 Join 10,000+ Users Transforming Their Lives
+              🚀 Join {userCount} Users Transforming Their Lives
             </Badge>
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6">
               Transform Your Life

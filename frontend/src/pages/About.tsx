@@ -84,39 +84,6 @@ const About = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-2 rounded-lg">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                LifeQuest
-              </h1>
-            </Link>
-            <nav className="hidden md:flex space-x-8">
-              <Link to="/" className="text-gray-600 hover:text-indigo-600 transition-colors">Home</Link>
-              <Link to="/#features" className="text-gray-600 hover:text-indigo-600 transition-colors">Features</Link>
-              <Link to="/#testimonials" className="text-gray-600 hover:text-indigo-600 transition-colors">Reviews</Link>
-            </nav>
-            <div className="flex items-center space-x-4">
-              <Link to="/auth">
-                <Button variant="outline" className="hidden sm:inline-flex">
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/auth">
-                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <section className="pt-16 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
