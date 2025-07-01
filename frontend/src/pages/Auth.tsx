@@ -321,15 +321,22 @@ const Auth = () => {
             </div>
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">
-            {resetPassword ? 'Reset Password' : isLogin ? 'Welcome Back!' : 'Join LifeQuest'}
+            {resetPassword
+              ? 'Reset Password'
+              : showForgot
+                ? 'Forgot Password'
+                : isLogin
+                  ? 'Welcome Back!'
+                  : 'Join LifeQuest'}
           </CardTitle>
           <CardDescription>
             {resetPassword
               ? 'Enter your new password below.'
-              : isLogin
-                ? 'Sign in to continue your journey'
-                : 'Start your adventure today'
-            }
+              : showForgot
+                ? 'Input email to receive a link to change your password!'
+                : isLogin
+                  ? 'Sign in to continue your journey'
+                  : 'Start your adventure today'}
           </CardDescription>
         </CardHeader>
         <CardContent>

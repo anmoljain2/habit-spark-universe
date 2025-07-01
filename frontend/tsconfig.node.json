@@ -18,5 +18,5 @@
     "noFallthroughCasesInSwitch": true,
     "composite": true
   },
-  "include": ["vite.config.ts", "api/**/*.ts", "api/generate-meal-plan.mts"]
+  "include": ["vite.config.ts", "api/**/*.ts", "api/generate-meal-plan.ts"]
 }
