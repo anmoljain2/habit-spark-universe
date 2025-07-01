@@ -53,7 +53,7 @@ const Auth = () => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          navigate(redirect || '/dashboard');
+          navigate(redirect || '/');
         }
       }
     );
@@ -61,7 +61,7 @@ const Auth = () => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        navigate(redirect || '/dashboard');
+        navigate(redirect || '/');
       }
     });
     return () => subscription.unsubscribe();
