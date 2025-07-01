@@ -24,7 +24,7 @@ const PublicNavbar = () => {
           </nav>
           <div className="flex items-center space-x-4">
             <Link to="/auth">
-              <Button variant="outline" className="hidden sm:inline-flex">
+              <Button className="hidden sm:inline-flex bg-indigo-600 text-white hover:bg-indigo-700">
                 Login
               </Button>
             </Link>
