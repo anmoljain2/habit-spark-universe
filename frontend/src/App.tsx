@@ -23,6 +23,7 @@ import Landing from './pages/Landing';
 import About from './pages/About';
 import Navbar from './components/Navbar';
 import PublicNavbar from './components/PublicNavbar';
+import AddReview from './pages/AddReview';
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,7 @@ const App = () => (
             <Route path="/fitness" element={<PrivateLayout><ProtectedRoute><Fitness /></ProtectedRoute></PrivateLayout>} />
             <Route path="/journal" element={<PrivateLayout><ProtectedRoute><Journal /></ProtectedRoute></PrivateLayout>} />
             <Route path="/finances" element={<PrivateLayout><ProtectedRoute><Finances /></ProtectedRoute></PrivateLayout>} />
+            <Route path="/add-review" element={<PrivateLayout><ProtectedRoute><AddReview /></ProtectedRoute></PrivateLayout>} />
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
