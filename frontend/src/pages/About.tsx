@@ -3,6 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Users, Target, Heart, Zap, ArrowRight, Linkedin, Mail, Award, TrendingUp, Globe } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+function monthsAtLifeQuest(startDate) {
+  const now = new Date();
+  const start = new Date(startDate);
+  return (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+}
 
 const About = () => {
   const values = [
@@ -28,36 +36,15 @@ const About = () => {
     }
   ];
 
-  const teamMembers = [
-    {
-      name: "Anmol Jain",
-      role: "Founder & CEO",
-      description: "Passionate about leveraging technology to empower personal growth. Berkeley graduate with experience in product development.",
-      linkedin: "https://www.linkedin.com/in/anmol-jain-7b2b3b1b4/",
-      email: "anmol.jain@berkeley.edu"
-    },
-    {
-      name: "Sarah Chen",
-      role: "Head of Product",
-      description: "Former Google PM with 8+ years building user-centric products. Advocates for inclusive design and accessibility.",
-      linkedin: "#",
-      email: "sarah@lifequest.app"
-    },
-    {
-      name: "Marcus Rodriguez",
-      role: "Lead Developer",
-      description: "Full-stack engineer passionate about creating scalable, beautiful applications that make a difference.",
-      linkedin: "#",
-      email: "marcus@lifequest.app"
-    },
-    {
-      name: "Dr. Emily Watson",
-      role: "Behavioral Scientist",
-      description: "PhD in Psychology, specializing in habit formation and behavior change. Ensures our features are scientifically sound.",
-      linkedin: "#",
-      email: "emily@lifequest.app"
-    }
-  ];
+  const [teamMembers, setTeamMembers] = useState([]);
+
+  useEffect(() => {
+    const fetchTeam = async () => {
+      const { data } = await supabase.from('team').select('*');
+      setTeamMembers(data || []);
+    };
+    fetchTeam();
+  }, []);
 
   const milestones = [
     {
@@ -230,6 +217,7 @@ const About = () => {
                       <Mail className="w-5 h-5" />
                     </a>
                   </div>
+                  <div>{monthsAtLifeQuest(member.start_date)} months at LifeQuest</div>
                 </CardContent>
               </Card>
             ))}

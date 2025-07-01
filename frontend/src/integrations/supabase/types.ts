@@ -262,6 +262,36 @@ export type Database = {
         }
         Relationships: []
       }
+      team: {
+        Row: {
+          bio: string | null
+          id: string
+          months_at_lifequest: number
+          name: string
+          profile_picture: string | null
+          start_date: string | null
+          title: string
+        }
+        Insert: {
+          bio?: string | null
+          id?: string
+          months_at_lifequest: number
+          name: string
+          profile_picture?: string | null
+          start_date?: string | null
+          title: string
+        }
+        Update: {
+          bio?: string | null
+          id?: string
+          months_at_lifequest?: number
+          name?: string
+          profile_picture?: string | null
+          start_date?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       user_fitness_goals: {
         Row: {
           cardio_preferences: string[] | null

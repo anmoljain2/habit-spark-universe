@@ -8,7 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 const Landing = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [userCount, setUserCount] = useState<string>('10K+');
+  const [userCount, setUserCount] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<any[] | null>(null);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   useEffect(() => {
     const fetchUserCount = async () => {
@@ -22,6 +24,21 @@ const Landing = () => {
       }
     };
     fetchUserCount();
+  }, []);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      setLoadingReviews(true);
+      const { data, error } = await supabase
+        .from('product_reviews')
+        .select('*')
+        .eq('stars', 5)
+        .order('created_at', { ascending: false })
+        .limit(6);
+      setReviews(data || []);
+      setLoadingReviews(false);
+    };
+    fetchReviews();
   }, []);
 
   const features = [
@@ -57,29 +74,8 @@ const Landing = () => {
     }
   ];
 
-  const testimonials = [
-    {
-      name: "Sarah Chen",
-      role: "Berkeley Student",
-      content: "LifeQuest transformed how I approach my daily routines. The gamification makes self-improvement actually fun!",
-      rating: 5
-    },
-    {
-      name: "Marcus Rodriguez",
-      role: "Young Professional",
-      content: "Finally, an app that brings everything together. I love the community aspect and how it keeps me accountable.",
-      rating: 5
-    },
-    {
-      name: "Emily Johnson",
-      role: "Fitness Enthusiast",
-      content: "The habit tracking and social features have helped me stay consistent with my goals like never before.",
-      rating: 5
-    }
-  ];
-
   const stats = [
-    { number: userCount, label: "Active Users" },
+    { number: userCount || '', label: "Active Users" },
     { number: "500K+", label: "Goals Achieved" },
     { number: "95%", label: "User Satisfaction" },
     { number: "24/7", label: "Community Support" }
@@ -92,7 +88,9 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 border-indigo-200">
-              🚀 Join {userCount} Users Transforming Their Lives
+              {userCount
+                ? `🚀 Join ${userCount} Users Transforming Their Lives`
+                : <span className="inline-block w-32 h-5 bg-indigo-100 animate-pulse rounded" />}
             </Badge>
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6">
               Transform Your Life
@@ -127,7 +125,11 @@ const Landing = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-indigo-600 mb-2">{stat.number}</div>
+                <div className="text-3xl md:text-4xl font-bold text-indigo-600 mb-2">
+                  {stat.label === 'Active Users' && !userCount ? (
+                    <span className="inline-block w-16 h-7 bg-indigo-100 animate-pulse rounded" />
+                  ) : stat.number}
+                </div>
                 <div className="text-gray-600">{stat.label}</div>
               </div>
             ))}
@@ -187,7 +189,7 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
+      {/* Reviews Section */}
       <section id="testimonials" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-16">
@@ -206,24 +208,42 @@ const Landing = () => {
               </Button>
             </Link>
           </div>
-
           <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="border-0 shadow-lg">
-                <CardContent className="pt-6">
-                  <div className="flex mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-gray-700 mb-4 italic">"{testimonial.content}"</p>
-                  <div>
-                    <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                    <p className="text-sm text-gray-600">{testimonial.role}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {loadingReviews ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="border-0 shadow-lg animate-pulse">
+                  <CardContent className="pt-6">
+                    <div className="flex mb-4 space-x-1">
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <span key={j} className="w-5 h-5 bg-yellow-100 rounded" />
+                      ))}
+                    </div>
+                    <div className="h-12 bg-gray-100 rounded mb-4" />
+                    <div className="h-4 bg-gray-100 rounded w-1/2 mb-2" />
+                    <div className="h-3 bg-gray-100 rounded w-1/3" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : reviews && reviews.length > 0 ? (
+              reviews.map((review, index) => (
+                <Card key={index} className="border-0 shadow-lg">
+                  <CardContent className="pt-6">
+                    <div className="flex mb-4">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                      ))}
+                    </div>
+                    <p className="text-gray-700 mb-4 italic">"{review.comment}"</p>
+                    <div>
+                      <p className="font-semibold text-gray-900">{review.name}</p>
+                      <p className="text-sm text-gray-600">{review.affiliation}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-3 text-center text-gray-500">No 5-star reviews yet. Be the first to leave one!</div>
+            )}
           </div>
         </div>
       </section>
