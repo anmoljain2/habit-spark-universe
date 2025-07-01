@@ -28,7 +28,7 @@ const Auth = () => {
     const params = new URLSearchParams(location.search);
     const redirect = params.get('redirect');
     const mode = params.get('mode');
-    if (mode === 'signup') setIsLogin(false);
+    setIsLogin(mode !== 'signup'); // Always sync isLogin with mode param
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -341,7 +341,13 @@ const Auth = () => {
           <div className="mt-6 text-center">
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                if (isLogin) {
+                  navigate('/auth?mode=signup' + (location.search.includes('redirect=') ? '&' + location.search.split('?')[1].split('&').filter(q => q.startsWith('redirect=')).join('&') : ''));
+                } else {
+                  navigate('/auth' + (location.search.includes('redirect=') ? '?'+ location.search.split('?')[1].split('&').filter(q => q.startsWith('redirect=')).join('&') : ''));
+                }
+              }}
               className="text-sm text-indigo-600 hover:text-indigo-500"
             >
               {isLogin 

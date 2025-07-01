@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Navbar from '../components/Navbar';
 import FinancesQuestionnaire from '../components/FinancesQuestionnaire';
 import FinancesDashboard from '../components/FinancesDashboard';
 import { useAuth } from '@/hooks/useAuth';
@@ -39,7 +38,6 @@ const Finances = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-green-50">
-      <Navbar />
       <div className="w-full px-4 py-8">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-yellow-500/10 px-4 py-2 rounded-full border border-green-200 mb-4">

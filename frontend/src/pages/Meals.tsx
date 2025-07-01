@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import Navbar from '../components/Navbar';
 import MealsQuestionnaire from '../components/MealsQuestionnaire';
 import { Utensils, ChefHat, Calendar, Clock, Heart, Zap, CheckCircle } from 'lucide-react';
 import axios from 'axios';
@@ -252,7 +251,6 @@ const Meals = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/50">
-        <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
         </div>
@@ -263,7 +261,6 @@ const Meals = () => {
   if (!nutritionPrefs) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/50">
-        <Navbar />
         <div className="max-w-4xl mx-auto px-4 py-12">
           <div className="text-center mb-8">
             <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-4 rounded-2xl shadow-lg inline-block mb-4">
@@ -314,7 +311,6 @@ const Meals = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/50">
-      <Navbar />
       {showConfetti && <Confetti recycle={false} onConfettiComplete={() => setShowConfetti(false)} />}
       <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
         <AlertDialogContent>

@@ -4,7 +4,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { X, Pencil, Plus, Trash2 } from 'lucide-react';
-import Navbar from '../components/Navbar';
 
 const DIFFICULTY_XP = { easy: 30, medium: 50, hard: 70 };
 
@@ -100,7 +99,6 @@ const Habits = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
-      <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold mb-8 text-indigo-800">Manage Your Habits</h1>
         {loading ? (

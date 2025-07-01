@@ -25,7 +25,7 @@ const PublicNavbar = () => {
             <Link to="/about" className={`text-gray-600 hover:text-indigo-600 transition-colors ${isActive('/about') ? 'font-bold underline' : ''}`}>About</Link>
           </nav>
           <div className="flex items-center space-x-4">
-            <Link to={loginTarget}>
+            <Link to="/auth">
               <Button className="hidden sm:inline-flex bg-indigo-600 text-white hover:bg-indigo-700">
                 Login
               </Button>
