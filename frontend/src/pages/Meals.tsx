@@ -503,18 +503,29 @@ const Meals = () => {
     setLogMealLoading(false);
   };
 
-  const handleRecipeSearch = (e: React.FormEvent) => {
+  const handleRecipeSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!recipeQuery.trim()) return;
     setRecipeLoading(true);
-    // Mock results for now
-    setTimeout(() => {
-      setRecipeResults([
-        { name: 'Grilled Salmon with Avocado Salsa', calories: 420, protein: 35, carbs: 10, fat: 25 },
-        { name: 'Quinoa & Black Bean Bowl', calories: 380, protein: 18, carbs: 60, fat: 8 },
-        { name: 'Chicken Caesar Wrap', calories: 500, protein: 40, carbs: 45, fat: 18 },
-      ]);
-      setRecipeLoading(false);
-    }, 800);
+    setRecipeResults([]);
+    try {
+      const res = await axios.post('/api/find-recipe', {
+        user_id: user.id,
+        query: recipeQuery,
+        date: todayStr,
+      });
+      if (res.data && res.data.meal) {
+        setRecipeResults([res.data.meal]);
+        fetchOrGenerateMeals();
+      } else {
+        setRecipeResults([]);
+        toast.error('No recipe found.');
+      }
+    } catch (err: any) {
+      setRecipeResults([]);
+      toast.error(err?.response?.data?.error || 'Failed to find recipe.');
+    }
+    setRecipeLoading(false);
   };
 
   if (loading) {
@@ -1011,13 +1022,18 @@ const Meals = () => {
                   <ul className="divide-y divide-gray-200">
                     {recipeResults.map((r, idx) => (
                       <li key={idx} className="py-2">
-                        <div className="font-semibold text-gray-900">{r.name}</div>
-                        <div className="flex gap-3 text-xs text-gray-500 mt-1">
+                        <div className="font-semibold text-gray-900 text-lg mb-1">{r.description || r.name}</div>
+                        <div className="flex gap-3 text-xs text-gray-500 mb-2">
                           <span>⚡ {r.calories} cal</span>
                           <span>❤️ {r.protein}g protein</span>
                           <span>C {r.carbs}g carbs</span>
                           <span>F {r.fat}g fat</span>
                         </div>
+                        {r.serving_size && <div className="text-xs text-gray-500 mb-1">Serving size: {r.serving_size}</div>}
+                        {r.ingredients && Array.isArray(r.ingredients) && r.ingredients.length > 0 && (
+                          <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {r.ingredients.map((ing: any) => ing.name + (ing.quantity ? ` (${ing.quantity})` : '')).join(', ')}</div>
+                        )}
+                        {r.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {r.recipe}</div>}
                       </li>
                     ))}
                   </ul>
