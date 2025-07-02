@@ -455,8 +455,9 @@ const Meals = () => {
     );
   }
 
+  const mealOrder = ["breakfast", "lunch", "snack", "dinner"];
+
   const sortedMeals = [...todaysMeals].sort((a, b) => {
-    const mealOrder = ['breakfast', 'snack', 'lunch', 'dinner'];
     const aIndex = mealOrder.indexOf(a.meal_type.toLowerCase());
     const bIndex = mealOrder.indexOf(b.meal_type.toLowerCase());
     return aIndex - bIndex;
@@ -504,200 +505,69 @@ const Meals = () => {
           </p>
         </div>
 
-        {/* Current Day Section: 2x2 grid layout with compact, elongated nutrition tracker */}
-        <div className="mb-12 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 items-start w-full">
-          {/* Meals: 2x2 grid, spanning 2 columns, now fills more space */}
-          <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
-            {todaysMeals.length === 0 ? (
-              <div className="col-span-full text-center py-8">
-                <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">No meals found for today.</p>
-              </div>
-            ) : (
-              ["breakfast", "snack", "lunch", "dinner"].map((type) => {
-                const meal = todaysMeals.find(m => m.meal_type === type);
-                if (!meal) return null;
-                return (
-                  <div
-                    key={type}
-                    className={`relative flex flex-col h-full bg-white rounded-2xl shadow-lg border-2 transition-all duration-200 group hover:shadow-2xl ${meal.completed ? 'border-green-500 bg-green-50/90' : 'border-gray-200 bg-white'} p-6 hover:-translate-y-1`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-3xl">🍽️</span>
-                      <h3 className="font-extrabold text-gray-900 capitalize text-xl tracking-tight leading-tight">{meal.meal_type}</h3>
-                      {meal.completed && <CheckCircle className="w-6 h-6 text-green-500 ml-auto" />}
-                    </div>
-                    <div className="font-bold text-gray-800 text-lg mb-1">{meal.description}</div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-base font-semibold mb-2">
-                      <span className="flex items-center gap-1 text-orange-500"><Zap className="w-5 h-5" />{meal.calories} <span className="font-normal text-gray-600 text-xs ml-0.5">cal</span></span>
-                      <span className="flex items-center gap-1 text-red-500"><Heart className="w-5 h-5" />{meal.protein} <span className="font-normal text-gray-600 text-xs ml-0.5">protein</span></span>
-                      <span className="flex items-center gap-1 text-yellow-500"><span className="font-bold">C</span>{meal.carbs} <span className="font-normal text-gray-600 text-xs ml-0.5">carbs</span></span>
-                      <span className="flex items-center gap-1 text-green-500"><span className="font-bold">F</span>{meal.fat} <span className="font-normal text-gray-600 text-xs ml-0.5">fat</span></span>
-                    </div>
-                    {meal.serving_size && (
-                      <div className="text-xs text-gray-500 mb-1">Serving size: {meal.serving_size}</div>
-                    )}
-                    {meal.recipe && (
-                      <div className="text-xs text-gray-600 mb-2"><b>Recipe:</b> {meal.recipe}</div>
-                    )}
-                    <div className="mt-auto pt-2">
-                      {meal.completed ? (
-                        <button
-                          onClick={() => handleUncompleteMeal(meal.id)}
-                          className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-full font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-base border border-gray-200 shadow-sm"
-                        >
-                          Undo
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleCompleteMeal(meal.id)}
-                          className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-2 rounded-full font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 text-base"
-                        >
-                          <CheckCircle className="w-6 h-6" />
-                          Mark as Complete
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-          {/* Right: Classic Today's Nutrition Card with colored bars, fills height */}
-          <div className="w-full md:w-auto flex-shrink-0 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 flex flex-col items-start justify-start min-h-[300px] max-w-xs h-full">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              Today's Nutrition
-            </h3>
-            <div className="w-full space-y-5">
-              {/* Calories */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-semibold text-gray-800">Calories</span>
-                  <span className="text-xs text-gray-500">{totalCalories} / {nutritionPrefs?.calories_target || 2000}</span>
+        {/* Section: Today's Meals and Nutrition (side by side, full width) */}
+        <div className="w-full max-w-7xl mx-auto mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8">Today's Meals</h2>
+          <div className="flex flex-col md:flex-row gap-8 items-start w-full">
+            {/* Meals: 2x2 grid, fills most of the width */}
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {todaysMeals.length === 0 ? (
+                <div className="col-span-full text-center py-8">
+                  <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-4">No meals found for today.</p>
                 </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-3 rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min(100, (totalCalories / (nutritionPrefs?.calories_target || 2000)) * 100)}%` }}></div>
-                </div>
-                <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalCalories / (nutritionPrefs?.calories_target || 2000)) * 100)}%</div>
-              </div>
-              {/* Protein */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-semibold text-gray-800">Protein</span>
-                  <span className="text-xs text-gray-500">{totalProtein} / {nutritionPrefs?.protein_target || 100}g</span>
-                </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-3 rounded-full bg-red-500 transition-all" style={{ width: `${Math.min(100, (totalProtein / (nutritionPrefs?.protein_target || 100)) * 100)}%` }}></div>
-                </div>
-                <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalProtein / (nutritionPrefs?.protein_target || 100)) * 100)}%</div>
-              </div>
-              {/* Carbs */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-semibold text-gray-800">Carbs</span>
-                  <span className="text-xs text-gray-500">{totalCarbs} / {nutritionPrefs?.carbs_target || 250}g</span>
-                </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-3 rounded-full bg-yellow-400 transition-all" style={{ width: `${Math.min(100, (totalCarbs / (nutritionPrefs?.carbs_target || 250)) * 100)}%` }}></div>
-                </div>
-                <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalCarbs / (nutritionPrefs?.carbs_target || 250)) * 100)}%</div>
-              </div>
-              {/* Fat */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-semibold text-gray-800">Fat</span>
-                  <span className="text-xs text-gray-500">{totalFat} / {nutritionPrefs?.fat_target || 70}g</span>
-                </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-3 rounded-full bg-green-500 transition-all" style={{ width: `${Math.min(100, (totalFat / (nutritionPrefs?.fat_target || 70)) * 100)}%` }}></div>
-                </div>
-                <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalFat / (nutritionPrefs?.fat_target || 70)) * 100)}%</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Weekly Agenda (Calendar Style) and Nutrition/Quick Actions Side-by-Side */}
-        <div className="flex flex-col lg:flex-row gap-8 mb-8 w-full">
-          {/* Weekly Calendar - now flexible and fills available space */}
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-green-600" />
-              Weekly Calendar
-            </h2>
-            <div className="overflow-x-auto">
-              <div className="flex gap-4 min-w-[700px]">
-                {weekDates.map((date, i) => {
-                  const meals = weekMeals[date] || [];
-                  const isToday = date === today;
-                  const plan = weeklyPlan[i] || { color: 'bg-gray-100 text-gray-700', focus: '' };
+              ) : (
+                mealOrder.map((type) => {
+                  const meal = todaysMeals.find(m => m.meal_type === type);
+                  if (!meal) return null;
                   return (
-                    <div key={date} className={`rounded-xl p-4 shadow border flex flex-col items-center transition-all duration-200 ${plan.color} ${isToday ? 'ring-2 ring-green-400 scale-105' : 'border-white/50 bg-white/80'}`} style={{ minWidth: 180, flex: '1 1 180px' }}>
-                      <div className="font-bold text-md mb-1 flex items-center gap-2">
-                        {isToday && <span className="inline-block w-2 h-2 rounded-full bg-green-500" />}
-                        <span className="text-gray-800">{format(parseISO(date), 'EEEE')}</span>
+                    <div
+                      key={type}
+                      className={`relative flex flex-col h-full bg-white rounded-2xl shadow-lg border-2 transition-all duration-200 group hover:shadow-2xl ${meal.completed ? 'border-green-500 bg-green-50/90' : 'border-gray-200 bg-white'} p-6 hover:-translate-y-1`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-3xl">🍽️</span>
+                        <h3 className="font-extrabold text-gray-900 capitalize text-xl tracking-tight leading-tight">{meal.meal_type}</h3>
+                        {meal.completed && <CheckCircle className="w-6 h-6 text-green-500 ml-auto" />}
                       </div>
-                      <div className="text-xs font-semibold mb-2 px-2 py-1 rounded-full bg-white/70 border border-gray-200 text-gray-700">{plan.focus}</div>
-                      <div className="flex flex-col gap-2 w-full mb-4">
-                        {['breakfast', 'snack', 'lunch', 'dinner'].map(type => {
-                          const meal = meals.find(m => m.meal_type === type);
-                          const pillColor =
-                            type === 'breakfast' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                            type === 'snack' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                            type === 'lunch' ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                            type === 'dinner' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                            'bg-gray-100 text-gray-700 border-gray-200';
-                          const mealTypeFull =
-                            type === 'breakfast' ? 'Breakfast' :
-                            type === 'snack' ? 'Snack' :
-                            type === 'lunch' ? 'Lunch' :
-                            type === 'dinner' ? 'Dinner' :
-                            type;
-                          return (
-                            <div key={type} className={`flex items-center justify-between px-2 py-1 rounded-lg text-sm font-medium border ${pillColor} ${meal ? (meal.completed ? 'ring-2 ring-green-300' : '') : ''}`}> 
-                              <span className="font-semibold capitalize">{mealTypeFull}</span>
-                              {meal && (
-                                <span
-                                  className="ml-2 text-gray-700 cursor-pointer underline decoration-dotted"
-                                  onMouseEnter={e => {
-                                    if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
-                                    setHoveredMeal(meal);
-                                    const rect = (e.target as HTMLElement).getBoundingClientRect();
-                                    setTooltipPos({ x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY });
-                                  }}
-                                  onMouseLeave={() => {
-                                    tooltipTimeout.current = setTimeout(() => setHoveredMeal(null), 200);
-                                  }}
-                                >
-                                  {meal.description}
-                                </span>
-                              )}
-                              {meal && meal.completed && <CheckCircle className="inline ml-1 w-4 h-4 text-green-500 align-middle" />}
-                            </div>
-                          );
-                        })}
+                      <div className="font-bold text-gray-800 text-lg mb-1">{meal.description}</div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-base font-semibold mb-2">
+                        <span className="flex items-center gap-1 text-orange-500"><Zap className="w-5 h-5" />{meal.calories} <span className="font-normal text-gray-600 text-xs ml-0.5">cal</span></span>
+                        <span className="flex items-center gap-1 text-red-500"><Heart className="w-5 h-5" />{meal.protein} <span className="font-normal text-gray-600 text-xs ml-0.5">protein</span></span>
+                        <span className="flex items-center gap-1 text-yellow-500"><span className="font-bold">C</span>{meal.carbs} <span className="font-normal text-gray-600 text-xs ml-0.5">carbs</span></span>
+                        <span className="flex items-center gap-1 text-green-500"><span className="font-bold">F</span>{meal.fat} <span className="font-normal text-gray-600 text-xs ml-0.5">fat</span></span>
                       </div>
-                      <button
-                        onClick={() => handleRegenerateDay(date)}
-                        className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2 text-xs"
-                        disabled={weekLoading || dayLoading === date}
-                      >
-                        <Zap className="w-4 h-4" />
-                        Regenerate
-                        {dayLoading === date && (
-                          <span className="ml-2 animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></span>
+                      {meal.serving_size && (
+                        <div className="text-xs text-gray-500 mb-1">Serving size: {meal.serving_size}</div>
+                      )}
+                      {meal.recipe && (
+                        <div className="text-xs text-gray-600 mb-2"><b>Recipe:</b> {meal.recipe}</div>
+                      )}
+                      <div className="mt-auto pt-2">
+                        {meal.completed ? (
+                          <button
+                            onClick={() => handleUncompleteMeal(meal.id)}
+                            className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-full font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-base border border-gray-200 shadow-sm"
+                          >
+                            Undo
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleCompleteMeal(meal.id)}
+                            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-2 rounded-full font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 text-base"
+                          >
+                            <CheckCircle className="w-6 h-6" />
+                            Mark as Complete
+                          </button>
                         )}
-                      </button>
+                      </div>
                     </div>
                   );
-                })}
-              </div>
+                })
+              )}
             </div>
-          </div>
-          {/* Nutrition Tracker and Quick Actions */}
-          <div className="flex flex-col gap-6 w-full max-w-xs">
-            {/* Nutrition Tracker */}
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 flex flex-col items-start justify-start min-h-[300px]">
+            {/* Nutrition Card: right side, fixed width */}
+            <div className="w-full md:w-80 flex-shrink-0 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 flex flex-col items-start justify-start min-h-[300px] h-full">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 Today's Nutrition
               </h3>
@@ -748,20 +618,100 @@ const Meals = () => {
                 </div>
               </div>
             </div>
-            {/* Quick Actions Card */}
-            <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl shadow-xl p-6 flex flex-col gap-4 items-stretch">
-              <h3 className="text-lg font-bold text-white mb-2">Quick Actions</h3>
-              <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm p-3 rounded-xl font-medium transition-all text-left text-white flex items-center gap-2">
-                <span role="img" aria-label="Log">📝</span> Log a Meal
-              </button>
-              <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm p-3 rounded-xl font-medium transition-all text-left text-white flex items-center gap-2">
-                <span role="img" aria-label="Grocery">🛒</span> Generate Grocery List
-              </button>
-              <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm p-3 rounded-xl font-medium transition-all text-left text-white flex items-center gap-2">
-                <span role="img" aria-label="Recipes">👨‍🍳</span> Find Recipes
-              </button>
+          </div>
+        </div>
+
+        {/* Section: Weekly Calendar (full width, clear header, no misplaced panels) */}
+        <div className="w-full max-w-7xl mx-auto mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-green-600" />
+            Weekly Calendar
+          </h2>
+          <div className="overflow-x-auto">
+            <div className="flex gap-4 min-w-[700px]">
+              {weekDates.map((date, i) => {
+                const meals = weekMeals[date] || [];
+                const isToday = date === today;
+                const plan = weeklyPlan[i] || { color: 'bg-gray-100 text-gray-700', focus: '' };
+                return (
+                  <div key={date} className={`rounded-xl p-4 shadow border flex flex-col items-center transition-all duration-200 ${plan.color} ${isToday ? 'ring-2 ring-green-400 scale-105' : 'border-white/50 bg-white/80'}`} style={{ minWidth: 180, flex: '1 1 180px' }}>
+                    <div className="font-bold text-md mb-1 flex items-center gap-2">
+                      {isToday && <span className="inline-block w-2 h-2 rounded-full bg-green-500" />}
+                      <span className="text-gray-800">{format(parseISO(date), 'EEEE')}</span>
+                    </div>
+                    <div className="flex flex-col gap-2 w-full mb-4">
+                      {mealOrder.map(type => {
+                        const meal = meals.find(m => m.meal_type === type);
+                        const pillColor =
+                          type === 'breakfast' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                          type === 'snack' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                          type === 'lunch' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                          type === 'dinner' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                          'bg-gray-100 text-gray-700 border-gray-200';
+                        const mealTypeFull =
+                          type === 'breakfast' ? 'Breakfast' :
+                          type === 'snack' ? 'Snack' :
+                          type === 'lunch' ? 'Lunch' :
+                          type === 'dinner' ? 'Dinner' :
+                          type;
+                        return (
+                          <div key={type} className={`flex items-center justify-between px-2 py-1 rounded-lg text-sm font-medium border ${pillColor} ${meal ? (meal.completed ? 'ring-2 ring-green-300' : '') : ''}`}> 
+                            <span className="font-semibold capitalize">{mealTypeFull}</span>
+                            {meal && (
+                              <span
+                                className="ml-2 text-gray-700 cursor-pointer underline decoration-dotted"
+                                onMouseEnter={e => {
+                                  if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
+                                  setHoveredMeal(meal);
+                                  const rect = (e.target as HTMLElement).getBoundingClientRect();
+                                  setTooltipPos({ x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY });
+                                }}
+                                onMouseLeave={() => {
+                                  tooltipTimeout.current = setTimeout(() => setHoveredMeal(null), 200);
+                                }}
+                              >
+                                {meal.description}
+                              </span>
+                            )}
+                            {meal && meal.completed && <CheckCircle className="inline ml-1 w-4 h-4 text-green-500 align-middle" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      onClick={() => handleRegenerateDay(date)}
+                      className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2 text-xs"
+                      disabled={weekLoading || dayLoading === date}
+                    >
+                      <Zap className="w-4 h-4" />
+                      Regenerate
+                      {dayLoading === date && (
+                        <span className="ml-2 animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></span>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
+          {hoveredMeal && tooltipPos && (
+            <div
+              style={{ position: 'absolute', left: tooltipPos.x, top: tooltipPos.y + 8, zIndex: 50 }}
+              className="bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-80 max-w-xs text-sm animate-fade-in-up"
+              onMouseEnter={() => { if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current); }}
+              onMouseLeave={() => { setHoveredMeal(null); }}
+            >
+              <div className="font-bold text-lg mb-1">{hoveredMeal.description}</div>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <span className="text-orange-500 font-semibold">⚡ {hoveredMeal.calories} cal</span>
+                <span className="text-red-500 font-semibold">❤️ {hoveredMeal.protein} protein</span>
+                <span className="text-yellow-500 font-semibold">C {hoveredMeal.carbs} carbs</span>
+                <span className="text-green-500 font-semibold">F {hoveredMeal.fat} fat</span>
+              </div>
+              {hoveredMeal.serving_size && <div className="text-xs text-gray-500 mb-1">Serving size: {hoveredMeal.serving_size}</div>}
+              {hoveredMeal.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {hoveredMeal.recipe}</div>}
+            </div>
+          )}
         </div>
 
         {/* Grocery List Section */}
@@ -825,24 +775,6 @@ const Meals = () => {
           </div>
         </div>
       </div>
-      {hoveredMeal && tooltipPos && (
-        <div
-          style={{ position: 'absolute', left: tooltipPos.x, top: tooltipPos.y + 8, zIndex: 50 }}
-          className="bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-80 max-w-xs text-sm animate-fade-in-up"
-          onMouseEnter={() => { if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current); }}
-          onMouseLeave={() => { setHoveredMeal(null); }}
-        >
-          <div className="font-bold text-lg mb-1">{hoveredMeal.description}</div>
-          <div className="flex flex-wrap gap-2 mb-2">
-            <span className="text-orange-500 font-semibold">⚡ {hoveredMeal.calories} cal</span>
-            <span className="text-red-500 font-semibold">❤️ {hoveredMeal.protein} protein</span>
-            <span className="text-yellow-500 font-semibold">C {hoveredMeal.carbs} carbs</span>
-            <span className="text-green-500 font-semibold">F {hoveredMeal.fat} fat</span>
-          </div>
-          {hoveredMeal.serving_size && <div className="text-xs text-gray-500 mb-1">Serving size: {hoveredMeal.serving_size}</div>}
-          {hoveredMeal.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {hoveredMeal.recipe}</div>}
-        </div>
-      )}
     </div>
   );
 };
