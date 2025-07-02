@@ -2,13 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('--- Log Meal API handler start ---');
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
-
-  console.log('Log Meal API called. Request body:', req.body);
-
+  console.log('Request body:', req.body);
   const {
     user_id,
     date,
@@ -23,6 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ingredients,
     tags
   } = req.body;
+  console.log('Received fields:', { user_id, date, meal_type, description, calories, protein, carbs, fat, serving_size, recipe, ingredients, tags });
 
   if (!user_id || !date || !meal_type || !description) {
     console.error('Missing required fields:', { user_id, date, meal_type, description });
@@ -58,6 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tags,
       source: 'user',
     }).select().single();
+    console.log('Supabase insert result:', { data, error });
     if (error) {
       console.error('Supabase insert error:', error);
       res.status(500).json({ error: error.message });
@@ -69,4 +70,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('Server error:', err);
     res.status(500).json({ error: err.message || 'A server error has occurred' });
   }
+  console.log('--- Log Meal API handler end ---');
 } 
