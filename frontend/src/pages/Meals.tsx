@@ -19,6 +19,7 @@ import {
 import type { Database } from '@/integrations/supabase/types';
 import Confetti from 'react-confetti';
 import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
+import { Progress } from '@/components/ui/progress';
 
 type Meal = Database['public']['Tables']['user_meals']['Row'];
 
@@ -37,6 +38,7 @@ const Meals = () => {
   const [weekLoading, setWeekLoading] = useState(false);
   const [weekError, setWeekError] = useState('');
   const [selectedWeekStart, setSelectedWeekStart] = useState(() => format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
+  const [dayLoading, setDayLoading] = useState<string | null>(null);
 
   const fetchOrGenerateMeals = useCallback(async () => {
     if (!user) return;
@@ -315,7 +317,7 @@ const Meals = () => {
   // Regenerate a single day
   const handleRegenerateDay = async (date: string) => {
     if (!user) return;
-    setWeekLoading(true);
+    setDayLoading(date);
     setWeekError('');
     await supabase.from('user_meals').delete().eq('user_id', user.id).eq('date_only', date);
     try {
@@ -329,9 +331,27 @@ const Meals = () => {
     } catch (err) {
       setWeekError('Failed to regenerate meals for ' + date);
       toast.error('Failed to regenerate meals for ' + date);
-      setWeekLoading(false);
     }
+    setDayLoading(null);
   };
+
+  // Helper: get week dates
+  const weekStartDate = new Date(selectedWeekStart);
+  const weekDates = Array.from({ length: 7 }, (_, i) => format(addDays(weekStartDate, i), 'yyyy-MM-dd'));
+  const today = format(new Date(), 'yyyy-MM-dd');
+
+  // Nutrition tracker for today
+  const completedMeals = todaysMeals.filter(meal => meal.completed);
+  const totalCalories = completedMeals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
+  const totalProtein = completedMeals.reduce((sum, meal) => sum + (meal.protein || 0), 0);
+  const totalCarbs = completedMeals.reduce((sum, meal) => sum + (meal.carbs || 0), 0);
+  const totalFat = completedMeals.reduce((sum, meal) => sum + (meal.fat || 0), 0);
+  const nutritionStats = [
+    { label: "Calories", current: totalCalories, target: nutritionPrefs?.calories_target || 2000, color: "from-blue-500 to-cyan-500" },
+    { label: "Protein", current: totalProtein, target: nutritionPrefs?.protein_target || 120, color: "from-red-500 to-pink-500" },
+    { label: "Carbs", current: totalCarbs, target: nutritionPrefs?.carbs_target || 250, color: "from-yellow-500 to-orange-500" },
+    { label: "Fat", current: totalFat, target: nutritionPrefs?.fat_target || 70, color: "from-green-500 to-emerald-500" }
+  ];
 
   if (loading) {
     return (
@@ -351,25 +371,12 @@ const Meals = () => {
     );
   }
 
-  const completedMeals = todaysMeals.filter(meal => meal.completed);
-  const totalCalories = completedMeals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
-  const totalProtein = completedMeals.reduce((sum, meal) => sum + (meal.protein || 0), 0);
-  const totalCarbs = completedMeals.reduce((sum, meal) => sum + (meal.carbs || 0), 0);
-  const totalFat = completedMeals.reduce((sum, meal) => sum + (meal.fat || 0), 0);
-
   const sortedMeals = [...todaysMeals].sort((a, b) => {
     const mealOrder = ['breakfast', 'snack', 'lunch', 'dinner'];
     const aIndex = mealOrder.indexOf(a.meal_type.toLowerCase());
     const bIndex = mealOrder.indexOf(b.meal_type.toLowerCase());
     return aIndex - bIndex;
   });
-
-  const nutritionStats = [
-    { label: "Calories", current: totalCalories, target: nutritionPrefs?.calories_target || 2000, color: "from-blue-500 to-cyan-500" },
-    { label: "Protein", current: totalProtein, target: nutritionPrefs?.protein_target || 120, color: "from-red-500 to-pink-500" },
-    { label: "Carbs", current: totalCarbs, target: nutritionPrefs?.carbs_target || 250, color: "from-yellow-500 to-orange-500" },
-    { label: "Fat", current: totalFat, target: nutritionPrefs?.fat_target || 70, color: "from-green-500 to-emerald-500" }
-  ];
 
   const weeklyPlan = [
     { day: "Mon", focus: "High Protein", color: "bg-red-100 text-red-700" },
@@ -413,118 +420,142 @@ const Meals = () => {
           </p>
         </div>
 
-        {/* Week Controls */}
-        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-          <div className="flex gap-2">
-            <button
-              onClick={handleGenerateWeek}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-              disabled={weekLoading}
-            >
-              <Zap className="w-4 h-4" />
-              {weekLoading ? 'Generating...' : 'Generate/Regenerate Week'}
-            </button>
-          </div>
-          <div>
-            <span className="text-gray-600 text-sm">Week of: {selectedWeekStart}</span>
+        {/* Nutrition Tracker for Today */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {nutritionStats.map((stat, idx) => {
+              const percent = Math.min(100, (stat.current / stat.target) * 100);
+              return (
+                <div key={stat.label} className="bg-white/90 rounded-xl p-4 shadow border border-white/50">
+                  <div className="font-semibold text-gray-700 mb-1">{stat.label}</div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-lg">{stat.current}</span>
+                    <span className="text-xs text-gray-400">/ {stat.target}</span>
+                  </div>
+                  <Progress value={percent} className={`h-2 bg-gray-200 ${stat.color}`} />
+                  <div className="text-xs text-gray-500 mt-1">{Math.round(percent)}% complete</div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {weekError && <div className="text-red-600 text-center mb-4">{weekError}</div>}
-        {weekLoading ? (
-          <div className="flex items-center justify-center min-h-[20vh] flex-col">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mb-4"></div>
-            <p className="text-gray-600">Generating your weekly meal plan...</p>
+        {/* Current Day Meals (Full Details) */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-green-600" />
+            Today ({today})
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {todaysMeals.length === 0 ? (
+              <div className="col-span-full text-center py-8">
+                <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 mb-4">No meals found for today.</p>
+              </div>
+            ) : (
+              todaysMeals.map((meal, index) => (
+                <div key={index} className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${meal.completed ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
+                  {meal.completed && <div className="absolute top-2 right-2 text-green-500"><CheckCircle className="w-5 h-5" /></div>}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🍽️</span>
+                      <div>
+                        <h3 className="font-semibold text-gray-800 capitalize">{meal.meal_type}</h3>
+                        <div className="flex items-center gap-1 text-gray-500 text-sm">
+                          <Clock className="w-3 h-3" />
+                          {meal.time || 'Anytime'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 className="font-medium text-gray-800 mb-2">{meal.description}</h4>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
+                    <span className="flex items-center gap-1">
+                      <Zap className="w-3 h-3 text-orange-400" />
+                      {meal.calories} cal
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Heart className="w-3 h-3 text-red-400" />
+                      {meal.protein}g protein
+                    </span>
+                     <span className="flex items-center gap-1">
+                      <span className="font-bold text-yellow-500">C</span>
+                      {meal.carbs}g carbs
+                    </span>
+                     <span className="flex items-center gap-1">
+                      <span className="font-bold text-green-500">F</span>
+                      {meal.fat}g fat
+                    </span>
+                  </div>
+                  {meal.serving_size && (
+                    <div className="text-xs text-gray-500 mt-1">Serving size: {meal.serving_size}</div>
+                  )}
+                  {meal.recipe && (
+                    <div className="text-xs text-gray-700 mt-2"><b>Recipe:</b> {meal.recipe}</div>
+                  )}
+                  {meal.completed ? (
+                    <button 
+                      onClick={() => handleUncompleteMeal(meal.id)}
+                      className="mt-4 w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-all flex items-center justify-center gap-2"
+                    >
+                      Undo
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => handleCompleteMeal(meal.id)}
+                      className="mt-4 w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Mark as Complete
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
           </div>
-        ) : (
-          <div className="space-y-8">
-            {Object.entries(weekMeals).map(([date, meals]) => (
-              <div key={date} className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-green-600" />
-                    {date}
-                  </h2>
+        </div>
+
+        {/* Weekly Agenda (Other Days) */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-green-600" />
+            Weekly Agenda
+          </h2>
+          <div className="grid grid-cols-1 gap-4">
+            {weekDates.filter(date => date !== today).map(date => {
+              const meals = weekMeals[date] || [];
+              return (
+                <div key={date} className="bg-white/80 rounded-xl p-4 shadow border border-white/50 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex items-center gap-4 mb-2 md:mb-0">
+                    <div className="font-bold text-lg text-gray-800 min-w-[110px]">{date}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {['breakfast', 'lunch', 'snack', 'dinner'].map(type => {
+                        const meal = meals.find(m => m.meal_type === type);
+                        return (
+                          <div key={type} className={`px-3 py-1 rounded-full text-sm font-medium border ${meal ? (meal.completed ? 'bg-green-100 border-green-400 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-700') : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
+                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                            {meal && meal.completed && <CheckCircle className="inline ml-1 w-4 h-4 text-green-500 align-middle" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <button
                     onClick={() => handleRegenerateDay(date)}
                     className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-                    disabled={weekLoading}
+                    disabled={weekLoading || dayLoading === date}
                   >
                     <Zap className="w-4 h-4" />
                     Regenerate Day
+                    {dayLoading === date && (
+                      <span className="ml-2 animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></span>
+                    )}
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {meals.length === 0 ? (
-                    <div className="col-span-full text-center py-8">
-                      <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 mb-4">No meals found for this day.</p>
-                    </div>
-                  ) : (
-                    meals.map((meal, index) => (
-                      <div key={index} className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${meal.completed ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
-                        {meal.completed && <div className="absolute top-2 right-2 text-green-500"><CheckCircle className="w-5 h-5" /></div>}
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">🍽️</span>
-                            <div>
-                              <h3 className="font-semibold text-gray-800 capitalize">{meal.meal_type}</h3>
-                              <div className="flex items-center gap-1 text-gray-500 text-sm">
-                                <Clock className="w-3 h-3" />
-                                {meal.time || 'Anytime'}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <h4 className="font-medium text-gray-800 mb-2">{meal.description}</h4>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <Zap className="w-3 h-3 text-orange-400" />
-                            {meal.calories} cal
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Heart className="w-3 h-3 text-red-400" />
-                            {meal.protein}g protein
-                          </span>
-                           <span className="flex items-center gap-1">
-                            <span className="font-bold text-yellow-500">C</span>
-                            {meal.carbs}g carbs
-                          </span>
-                           <span className="flex items-center gap-1">
-                            <span className="font-bold text-green-500">F</span>
-                            {meal.fat}g fat
-                          </span>
-                        </div>
-                        {meal.serving_size && (
-                          <div className="text-xs text-gray-500 mt-1">Serving size: {meal.serving_size}</div>
-                        )}
-                        {meal.recipe && (
-                          <div className="text-xs text-gray-700 mt-2"><b>Recipe:</b> {meal.recipe}</div>
-                        )}
-                        {meal.completed ? (
-                          <button 
-                            onClick={() => handleUncompleteMeal(meal.id)}
-                            className="mt-4 w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-all flex items-center justify-center gap-2"
-                          >
-                            Undo
-                          </button>
-                        ) : (
-                          <button 
-                            onClick={() => handleCompleteMeal(meal.id)}
-                            className="mt-4 w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Mark as Complete
-                          </button>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

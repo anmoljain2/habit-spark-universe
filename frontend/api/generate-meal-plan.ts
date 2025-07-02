@@ -123,33 +123,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (typeof meals === 'object' && !Array.isArray(meals)) {
         const aiKeys = Object.keys(meals);
         console.log('AI meal plan keys:', aiKeys);
-        // Try to map by ISO date keys
-        let allKeysAreDates = aiKeys.every(k => targetDates.includes(k));
-        if (allKeysAreDates) {
-          for (let i = 0; i < targetDates.length; i++) {
-            const day = targetDates[i];
-            let dayMeals = meals[day];
-            mealsByDay[day] = Array.isArray(dayMeals) ? dayMeals.slice(0, 4) : [];
-          }
-        } else {
-          // Map values to days in order (first key = first day, etc.)
-          for (let i = 0; i < targetDates.length; i++) {
-            const day = targetDates[i];
-            const key = aiKeys[i];
-            let dayMeals = meals[key];
-            mealsByDay[day] = Array.isArray(dayMeals) ? dayMeals.slice(0, 4) : [];
-          }
+        // Use only the first 7 keys (days)
+        const usedKeys = aiKeys.slice(0, 7);
+        for (let i = 0; i < targetDates.length; i++) {
+          const day = targetDates[i];
+          const key = usedKeys[i];
+          let dayMeals = meals[key];
+          mealsByDay[day] = Array.isArray(dayMeals) ? dayMeals.slice(0, 4) : [];
         }
       } else if (Array.isArray(meals)) {
-        // Fallback: flat array, split into 7 days
+        // Fallback: flat array, use only the first 28 meals
         for (let i = 0; i < targetDates.length; i++) {
           mealsByDay[targetDates[i]] = meals.slice(i * 4, (i + 1) * 4);
         }
       } else {
+        console.warn('AI response structure invalid for weekly meal plan.');
         return res.status(500).json({ error: 'AI response structure invalid for weekly meal plan.' });
       }
+      // Final enforcement: only 7 days, only 4 meals per day
+      const days = Object.keys(mealsByDay).slice(0, 7);
+      let totalMeals = 0;
+      for (const day of days) {
+        mealsByDay[day] = (mealsByDay[day] || []).slice(0, 4);
+        totalMeals += mealsByDay[day].length;
+      }
+      if (totalMeals > 28) {
+        console.warn('More than 28 meals generated, truncating to 28.');
+      }
       // Insert meals for each day
-      for (const day of targetDates) {
+      for (const day of days) {
         const dayMeals = mealsByDay[day] || [];
         for (const meal of dayMeals) {
           let meal_type = (meal.meal_type || meal.meal || (meal.meal_name ? meal.meal_name.split(/[:\-]/)[0].trim().toLowerCase() : undefined) || '').toLowerCase();
@@ -176,7 +178,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             tags: meal.tags,
           });
           insertedMeals.push({ ...meal, date: day });
+          if (insertedMeals.length >= 28) break;
         }
+        if (insertedMeals.length >= 28) break;
       }
     } else {
       const day = targetDates[0];
