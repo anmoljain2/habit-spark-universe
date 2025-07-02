@@ -5,5 +5,11 @@
     { "src": "/api/generate-grocery-list", "dest": "/api/generate-grocery-list.ts" },
     { "src": "/(.*\\.(js|css|svg|png|jpg|jpeg|ico|json|txt|woff2?|ttf|eot|map))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/*.ts": {
+      "runtime": "vercel-node@canary"
+    }
+  },
+  "api": "frontend/api"
 }

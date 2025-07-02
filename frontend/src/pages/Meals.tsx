@@ -812,10 +812,10 @@ const Meals = () => {
         </div>
 
         {/* Middle Section: Grocery List and Log a Meal side by side */}
-        <div className="w-full max-w-5xl mx-auto flex flex-col md:flex-row gap-8 justify-center items-start mt-12 mb-16">
+        <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-6 justify-center items-start mt-12 mb-16">
           {/* Grocery List Section */}
-          <div className="w-full max-w-sm">
-            <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-6 flex flex-col items-start justify-center">
+          <div className="w-full max-w-md">
+            <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
               <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
                 <Utensils className="w-5 h-5 text-green-600" />
                 Grocery List
@@ -874,8 +874,8 @@ const Meals = () => {
             </div>
           </div>
           {/* Log a Meal Section */}
-          <div className="w-full max-w-sm">
-            <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-6 flex flex-col items-start justify-center">
+          <div className="w-full max-w-md">
+            <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
               <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
                 <ChefHat className="w-5 h-5 text-green-600" />
                 Log a Meal
@@ -1005,8 +1005,8 @@ const Meals = () => {
             </div>
           </div>
           {/* Search a Recipe Section */}
-          <div className="w-full max-w-sm">
-            <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-6 flex flex-col items-start justify-center">
+          <div className="w-full max-w-md">
+            <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
               <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
                 <Utensils className="w-5 h-5 text-green-600" />
                 Search a Recipe
