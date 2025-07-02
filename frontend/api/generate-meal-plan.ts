@@ -118,8 +118,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Insert meals
     let insertedMeals = [];
     if (mode === 'week') {
+      // Robustly map meals to days
+      let mealsByDay = {};
+      if (typeof meals === 'object' && !Array.isArray(meals)) {
+        // Try to map by ISO date keys
+        for (let i = 0; i < targetDates.length; i++) {
+          const day = targetDates[i];
+          let dayMeals = meals[day];
+          // Fallback: try to find a key that matches the weekday name
+          if (!dayMeals) {
+            const weekday = new Date(day).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+            const altKey = Object.keys(meals).find(k => k.toLowerCase().includes(weekday));
+            if (altKey) dayMeals = meals[altKey];
+          }
+          mealsByDay[day] = Array.isArray(dayMeals) ? dayMeals.slice(0, 4) : [];
+        }
+      } else if (Array.isArray(meals)) {
+        // Fallback: flat array, split into 7 days
+        for (let i = 0; i < targetDates.length; i++) {
+          mealsByDay[targetDates[i]] = meals.slice(i * 4, (i + 1) * 4);
+        }
+      } else {
+        return res.status(500).json({ error: 'AI response structure invalid for weekly meal plan.' });
+      }
+      // Insert meals for each day
       for (const day of targetDates) {
-        const dayMeals = meals[day] || [];
+        const dayMeals = mealsByDay[day] || [];
         for (const meal of dayMeals) {
           let meal_type = (meal.meal_type || meal.meal || (meal.meal_name ? meal.meal_name.split(/[:\-]/)[0].trim().toLowerCase() : undefined) || '').toLowerCase();
           const nb = meal.nutrition_breakdown || {};

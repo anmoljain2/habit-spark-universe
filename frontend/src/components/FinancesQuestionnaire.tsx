@@ -59,7 +59,7 @@ export default function FinancesQuestionnaire({ onSubmit }: { onSubmit: (data: a
   };
 
   return (
-    <form className="space-y-8 max-w-2xl mx-auto" onSubmit={e => { e.preventDefault(); onSubmit(form); }}>
+    <form className="space-y-8 max-w-2xl mx-auto bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/50 transition-all duration-300 hover:shadow-[0_8px_32px_0_rgba(34,197,94,0.15)] hover:border-green-400/80 hover:ring-4 hover:ring-green-200/40" onSubmit={e => { e.preventDefault(); onSubmit(form); }}>
       <h2 className="text-2xl font-bold mb-4 text-green-700">Financial Profile Questionnaire</h2>
       {/* Net Worth & Balances */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

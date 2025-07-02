@@ -3,6 +3,7 @@ import FinancesQuestionnaire from '../components/FinancesQuestionnaire';
 import FinancesDashboard from '../components/FinancesDashboard';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
 
 const Finances = () => {
   const { user } = useAuth();
@@ -53,7 +54,9 @@ const Finances = () => {
         {loading ? (
           <div className="text-center py-12">Loading...</div>
         ) : !profile ? (
-          <FinancesQuestionnaire onSubmit={handleSubmit} />
+          <QuestionnaireWrapper>
+            <FinancesQuestionnaire onSubmit={handleSubmit} />
+          </QuestionnaireWrapper>
         ) : (
           <FinancesDashboard profile={profile} />
         )}

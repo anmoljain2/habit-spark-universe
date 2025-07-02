@@ -5,6 +5,7 @@ import JournalConfig from './JournalConfig';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { BookOpen, Calendar as CalendarIcon, PenTool, Sparkles } from 'lucide-react';
+import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
 
 const QUESTION_KEYS = [
   'q_grateful',
@@ -133,19 +134,22 @@ const Journal = () => {
   );
 
   if (!config) {
-    return <JournalConfig onComplete={() => {
-      // Refetch config after saving
-      setConfigLoading(true);
-      supabase
-        .from('journal_config')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
-        .then(({ data }) => {
-          setConfig(data);
-          setConfigLoading(false);
-        });
-    }} />;
+    return (
+      <QuestionnaireWrapper>
+        <JournalConfig onComplete={() => {
+          setConfigLoading(true);
+          supabase
+            .from('journal_config')
+            .select('*')
+            .eq('user_id', user.id)
+            .single()
+            .then(({ data }) => {
+              setConfig(data);
+              setConfigLoading(false);
+            });
+        }} />
+      </QuestionnaireWrapper>
+    );
   }
 
   // Map dates to entries for quick lookup
