@@ -689,6 +689,30 @@ export type Database = {
         }
         Relationships: []
       }
+      grocery_lists: {
+        Row: {
+          id: string;
+          user_id: string;
+          week_start: string;
+          items: Json | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          week_start: string;
+          items?: Json | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          week_start?: string;
+          items?: Json | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      },
     }
     Views: {
       [_ in never]: never
