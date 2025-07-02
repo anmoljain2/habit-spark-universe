@@ -66,10 +66,14 @@ const Meals = () => {
     date: todayStr,
   });
   const [logMealLoading, setLogMealLoading] = useState(false);
+  const [logMealExpanded, setLogMealExpanded] = useState(false);
   const userLoggedMeals = todaysMeals.filter(m => m.source === 'user');
   const [hoveredUserMeal, setHoveredUserMeal] = useState<Meal | null>(null);
   const [userMealTooltipPos, setUserMealTooltipPos] = useState<{x: number, y: number} | null>(null);
   const userMealTooltipTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [recipeQuery, setRecipeQuery] = useState('');
+  const [recipeResults, setRecipeResults] = useState<any[]>([]);
+  const [recipeLoading, setRecipeLoading] = useState(false);
 
   const fetchOrGenerateMeals = useCallback(async () => {
     if (!user) return;
@@ -492,10 +496,25 @@ const Meals = () => {
         date: todayStr,
       });
       fetchOrGenerateMeals();
+      setLogMealExpanded(false);
     } catch (err) {
       toast.error('Failed to log meal.');
     }
     setLogMealLoading(false);
+  };
+
+  const handleRecipeSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecipeLoading(true);
+    // Mock results for now
+    setTimeout(() => {
+      setRecipeResults([
+        { name: 'Grilled Salmon with Avocado Salsa', calories: 420, protein: 35, carbs: 10, fat: 25 },
+        { name: 'Quinoa & Black Bean Bowl', calories: 380, protein: 18, carbs: 60, fat: 8 },
+        { name: 'Chicken Caesar Wrap', calories: 500, protein: 40, carbs: 45, fat: 18 },
+      ]);
+      setRecipeLoading(false);
+    }, 800);
   };
 
   if (loading) {
@@ -842,68 +861,80 @@ const Meals = () => {
                 <ChefHat className="w-5 h-5 text-green-600" />
                 Log a Meal
               </h2>
-              <form className="w-full space-y-3" onSubmit={handleLogMealSubmit}>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Meal Type</label>
-                  <select name="meal_type" value={logMealForm.meal_type} onChange={handleLogMealChange} className="w-full rounded-lg border-gray-300 focus:ring-green-500 focus:border-green-500">
-                    <option value="">Select...</option>
-                    <option value="breakfast">Breakfast</option>
-                    <option value="lunch">Lunch</option>
-                    <option value="snack">Snack</option>
-                    <option value="dinner">Dinner</option>
-                    <option value="custom">Custom</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Meal Name</label>
-                  <Input name="description" value={logMealForm.description} onChange={handleLogMealChange} required placeholder="e.g. Chicken Salad" />
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500">Calories</label>
-                    <Input name="calories" value={logMealForm.calories} onChange={handleLogMealChange} type="number" min="0" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500">Protein</label>
-                    <Input name="protein" value={logMealForm.protein} onChange={handleLogMealChange} type="number" min="0" />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500">Carbs</label>
-                    <Input name="carbs" value={logMealForm.carbs} onChange={handleLogMealChange} type="number" min="0" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500">Fat</label>
-                    <Input name="fat" value={logMealForm.fat} onChange={handleLogMealChange} type="number" min="0" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500">Serving Size</label>
-                  <Input name="serving_size" value={logMealForm.serving_size} onChange={handleLogMealChange} />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500">Recipe</label>
-                  <Textarea name="recipe" value={logMealForm.recipe} onChange={handleLogMealChange} rows={2} />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500">Ingredients (comma separated)</label>
-                  <Input name="ingredients" value={logMealForm.ingredients} onChange={handleLogMealChange} />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500">Tags (comma separated, optional)</label>
-                  <Input name="tags" value={logMealForm.tags} onChange={handleLogMealChange} />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500">Date</label>
-                  <Input name="date" value={logMealForm.date} onChange={handleLogMealChange} type="date" />
-                </div>
-                <Button type="submit" className="w-full mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold shadow hover:from-green-600 hover:to-emerald-700" disabled={logMealLoading}>
-                  {logMealLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log Meal'}
+              {!logMealExpanded && (
+                <Button className="w-full mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold shadow hover:from-green-600 hover:to-emerald-700" onClick={() => setLogMealExpanded(true)}>
+                  Log a Meal
                 </Button>
-              </form>
+              )}
+              {logMealExpanded && (
+                <form className="w-full space-y-3 mb-4" onSubmit={handleLogMealSubmit}>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Meal Type</label>
+                    <select name="meal_type" value={logMealForm.meal_type} onChange={handleLogMealChange} className="w-full rounded-lg border-gray-300 focus:ring-green-500 focus:border-green-500">
+                      <option value="">Select...</option>
+                      <option value="breakfast">Breakfast</option>
+                      <option value="lunch">Lunch</option>
+                      <option value="snack">Snack</option>
+                      <option value="dinner">Dinner</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Meal Name</label>
+                    <Input name="description" value={logMealForm.description} onChange={handleLogMealChange} required placeholder="e.g. Chicken Salad" />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500">Calories</label>
+                      <Input name="calories" value={logMealForm.calories} onChange={handleLogMealChange} type="number" min="0" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500">Protein</label>
+                      <Input name="protein" value={logMealForm.protein} onChange={handleLogMealChange} type="number" min="0" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500">Carbs</label>
+                      <Input name="carbs" value={logMealForm.carbs} onChange={handleLogMealChange} type="number" min="0" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500">Fat</label>
+                      <Input name="fat" value={logMealForm.fat} onChange={handleLogMealChange} type="number" min="0" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500">Serving Size</label>
+                    <Input name="serving_size" value={logMealForm.serving_size} onChange={handleLogMealChange} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500">Recipe</label>
+                    <Textarea name="recipe" value={logMealForm.recipe} onChange={handleLogMealChange} rows={2} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500">Ingredients (comma separated)</label>
+                    <Input name="ingredients" value={logMealForm.ingredients} onChange={handleLogMealChange} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500">Tags (comma separated, optional)</label>
+                    <Input name="tags" value={logMealForm.tags} onChange={handleLogMealChange} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500">Date</label>
+                    <Input name="date" value={logMealForm.date} onChange={handleLogMealChange} type="date" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="submit" className="w-full mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold shadow hover:from-green-600 hover:to-emerald-700" disabled={logMealLoading}>
+                      {logMealLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log Meal'}
+                    </Button>
+                    <Button type="button" variant="outline" className="w-full mt-2" onClick={() => setLogMealExpanded(false)} disabled={logMealLoading}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              )}
               {userLoggedMeals.length > 0 && (
-                <div className="mt-6 w-full">
+                <div className="mt-2 w-full">
                   <h3 className="text-base font-semibold text-gray-700 mb-2">Your Logged Meals</h3>
                   <ul className="space-y-2">
                     {userLoggedMeals.map((meal, idx) => (
@@ -952,6 +983,48 @@ const Meals = () => {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+          {/* Search a Recipe Section */}
+          <div className="w-full max-w-sm">
+            <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-6 flex flex-col items-start justify-center">
+              <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <Utensils className="w-5 h-5 text-green-600" />
+                Search a Recipe
+              </h2>
+              <form className="w-full flex gap-2 mb-4" onSubmit={handleRecipeSearch}>
+                <Input
+                  name="recipeQuery"
+                  value={recipeQuery}
+                  onChange={e => setRecipeQuery(e.target.value)}
+                  placeholder="e.g. salmon, pasta, vegan..."
+                  className="flex-1"
+                />
+                <Button type="submit" className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold shadow hover:from-green-600 hover:to-emerald-700" disabled={recipeLoading}>
+                  {recipeLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
+                </Button>
+              </form>
+              <div className="w-full">
+                {recipeLoading ? (
+                  <div className="flex items-center justify-center py-6 text-green-600"><Loader2 className="w-6 h-6 animate-spin" /></div>
+                ) : recipeResults.length > 0 ? (
+                  <ul className="divide-y divide-gray-200">
+                    {recipeResults.map((r, idx) => (
+                      <li key={idx} className="py-2">
+                        <div className="font-semibold text-gray-900">{r.name}</div>
+                        <div className="flex gap-3 text-xs text-gray-500 mt-1">
+                          <span>⚡ {r.calories} cal</span>
+                          <span>❤️ {r.protein}g protein</span>
+                          <span>C {r.carbs}g carbs</span>
+                          <span>F {r.fat}g fat</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-gray-400 text-sm py-4">Search for healthy recipes by ingredient, cuisine, or diet.</div>
+                )}
+              </div>
             </div>
           </div>
         </div>

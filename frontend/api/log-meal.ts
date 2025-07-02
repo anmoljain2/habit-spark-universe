@@ -7,6 +7,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  console.log('Log Meal API called. Request body:', req.body);
+
   const {
     user_id,
     date,
@@ -23,11 +25,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } = req.body;
 
   if (!user_id || !date || !meal_type || !description) {
+    console.error('Missing required fields:', { user_id, date, meal_type, description });
     res.status(400).json({ error: 'Missing required fields' });
     return;
   }
 
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('Missing required environment variables:', {
+      SUPABASE_URL: process.env.SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'missing',
+    });
     res.status(500).json({ error: 'Missing required environment variables' });
     return;
   }
@@ -52,11 +59,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       source: 'user',
     }).select().single();
     if (error) {
+      console.error('Supabase insert error:', error);
       res.status(500).json({ error: error.message });
       return;
     }
+    console.log('Meal logged successfully:', data);
     res.status(201).json({ meal: data });
   } catch (err: any) {
+    console.error('Server error:', err);
     res.status(500).json({ error: err.message || 'A server error has occurred' });
   }
 } 
