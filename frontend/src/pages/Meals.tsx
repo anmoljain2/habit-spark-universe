@@ -470,17 +470,20 @@ const Meals = () => {
   const handleLogMealSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLogMealLoading(true);
+    const payload = {
+      user_id: user.id,
+      ...logMealForm,
+      calories: logMealForm.calories ? Number(logMealForm.calories) : null,
+      protein: logMealForm.protein ? Number(logMealForm.protein) : null,
+      carbs: logMealForm.carbs ? Number(logMealForm.carbs) : null,
+      fat: logMealForm.fat ? Number(logMealForm.fat) : null,
+      ingredients: logMealForm.ingredients ? logMealForm.ingredients.split(',').map(i => i.trim()) : [],
+      tags: logMealForm.tags ? logMealForm.tags.split(',').map(t => t.trim()) : [],
+    };
+    console.log('handleLogMealSubmit called. Payload:', payload);
     try {
-      const res = await axios.post('/api/log-meal', {
-        user_id: user.id,
-        ...logMealForm,
-        calories: logMealForm.calories ? Number(logMealForm.calories) : null,
-        protein: logMealForm.protein ? Number(logMealForm.protein) : null,
-        carbs: logMealForm.carbs ? Number(logMealForm.carbs) : null,
-        fat: logMealForm.fat ? Number(logMealForm.fat) : null,
-        ingredients: logMealForm.ingredients ? logMealForm.ingredients.split(',').map(i => i.trim()) : [],
-        tags: logMealForm.tags ? logMealForm.tags.split(',').map(t => t.trim()) : [],
-      });
+      const res = await axios.post('/api/log-meal', payload);
+      console.log('handleLogMealSubmit response:', res.data);
       toast.success('Meal logged!');
       setLogMealForm({
         meal_type: '',
@@ -498,6 +501,7 @@ const Meals = () => {
       fetchOrGenerateMeals();
       setLogMealExpanded(false);
     } catch (err) {
+      console.error('handleLogMealSubmit error:', err);
       toast.error('Failed to log meal.');
     }
     setLogMealLoading(false);
@@ -508,12 +512,15 @@ const Meals = () => {
     if (!recipeQuery.trim()) return;
     setRecipeLoading(true);
     setRecipeResults([]);
+    const payload = {
+      user_id: user.id,
+      query: recipeQuery,
+      date: todayStr,
+    };
+    console.log('handleRecipeSearch called. Payload:', payload);
     try {
-      const res = await axios.post('/api/find-recipe', {
-        user_id: user.id,
-        query: recipeQuery,
-        date: todayStr,
-      });
+      const res = await axios.post('/api/find-recipe', payload);
+      console.log('handleRecipeSearch response:', res.data);
       if (res.data && res.data.meal) {
         setRecipeResults([res.data.meal]);
         fetchOrGenerateMeals();
@@ -522,6 +529,7 @@ const Meals = () => {
         toast.error('No recipe found.');
       }
     } catch (err: any) {
+      console.error('handleRecipeSearch error:', err);
       setRecipeResults([]);
       toast.error(err?.response?.data?.error || 'Failed to find recipe.');
     }
