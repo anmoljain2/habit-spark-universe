@@ -2,6 +2,7 @@
   "routes": [
     { "src": "/api/generate-meal-plan", "dest": "/api/generate-meal-plan.ts" },
     { "src": "/api/generate-workout-plan", "dest": "/api/generate-workout-plan.ts" },
+    { "src": "/api/generate-grocery-list", "dest": "/api/generate-grocery-list.ts" },
     { "src": "/(.*\\.(js|css|svg|png|jpg|jpeg|ico|json|txt|woff2?|ttf|eot|map))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
