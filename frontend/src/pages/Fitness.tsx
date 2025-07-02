@@ -6,6 +6,7 @@ import { Dumbbell, Target, Timer, TrendingUp, Zap, Award, Play, Calendar, CheckC
 import axios from 'axios';
 import { formatISO, startOfWeek, endOfWeek } from 'date-fns';
 import { toast } from 'sonner';
+import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
 
 const Fitness = () => {
   const { user } = useAuth();
@@ -273,7 +274,11 @@ const Fitness = () => {
   }
 
   if (!loading && !fitnessGoals) {
-    return <FitnessQuestionnaire userId={user.id} onComplete={setFitnessGoals} />;
+    return (
+      <QuestionnaireWrapper>
+        <FitnessQuestionnaire userId={user.id} onComplete={setFitnessGoals} />
+      </QuestionnaireWrapper>
+    );
   }
 
   return (

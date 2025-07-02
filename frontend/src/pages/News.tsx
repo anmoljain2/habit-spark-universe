@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import NewsQuestionnaire from '../components/NewsQuestionnaire';
 import { Newspaper, BookOpen, TrendingUp, Clock, ExternalLink } from 'lucide-react';
+import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
 
 const News = () => {
   const { user } = useAuth();
@@ -33,7 +34,11 @@ const News = () => {
   }
 
   if (!loading && !newsPrefs) {
-    return <NewsQuestionnaire userId={user.id} onComplete={setNewsPrefs} />;
+    return (
+      <QuestionnaireWrapper>
+        <NewsQuestionnaire userId={user.id} onComplete={setNewsPrefs} />
+      </QuestionnaireWrapper>
+    );
   }
 
   const featuredArticles = [

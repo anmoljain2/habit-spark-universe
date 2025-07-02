@@ -84,7 +84,7 @@ const FitnessQuestionnaire = ({ userId, onComplete }: { userId: string, onComple
   const selectedGoal = goalTypes.find(g => g.value === goalType);
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/50">
+    <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/50 transition-all duration-300 hover:shadow-[0_8px_32px_0_rgba(236,72,153,0.15)] hover:border-pink-400/80 hover:ring-4 hover:ring-pink-200/40">
       <div className="text-center mb-8">
         <div className="bg-gradient-to-br from-pink-500 to-rose-600 p-4 rounded-2xl shadow-lg inline-block mb-4">
           <Dumbbell className="w-8 h-8 text-white" />

@@ -84,7 +84,7 @@ const NewsQuestionnaire = ({ userId, onComplete }: { userId: string, onComplete:
   ];
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/50">
+    <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-white/50 transition-all duration-300 hover:shadow-[0_8px_32px_0_rgba(99,102,241,0.15)] hover:border-indigo-400/80 hover:ring-4 hover:ring-indigo-200/40">
       <div className="text-center mb-8">
         <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl shadow-lg inline-block mb-4">
           <Newspaper className="w-8 h-8 text-white" />

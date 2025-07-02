@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import MealsQuestionnaire from '../components/MealsQuestionnaire';
 import { Utensils, ChefHat, Calendar, Clock, Heart, Zap, CheckCircle } from 'lucide-react';
 import axios from 'axios';
-import { format } from 'date-fns';
+import { format, startOfWeek, addDays } from 'date-fns';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Database } from '@/integrations/supabase/types';
 import Confetti from 'react-confetti';
+import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
 
 type Meal = Database['public']['Tables']['user_meals']['Row'];
 
@@ -32,6 +33,10 @@ const Meals = () => {
   const prevTodaysMeals = useRef<Meal[]>();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [xpAwardedForMealsToday, setXpAwardedForMealsToday] = useState(() => localStorage.getItem('lastMealXpDate') === todayStr);
+  const [weekMeals, setWeekMeals] = useState<{ [date: string]: Meal[] }>({});
+  const [weekLoading, setWeekLoading] = useState(false);
+  const [weekError, setWeekError] = useState('');
+  const [selectedWeekStart, setSelectedWeekStart] = useState(() => format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
 
   const fetchOrGenerateMeals = useCallback(async () => {
     if (!user) return;
@@ -248,9 +253,89 @@ const Meals = () => {
     }
   };
 
+  // Fetch all meals for the week
+  const fetchWeekMeals = useCallback(async () => {
+    if (!user) return;
+    setWeekLoading(true);
+    setWeekError('');
+    const weekStart = new Date(selectedWeekStart);
+    const weekDates = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
+    const { data: meals, error } = await supabase
+      .from('user_meals')
+      .select('*')
+      .eq('user_id', user.id)
+      .in('date_only', weekDates)
+      .order('date_only', { ascending: true })
+      .order('meal_type', { ascending: true });
+    if (error) {
+      setWeekError(error.message);
+      setWeekMeals({});
+    } else {
+      // Group meals by date
+      const grouped: { [date: string]: Meal[] } = {};
+      for (const d of weekDates) grouped[d] = [];
+      for (const meal of meals || []) {
+        if (!grouped[meal.date_only]) grouped[meal.date_only] = [];
+        grouped[meal.date_only].push(meal);
+      }
+      setWeekMeals(grouped);
+    }
+    setWeekLoading(false);
+  }, [user, selectedWeekStart]);
+
+  // Only fetch meals for the week on mount or when week changes
+  useEffect(() => {
+    if (user && nutritionPrefs) fetchWeekMeals();
+  }, [user, nutritionPrefs, fetchWeekMeals]);
+
+  // Generate or regenerate week
+  const handleGenerateWeek = async () => {
+    if (!user) return;
+    setWeekLoading(true);
+    setWeekError('');
+    // Delete all meals for the week
+    const weekStart = new Date(selectedWeekStart);
+    const weekDates = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
+    await supabase.from('user_meals').delete().eq('user_id', user.id).in('date_only', weekDates);
+    try {
+      await axios.post('/api/generate-meal-plan', {
+        user_id: user.id,
+        mode: 'week',
+        weekStart: selectedWeekStart,
+      });
+      toast.success('Weekly meal plan generated!');
+      fetchWeekMeals();
+    } catch (err) {
+      setWeekError('Failed to generate weekly meal plan.');
+      toast.error('Failed to generate weekly meal plan.');
+      setWeekLoading(false);
+    }
+  };
+
+  // Regenerate a single day
+  const handleRegenerateDay = async (date: string) => {
+    if (!user) return;
+    setWeekLoading(true);
+    setWeekError('');
+    await supabase.from('user_meals').delete().eq('user_id', user.id).eq('date_only', date);
+    try {
+      await axios.post('/api/generate-meal-plan', {
+        user_id: user.id,
+        mode: 'day',
+        date,
+      });
+      toast.success('Meals regenerated for ' + date);
+      fetchWeekMeals();
+    } catch (err) {
+      setWeekError('Failed to regenerate meals for ' + date);
+      toast.error('Failed to regenerate meals for ' + date);
+      setWeekLoading(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
         </div>
@@ -259,7 +344,11 @@ const Meals = () => {
   }
 
   if (!loading && !nutritionPrefs) {
-    return <MealsQuestionnaire userId={user.id} onComplete={setNutritionPrefs} />;
+    return (
+      <QuestionnaireWrapper>
+        <MealsQuestionnaire userId={user.id} onComplete={setNutritionPrefs} />
+      </QuestionnaireWrapper>
+    );
   }
 
   const completedMeals = todaysMeals.filter(meal => meal.completed);
@@ -324,49 +413,55 @@ const Meals = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Today's Meals */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                  <Calendar className="w-6 h-6 text-green-600" />
-                  Today's Meals
-                </h2>
-                <div className="flex items-center gap-2">
+        {/* Week Controls */}
+        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+          <div className="flex gap-2">
+            <button
+              onClick={handleGenerateWeek}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+              disabled={weekLoading}
+            >
+              <Zap className="w-4 h-4" />
+              {weekLoading ? 'Generating...' : 'Generate/Regenerate Week'}
+            </button>
+          </div>
+          <div>
+            <span className="text-gray-600 text-sm">Week of: {selectedWeekStart}</span>
+          </div>
+        </div>
+
+        {weekError && <div className="text-red-600 text-center mb-4">{weekError}</div>}
+        {weekLoading ? (
+          <div className="flex items-center justify-center min-h-[20vh] flex-col">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mb-4"></div>
+            <p className="text-gray-600">Generating your weekly meal plan...</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {Object.entries(weekMeals).map(([date, meals]) => (
+              <div key={date} className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-green-600" />
+                    {date}
+                  </h2>
                   <button
-                    onClick={handleRegenerateMeals}
+                    onClick={() => handleRegenerateDay(date)}
                     className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+                    disabled={weekLoading}
                   >
                     <Zap className="w-4 h-4" />
-                    Regenerate
-                  </button>
-                  <button className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all">
-                    Add Meal
+                    Regenerate Day
                   </button>
                 </div>
-              </div>
-              {mealsLoading ? (
-                <div className="flex items-center justify-center min-h-[20vh] flex-col">
-                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mb-4"></div>
-                  <p className="text-gray-600">Generating your personalized meals...</p>
-                </div>
-              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {sortedMeals.length === 0 ? (
+                  {meals.length === 0 ? (
                     <div className="col-span-full text-center py-8">
                       <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 mb-4">No meals found for today.</p>
-                      <button 
-                        onClick={fetchOrGenerateMeals}
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all"
-                      >
-                        Generate Today's Meals
-                      </button>
+                      <p className="text-gray-500 mb-4">No meals found for this day.</p>
                     </div>
                   ) : (
-                    sortedMeals.map((meal, index) => (
+                    meals.map((meal, index) => (
                       <div key={index} className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${meal.completed ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
                         {meal.completed && <div className="absolute top-2 right-2 text-green-500"><CheckCircle className="w-5 h-5" /></div>}
                         <div className="flex items-start justify-between mb-3">
@@ -426,81 +521,10 @@ const Meals = () => {
                     ))
                   )}
                 </div>
-              )}
-            </div>
-
-            {/* Weekly Plan */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">This Week's Plan</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                {weeklyPlan.map((day, index) => (
-                  <div key={index} className="text-center">
-                    <div className={`${day.color} rounded-xl p-4 mb-2`}>
-                      <div className="font-bold text-lg">{day.day}</div>
-                      <div className="text-sm font-medium">{day.focus}</div>
-                    </div>
-                  </div>
-                ))}
               </div>
-            </div>
+            ))}
           </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Nutrition Progress */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Today's Nutrition</h3>
-              <div className="space-y-4">
-                {nutritionStats.map((stat, index) => {
-                  const percentage = (stat.current / stat.target) * 100;
-                  return (
-                    <div key={index}>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium text-gray-700">{stat.label}</span>
-                        <span className="text-sm text-gray-600">{stat.current}/{stat.target}{stat.label === 'Calories' ? 'cal' : 'g'}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div 
-                          className={`bg-gradient-to-r ${stat.color} h-3 rounded-full transition-all duration-500`}
-                          style={{ width: `${Math.min(percentage, 100)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg">
-              <h3 className="text-lg font-bold mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm p-3 rounded-xl font-medium transition-all text-left">
-                  📱 Log a Meal
-                </button>
-                <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm p-3 rounded-xl font-medium transition-all text-left">
-                  🛒 Generate Grocery List
-                </button>
-                <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm p-3 rounded-xl font-medium transition-all text-left">
-                  👨‍🍳 Find Recipes
-                </button>
-              </div>
-            </div>
-
-            {/* Meal Inspiration */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Recipe of the Day</h3>
-              <div className="text-center">
-                <div className="text-4xl mb-3">🍲</div>
-                <h4 className="font-semibold text-gray-800 mb-2">Thai Green Curry</h4>
-                <p className="text-gray-600 text-sm mb-4">A flavorful, healthy dinner ready in 30 minutes</p>
-                <button className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all text-sm">
-                  View Recipe
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
