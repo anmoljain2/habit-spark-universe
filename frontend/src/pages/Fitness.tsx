@@ -265,7 +265,7 @@ const Fitness = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-rose-50/50">
+      <div className="min-h-screen">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-pink-600"></div>
         </div>
@@ -282,7 +282,7 @@ const Fitness = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-rose-50/50">
+    <div className="min-h-screen">
       <div className="w-full px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">

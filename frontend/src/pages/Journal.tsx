@@ -126,7 +126,7 @@ const Journal = () => {
   };
 
   if (configLoading) return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+    <div className="min-h-screen">
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600"></div>
       </div>
@@ -169,7 +169,7 @@ const Journal = () => {
   const entryDates = new Set(entries.map(e => new Date(e.created_at).toDateString()));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+    <div className="min-h-screen">
       <div className="w-full px-4 py-8">
         {/* Hero Header */}
         <div className="text-center mb-12">

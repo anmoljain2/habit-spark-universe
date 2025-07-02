@@ -237,7 +237,7 @@ const Profile = () => {
 
   if (!user) return null;
   if (loading) return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="text-center space-y-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
         <p className="text-gray-600 text-lg">Loading your profile...</p>
@@ -249,7 +249,7 @@ const Profile = () => {
   const avatarFallback = (profile?.display_name || profile?.username || user.email)?.[0]?.toUpperCase() || 'U';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen">
       <div className="w-full px-4 py-8">
         {/* Hero Profile Section */}
         <div className="relative mb-10">

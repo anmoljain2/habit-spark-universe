@@ -97,7 +97,7 @@ const JournalConfig = ({ onComplete }: JournalConfigProps) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+      <div className="min-h-screen">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600"></div>
         </div>
@@ -106,7 +106,7 @@ const JournalConfig = ({ onComplete }: JournalConfigProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Hero Header */}
         <div className="text-center mb-12">

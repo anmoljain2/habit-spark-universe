@@ -90,7 +90,7 @@ const UserProfile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+      <div className="min-h-screen">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600"></div>
         </div>
@@ -100,7 +100,7 @@ const UserProfile = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+      <div className="min-h-screen">
         <div className="flex items-center justify-center min-h-[60vh] text-center">
           <div>
             <div className="text-6xl mb-4">🔍</div>
@@ -115,7 +115,7 @@ const UserProfile = () => {
   // Privacy check: if not public, not self, and not friend
   if (profile.profile_visibility !== 'public' && user.id !== profile.user_id && !isFriend) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+      <div className="min-h-screen">
         <div className="flex items-center justify-center min-h-[60vh] text-center">
           <div>
             <div className="text-6xl mb-4">🔒</div>
@@ -135,7 +135,7 @@ const UserProfile = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+    <div className="min-h-screen">
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Back Button */}
         <div className="mb-6">

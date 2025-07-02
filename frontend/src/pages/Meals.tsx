@@ -20,6 +20,7 @@ import type { Database } from '@/integrations/supabase/types';
 import Confetti from 'react-confetti';
 import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Meal = Database['public']['Tables']['user_meals']['Row'];
 
@@ -43,6 +44,7 @@ const Meals = () => {
   const [groceryLoading, setGroceryLoading] = useState(false);
   const [groceryError, setGroceryError] = useState('');
   const [groceryGenerated, setGroceryGenerated] = useState(false);
+  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
 
   const fetchOrGenerateMeals = useCallback(async () => {
     if (!user) return;
@@ -420,9 +422,21 @@ const Meals = () => {
     fetchGroceryList();
   }, [fetchGroceryList]);
 
+  const handleToggleItem = (idx: number) => {
+    setCheckedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(idx)) {
+        newSet.delete(idx);
+      } else {
+        newSet.add(idx);
+      }
+      return newSet;
+    });
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
+      <div className="min-h-screen">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
         </div>
@@ -456,7 +470,7 @@ const Meals = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/50">
+    <div className="min-h-screen">
       {showConfetti && <Confetti recycle={false} onConfettiComplete={() => setShowConfetti(false)} />}
       <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
         <AlertDialogContent>
@@ -503,19 +517,19 @@ const Meals = () => {
                 return (
                   <div
                     key={type}
-                    className={`relative flex flex-col h-full bg-white rounded-2xl shadow-md border-2 transition-all duration-200 ${meal.completed ? 'border-green-400 bg-green-50/60' : 'border-gray-200 bg-white'} p-5`}
+                    className={`relative flex flex-col h-full bg-white rounded-2xl shadow-lg border-2 transition-all duration-200 group hover:shadow-2xl ${meal.completed ? 'border-green-500 bg-green-50/90' : 'border-gray-200 bg-white'} p-6 hover:-translate-y-1`}
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-2xl">🍽️</span>
-                      <h3 className="font-semibold text-gray-900 capitalize text-lg tracking-tight">{meal.meal_type}</h3>
-                      {meal.completed && <CheckCircle className="w-5 h-5 text-green-500 ml-auto" />}
+                      <span className="text-3xl">🍽️</span>
+                      <h3 className="font-extrabold text-gray-900 capitalize text-xl tracking-tight leading-tight">{meal.meal_type}</h3>
+                      {meal.completed && <CheckCircle className="w-6 h-6 text-green-500 ml-auto" />}
                     </div>
-                    <div className="font-bold text-gray-800 text-base mb-1 truncate">{meal.description}</div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium mb-2">
-                      <span className="flex items-center gap-1 text-orange-500"><Zap className="w-4 h-4" />{meal.calories} cal</span>
-                      <span className="flex items-center gap-1 text-red-500"><Heart className="w-4 h-4" />{meal.protein}g protein</span>
-                      <span className="flex items-center gap-1 text-yellow-500"><span className="font-bold">C</span>{meal.carbs}g carbs</span>
-                      <span className="flex items-center gap-1 text-green-500"><span className="font-bold">F</span>{meal.fat}g fat</span>
+                    <div className="font-bold text-gray-800 text-lg mb-1 truncate">{meal.description}</div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-base font-semibold mb-2">
+                      <span className="flex items-center gap-1 text-orange-500"><Zap className="w-5 h-5" />{meal.calories} <span className="font-normal text-gray-600 text-xs ml-0.5">cal</span></span>
+                      <span className="flex items-center gap-1 text-red-500"><Heart className="w-5 h-5" />{meal.protein} <span className="font-normal text-gray-600 text-xs ml-0.5">protein</span></span>
+                      <span className="flex items-center gap-1 text-yellow-500"><span className="font-bold">C</span>{meal.carbs} <span className="font-normal text-gray-600 text-xs ml-0.5">carbs</span></span>
+                      <span className="flex items-center gap-1 text-green-500"><span className="font-bold">F</span>{meal.fat} <span className="font-normal text-gray-600 text-xs ml-0.5">fat</span></span>
                     </div>
                     {meal.serving_size && (
                       <div className="text-xs text-gray-500 mb-1">Serving size: {meal.serving_size}</div>
@@ -527,16 +541,16 @@ const Meals = () => {
                       {meal.completed ? (
                         <button
                           onClick={() => handleUncompleteMeal(meal.id)}
-                          className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-sm border border-gray-200"
+                          className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-full font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-base border border-gray-200 shadow-sm"
                         >
                           Undo
                         </button>
                       ) : (
                         <button
                           onClick={() => handleCompleteMeal(meal.id)}
-                          className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-2 rounded-lg font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 text-sm"
+                          className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-2 rounded-full font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 text-base"
                         >
-                          <CheckCircle className="w-5 h-5" />
+                          <CheckCircle className="w-6 h-6" />
                           Mark as Complete
                         </button>
                       )}
@@ -618,59 +632,58 @@ const Meals = () => {
         </div>
 
         {/* Grocery List Section */}
-        <div className="max-w-2xl mx-auto mt-12 mb-16">
-          <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-8 flex flex-col items-center justify-center">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-              <Utensils className="w-6 h-6 text-green-600" />
+        <div className="w-full max-w-sm ml-0 md:ml-8 mt-12 mb-16">
+          <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-6 flex flex-col items-start justify-center">
+            <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+              <Utensils className="w-5 h-5 text-green-600" />
               Grocery List
             </h2>
             {groceryLoading ? (
-              <div className="flex flex-col items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center py-8 w-full">
                 <Loader2 className="w-8 h-8 text-green-500 animate-spin mb-2" />
                 <span className="text-green-700 font-medium">Loading grocery list...</span>
               </div>
             ) : groceryError ? (
-              <div className="flex flex-col items-center gap-2 py-4">
+              <div className="flex flex-col items-center gap-2 py-4 w-full">
                 <Info className="w-6 h-6 text-red-500" />
                 <span className="text-red-600 font-semibold">{groceryError}</span>
                 <button
                   onClick={handleGenerateGroceryList}
-                  className="mt-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2"
+                  className="mt-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2"
                 >
                   <ShoppingCart className="w-5 h-5" /> Generate Grocery List
                 </button>
               </div>
             ) : groceryList.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-4">
+              <div className="flex flex-col items-center gap-2 py-4 w-full">
                 <span className="text-gray-500 text-lg mb-2">No grocery list found for this week.</span>
                 <button
                   onClick={handleGenerateGroceryList}
-                  className="mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2"
+                  className="mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2"
                 >
                   <ShoppingCart className="w-5 h-5" /> Generate Grocery List
                 </button>
               </div>
             ) : (
-              <div className="w-full">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <div className="w-full mt-2">
+                <ul className="divide-y divide-gray-200 w-full">
                   {groceryList.map((item, idx) => (
-                    <div key={idx} className="bg-gradient-to-br from-green-50/80 to-emerald-100/60 border border-green-200 rounded-xl p-4 flex flex-col gap-2 shadow group hover:shadow-lg transition-all">
-                      <div className="flex items-center gap-3 mb-1">
-                        <PackageCheck className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform" />
-                        <span className="font-semibold text-gray-800 text-lg capitalize">{item.name}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2 text-sm text-gray-700">
-                        {item.quantity && <span className="bg-white/70 rounded px-2 py-0.5 border border-gray-200">Qty: {item.quantity}</span>}
-                        {item.unit && <span className="bg-white/70 rounded px-2 py-0.5 border border-gray-200">Unit: {item.unit}</span>}
-                        {item.brand && <span className="bg-white/70 rounded px-2 py-0.5 border border-gray-200">Brand: {item.brand}</span>}
-                      </div>
-                      {item.notes && <div className="text-xs text-gray-500 italic mt-1">{item.notes}</div>}
-                    </div>
+                    <li key={idx} className="flex items-center gap-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={checkedItems.has(idx)}
+                        onChange={() => handleToggleItem(idx)}
+                        className="form-checkbox h-5 w-5 text-green-600 rounded focus:ring-green-500 border-gray-300"
+                      />
+                      <span className={`flex-1 text-gray-800 text-base ${checkedItems.has(idx) ? 'line-through text-gray-400' : ''}`}>{item.name}</span>
+                      {item.quantity && <span className="text-xs text-gray-500 ml-2">x{item.quantity}</span>}
+                      {item.unit && <span className="text-xs text-gray-400 ml-1">{item.unit}</span>}
+                    </li>
                   ))}
-                </div>
+                </ul>
                 <button
                   onClick={handleGenerateGroceryList}
-                  className="mt-8 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2 mx-auto"
+                  className="mt-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2 mx-auto"
                 >
                   <ShoppingCart className="w-5 h-5" /> Regenerate Grocery List
                 </button>
