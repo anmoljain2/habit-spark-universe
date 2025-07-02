@@ -26,8 +26,9 @@ const Social = () => {
       // Fetch all users except current user
       const { data: allUsers } = await supabase
         .from('user_profiles')
-        .select('user_id,username,display_name,bio')
-        .neq('user_id', user.id);
+        .select('user_id,username,display_name,bio,profile_visibility')
+        .neq('user_id', user.id)
+        .eq('profile_visibility', 'public');
       // Fetch current friends
       const { data: friendsData } = await supabase
         .from('friend_requests')

@@ -3,13 +3,15 @@ import StatsOverview from '../components/StatsCard';
 import LevelCard from '../components/LevelCard';
 import HabitsList from '../components/HabitsList';
 import AchievementsSection from '../components/AchievementBadge';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Newspaper, Utensils, Dumbbell, ArrowRight, Sparkles, Target, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const { user } = useAuth();
   const [xpRefresh, setXPRefresh] = useState(0);
+  const [stats, setStats] = useState({ progress: null, streak: null, xp: null, loading: true });
   
   console.log('Index page rendering for user:', user?.email);
   
@@ -18,11 +20,36 @@ const Index = () => {
 
   const handleXPChange = () => setXPRefresh((prev) => prev + 1);
 
-  const quickStats = [
-    { label: 'Today\'s Progress', value: '85%', color: 'from-green-400 to-emerald-600', icon: Target },
-    { label: 'Weekly Streak', value: '7 days', color: 'from-orange-400 to-red-500', icon: TrendingUp },
-    { label: 'Total XP', value: '2,340', color: 'from-purple-400 to-pink-500', icon: Sparkles },
-  ];
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user) return;
+      setStats(s => ({ ...s, loading: true }));
+      // Fetch Total XP and Streak from profiles
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('total_xp, streak')
+        .eq('id', user.id)
+        .single();
+      // Fetch habits completed today
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: habitsToday } = await supabase
+        .from('user_habits')
+        .select('id, completed_today, created_at')
+        .eq('user_id', user.id);
+      // Filter habits created today
+      const habitsTodayFiltered = (habitsToday || []).filter(h => h.created_at && h.created_at.startsWith(today));
+      const totalHabits = habitsTodayFiltered.length;
+      const completedHabits = habitsTodayFiltered.filter(h => h.completed_today).length;
+      const progress = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
+      setStats({
+        progress,
+        streak: profile?.streak ?? 0,
+        xp: profile?.total_xp ?? 0,
+        loading: false
+      });
+    };
+    if (user) fetchStats();
+  }, [user, xpRefresh]);
 
   if (!user) {
     return (
@@ -33,6 +60,12 @@ const Index = () => {
       </div>
     );
   }
+
+  const quickStats = [
+    { label: "Today's Progress", value: stats.loading ? <span className="animate-pulse">...</span> : `${stats.progress}%`, color: 'from-green-400 to-emerald-600', icon: Target },
+    { label: 'Weekly Streak', value: stats.loading ? <span className="animate-pulse">...</span> : `${stats.streak} days`, color: 'from-orange-400 to-red-500', icon: TrendingUp },
+    { label: 'Total XP', value: stats.loading ? <span className="animate-pulse">...</span> : stats.xp?.toLocaleString(), color: 'from-purple-400 to-pink-500', icon: Sparkles },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">

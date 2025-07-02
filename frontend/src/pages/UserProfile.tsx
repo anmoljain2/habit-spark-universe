@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -107,6 +106,21 @@ const UserProfile = () => {
             <div className="text-6xl mb-4">🔍</div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">User Not Found</h2>
             <p className="text-gray-600">The user you're looking for doesn't exist.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Privacy check: if not public, not self, and not friend
+  if (profile.profile_visibility !== 'public' && user.id !== profile.user_id && !isFriend) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+        <div className="flex items-center justify-center min-h-[60vh] text-center">
+          <div>
+            <div className="text-6xl mb-4">🔒</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">This profile is private</h2>
+            <p className="text-gray-600">You do not have permission to view this user's profile.</p>
           </div>
         </div>
       </div>

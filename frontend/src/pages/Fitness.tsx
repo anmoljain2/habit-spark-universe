@@ -272,25 +272,8 @@ const Fitness = () => {
     );
   }
 
-  if (!fitnessGoals) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/30 to-rose-50/50">
-        <div className="max-w-4xl mx-auto px-4 py-12">
-          <div className="text-center mb-8">
-            <div className="bg-gradient-to-br from-pink-500 to-rose-600 p-4 rounded-2xl shadow-lg inline-block mb-4">
-              <Dumbbell className="w-12 h-12 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-4">
-              Set Your Fitness Goals
-            </h1>
-            <p className="text-xl text-gray-600">
-              Let's create a personalized workout plan to help you achieve your fitness dreams
-            </p>
-          </div>
-          <FitnessQuestionnaire userId={user.id} onComplete={setFitnessGoals} />
-        </div>
-      </div>
-    );
+  if (!loading && !fitnessGoals) {
+    return <FitnessQuestionnaire userId={user.id} onComplete={setFitnessGoals} />;
   }
 
   return (

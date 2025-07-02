@@ -32,25 +32,8 @@ const News = () => {
     );
   }
 
-  if (!newsPrefs) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
-        <div className="max-w-4xl mx-auto px-4 py-12">
-          <div className="text-center mb-8">
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl shadow-lg inline-block mb-4">
-              <Newspaper className="w-12 h-12 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4">
-              Personalize Your News
-            </h1>
-            <p className="text-xl text-gray-600">
-              Let's customize your news experience to match your interests
-            </p>
-          </div>
-          <NewsQuestionnaire userId={user.id} onComplete={setNewsPrefs} />
-        </div>
-      </div>
-    );
+  if (!loading && !newsPrefs) {
+    return <NewsQuestionnaire userId={user.id} onComplete={setNewsPrefs} />;
   }
 
   const featuredArticles = [

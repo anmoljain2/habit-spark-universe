@@ -258,25 +258,8 @@ const Meals = () => {
     );
   }
 
-  if (!nutritionPrefs) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/50">
-        <div className="max-w-4xl mx-auto px-4 py-12">
-          <div className="text-center mb-8">
-            <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-4 rounded-2xl shadow-lg inline-block mb-4">
-              <ChefHat className="w-12 h-12 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-4">
-              Customize Your Nutrition
-            </h1>
-            <p className="text-xl text-gray-600">
-              Let's create a personalized meal plan that fits your lifestyle
-            </p>
-          </div>
-          <MealsQuestionnaire userId={user.id} onComplete={setNutritionPrefs} />
-        </div>
-      </div>
-    );
+  if (!loading && !nutritionPrefs) {
+    return <MealsQuestionnaire userId={user.id} onComplete={setNutritionPrefs} />;
   }
 
   const completedMeals = todaysMeals.filter(meal => meal.completed);
