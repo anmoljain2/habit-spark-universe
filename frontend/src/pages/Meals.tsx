@@ -420,140 +420,162 @@ const Meals = () => {
           </p>
         </div>
 
-        {/* Nutrition Tracker for Today */}
-        <div className="max-w-2xl mx-auto mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {nutritionStats.map((stat, idx) => {
-              const percent = Math.min(100, (stat.current / stat.target) * 100);
-              return (
-                <div key={stat.label} className="bg-white/90 rounded-xl p-4 shadow border border-white/50">
-                  <div className="font-semibold text-gray-700 mb-1">{stat.label}</div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-lg">{stat.current}</span>
-                    <span className="text-xs text-gray-400">/ {stat.target}</span>
-                  </div>
-                  <Progress value={percent} className={`h-2 bg-gray-200 ${stat.color}`} />
-                  <div className="text-xs text-gray-500 mt-1">{Math.round(percent)}% complete</div>
+        {/* Current Day Section: Two-column layout */}
+        <div className="mb-12 flex flex-col md:flex-row gap-8 max-w-5xl mx-auto">
+          {/* Left: Today's Meals */}
+          <div className="flex-1 bg-white/90 rounded-2xl shadow-xl border border-white/50 p-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-green-600" />
+              Today ({today})
+            </h2>
+            <div className="grid grid-cols-1 gap-4">
+              {todaysMeals.length === 0 ? (
+                <div className="col-span-full text-center py-8">
+                  <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-4">No meals found for today.</p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Current Day Meals (Full Details) */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-green-600" />
-            Today ({today})
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {todaysMeals.length === 0 ? (
-              <div className="col-span-full text-center py-8">
-                <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-4">No meals found for today.</p>
-              </div>
-            ) : (
-              todaysMeals.map((meal, index) => (
-                <div key={index} className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${meal.completed ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
-                  {meal.completed && <div className="absolute top-2 right-2 text-green-500"><CheckCircle className="w-5 h-5" /></div>}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">🍽️</span>
-                      <div>
-                        <h3 className="font-semibold text-gray-800 capitalize">{meal.meal_type}</h3>
-                        <div className="flex items-center gap-1 text-gray-500 text-sm">
-                          <Clock className="w-3 h-3" />
-                          {meal.time || 'Anytime'}
+              ) : (
+                todaysMeals.map((meal, index) => (
+                  <div key={index} className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${meal.completed ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
+                    {meal.completed && <div className="absolute top-2 right-2 text-green-500"><CheckCircle className="w-5 h-5" /></div>}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">🍽️</span>
+                        <div>
+                          <h3 className="font-semibold text-gray-800 capitalize">{meal.meal_type}</h3>
+                          <div className="flex items-center gap-1 text-gray-500 text-sm">
+                            <Clock className="w-3 h-3" />
+                            {meal.time || 'Anytime'}
+                          </div>
                         </div>
                       </div>
                     </div>
+                    <h4 className="font-medium text-gray-800 mb-2">{meal.description}</h4>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <Zap className="w-3 h-3 text-orange-400" />
+                        {meal.calories} cal
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Heart className="w-3 h-3 text-red-400" />
+                        {meal.protein}g protein
+                      </span>
+                       <span className="flex items-center gap-1">
+                        <span className="font-bold text-yellow-500">C</span>
+                        {meal.carbs}g carbs
+                      </span>
+                       <span className="flex items-center gap-1">
+                        <span className="font-bold text-green-500">F</span>
+                        {meal.fat}g fat
+                      </span>
+                    </div>
+                    {meal.serving_size && (
+                      <div className="text-xs text-gray-500 mt-1">Serving size: {meal.serving_size}</div>
+                    )}
+                    {meal.recipe && (
+                      <div className="text-xs text-gray-700 mt-2"><b>Recipe:</b> {meal.recipe}</div>
+                    )}
+                    {meal.completed ? (
+                      <button 
+                        onClick={() => handleUncompleteMeal(meal.id)}
+                        className="mt-4 w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-all flex items-center justify-center gap-2"
+                      >
+                        Undo
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => handleCompleteMeal(meal.id)}
+                        className="mt-4 w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Mark as Complete
+                      </button>
+                    )}
                   </div>
-                  <h4 className="font-medium text-gray-800 mb-2">{meal.description}</h4>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-orange-400" />
-                      {meal.calories} cal
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Heart className="w-3 h-3 text-red-400" />
-                      {meal.protein}g protein
-                    </span>
-                     <span className="flex items-center gap-1">
-                      <span className="font-bold text-yellow-500">C</span>
-                      {meal.carbs}g carbs
-                    </span>
-                     <span className="flex items-center gap-1">
-                      <span className="font-bold text-green-500">F</span>
-                      {meal.fat}g fat
-                    </span>
+                ))
+              )}
+            </div>
+          </div>
+          {/* Right: Daily Nutrition Tracker */}
+          <div className="w-full md:w-80 flex-shrink-0 bg-gradient-to-br from-green-100 via-emerald-50 to-white rounded-2xl shadow-xl border border-white/50 p-6 flex flex-col items-center justify-center">
+            <h3 className="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
+              <Heart className="w-6 h-6 text-green-500" />
+              Daily Nutrition
+            </h3>
+            <div className="w-full space-y-4">
+              {nutritionStats.map((stat, idx) => {
+                const percent = Math.min(100, (stat.current / stat.target) * 100);
+                return (
+                  <div key={stat.label} className="w-full">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-medium text-gray-700">{stat.label}</span>
+                      <span className="text-xs text-gray-500">{stat.current} / {stat.target}</span>
+                    </div>
+                    <Progress value={percent} className={`h-3 rounded-full bg-gray-200 ${stat.color}`} />
+                    <div className="text-xs text-gray-400 mt-1">{Math.round(percent)}%</div>
                   </div>
-                  {meal.serving_size && (
-                    <div className="text-xs text-gray-500 mt-1">Serving size: {meal.serving_size}</div>
-                  )}
-                  {meal.recipe && (
-                    <div className="text-xs text-gray-700 mt-2"><b>Recipe:</b> {meal.recipe}</div>
-                  )}
-                  {meal.completed ? (
-                    <button 
-                      onClick={() => handleUncompleteMeal(meal.id)}
-                      className="mt-4 w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-all flex items-center justify-center gap-2"
-                    >
-                      Undo
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => handleCompleteMeal(meal.id)}
-                      className="mt-4 w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Mark as Complete
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Weekly Agenda (Other Days) */}
+        {/* Weekly Agenda (Calendar Style) */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-green-600" />
-            Weekly Agenda
+            Weekly Calendar
           </h2>
-          <div className="grid grid-cols-1 gap-4">
-            {weekDates.filter(date => date !== today).map(date => {
-              const meals = weekMeals[date] || [];
-              return (
-                <div key={date} className="bg-white/80 rounded-xl p-4 shadow border border-white/50 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div className="flex items-center gap-4 mb-2 md:mb-0">
-                    <div className="font-bold text-lg text-gray-800 min-w-[110px]">{date}</div>
-                    <div className="flex flex-wrap gap-2">
+          <div className="overflow-x-auto">
+            <div className="grid grid-cols-7 gap-4 min-w-[700px]">
+              {weekDates.map(date => {
+                const meals = weekMeals[date] || [];
+                const isToday = date === today;
+                return (
+                  <div key={date} className={`bg-white/80 rounded-xl p-4 shadow border border-white/50 flex flex-col items-center ${isToday ? 'ring-2 ring-green-400' : ''}`} style={{ minWidth: 180 }}>
+                    <div className="font-bold text-md text-gray-800 mb-2 flex items-center gap-2">
+                      {isToday && <span className="inline-block w-2 h-2 rounded-full bg-green-500" />}
+                      {date}
+                    </div>
+                    <div className="flex flex-col gap-2 w-full mb-4">
                       {['breakfast', 'lunch', 'snack', 'dinner'].map(type => {
                         const meal = meals.find(m => m.meal_type === type);
                         return (
-                          <div key={type} className={`px-3 py-1 rounded-full text-sm font-medium border ${meal ? (meal.completed ? 'bg-green-100 border-green-400 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-700') : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                          <div key={type} className={`flex items-center justify-between px-2 py-1 rounded-lg text-sm font-medium border ${meal ? (meal.completed ? 'bg-green-100 border-green-400 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-700') : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
+                            <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                            {meal && <span className="truncate ml-2">{meal.description}</span>}
                             {meal && meal.completed && <CheckCircle className="inline ml-1 w-4 h-4 text-green-500 align-middle" />}
                           </div>
                         );
                       })}
                     </div>
+                    <button
+                      onClick={() => handleRegenerateDay(date)}
+                      className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2 text-xs"
+                      disabled={weekLoading || dayLoading === date}
+                    >
+                      <Zap className="w-4 h-4" />
+                      Regenerate
+                      {dayLoading === date && (
+                        <span className="ml-2 animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></span>
+                      )}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleRegenerateDay(date)}
-                    className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-                    disabled={weekLoading || dayLoading === date}
-                  >
-                    <Zap className="w-4 h-4" />
-                    Regenerate Day
-                    {dayLoading === date && (
-                      <span className="ml-2 animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></span>
-                    )}
-                  </button>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Grocery List Placeholder */}
+        <div className="max-w-2xl mx-auto mt-12 mb-16">
+          <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-8 flex flex-col items-center justify-center">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+              <Utensils className="w-6 h-6 text-green-600" />
+              Grocery List
+            </h2>
+            <p className="text-gray-500 text-lg mb-2">Coming Soon</p>
+            <p className="text-gray-400 text-sm text-center max-w-md">You'll soon be able to generate a smart grocery list based on your weekly meal plan, making shopping easier than ever!</p>
           </div>
         </div>
       </div>
