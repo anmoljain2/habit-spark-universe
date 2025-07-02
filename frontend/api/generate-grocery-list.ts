@@ -43,16 +43,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'No meals found for this week' });
     }
 
-    // 2. Extract all ingredients
+    // 2. Extract all ingredients, fallback to recipe if missing
     let allIngredients = [];
     for (const meal of meals) {
-      if (Array.isArray(meal.ingredients)) {
-        allIngredients.push(...meal.ingredients);
+      let mealIngredients = [];
+      if (Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
+        mealIngredients = meal.ingredients;
       } else if (typeof meal.ingredients === 'string') {
         try {
           const parsed = JSON.parse(meal.ingredients);
-          if (Array.isArray(parsed)) allIngredients.push(...parsed);
+          if (Array.isArray(parsed) && parsed.length > 0) mealIngredients = parsed;
         } catch {}
+      }
+      // If still no ingredients, try to extract from recipe
+      if ((!mealIngredients || mealIngredients.length === 0) && meal.recipe) {
+        try {
+          const extractPrompt = `Extract a detailed, structured list of ingredients (with amounts if possible) from the following recipe. Return ONLY a JSON array of objects with fields: name (string), quantity (string, optional), unit (string, optional), brand (string, optional), notes (string, optional).\n\nRecipe:\n${meal.recipe}`;
+          console.log('Calling OpenAI to extract ingredients from recipe:', extractPrompt);
+          const extractCompletion = await openai.chat.completions.create({
+            model: process.env.OPENAI_MODEL || 'gpt-4o',
+            messages: [{ role: 'user', content: extractPrompt }],
+          });
+          let extractContent = extractCompletion.choices[0].message.content;
+          console.log('OpenAI ingredient extraction response:', extractContent);
+          let extractedIngredients;
+          if (extractContent) {
+            const codeBlocks = [...extractContent.matchAll(/```json([\s\S]*?)```/g)].map(m => m[1].trim());
+            for (const block of codeBlocks) {
+              try {
+                extractedIngredients = JSON.parse(jsonrepair(block));
+                break;
+              } catch (e) {}
+            }
+            if (!extractedIngredients && extractContent) {
+              const arrStart = extractContent.indexOf('[');
+              const arrEnd = extractContent.lastIndexOf(']');
+              if (arrStart !== -1 && arrEnd !== -1 && arrEnd > arrStart) {
+                try {
+                  extractedIngredients = JSON.parse(jsonrepair(extractContent.slice(arrStart, arrEnd + 1)));
+                } catch (e) {}
+              }
+            }
+          }
+          if (Array.isArray(extractedIngredients)) {
+            mealIngredients = extractedIngredients;
+          }
+        } catch (e) {
+          // If extraction fails, skip
+        }
+      }
+      if (Array.isArray(mealIngredients)) {
+        allIngredients.push(...mealIngredients);
       }
     }
     // Flatten and deduplicate by name
@@ -81,7 +122,7 @@ Ingredients:
 ${JSON.stringify(uniqueIngredients, null, 2)}
 
 Return ONLY a JSON array of grocery items, no extra text.`;
-
+    console.log('Calling OpenAI to generate grocery list with prompt:', prompt);
     const completion = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o',
       messages: [{ role: 'user', content: prompt }],
@@ -89,6 +130,7 @@ Return ONLY a JSON array of grocery items, no extra text.`;
     let groceryList;
     try {
       let content = completion.choices[0].message.content;
+      console.log('OpenAI grocery list response:', content);
       if (!content) throw new Error('No content from OpenAI');
       const codeBlocks = [...content.matchAll(/```json([\s\S]*?)```/g)].map(m => m[1].trim());
       for (const block of codeBlocks) {

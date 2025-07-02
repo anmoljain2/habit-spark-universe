@@ -497,64 +497,68 @@ const Meals = () => {
                 <p className="text-gray-500 mb-4">No meals found for today.</p>
               </div>
             ) : (
-              todaysMeals.map((meal, index) => (
-                <div key={index} className={`relative p-3 rounded-xl border-2 transition-all duration-200 text-sm ${meal.completed ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
-                  {meal.completed && <div className="absolute top-2 right-2 text-green-500"><CheckCircle className="w-4 h-4" /></div>}
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">🍽️</span>
-                      <div>
-                        <h3 className="font-semibold text-gray-800 capitalize text-base">{meal.meal_type}</h3>
-                        <div className="flex items-center gap-1 text-gray-500 text-xs">
-                          <Clock className="w-3 h-3" />
-                          {meal.time || 'Anytime'}
+              ["breakfast", "lunch", "snack", "dinner"].map((type) => {
+                const meal = todaysMeals.find(m => m.meal_type === type);
+                if (!meal) return null;
+                return (
+                  <div key={type} className={`relative p-3 rounded-xl border-2 transition-all duration-200 text-sm ${meal.completed ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
+                    {meal.completed && <div className="absolute top-2 right-2 text-green-500"><CheckCircle className="w-4 h-4" /></div>}
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">🍽️</span>
+                        <div>
+                          <h3 className="font-semibold text-gray-800 capitalize text-base">{meal.meal_type}</h3>
+                          <div className="flex items-center gap-1 text-gray-500 text-xs">
+                            <Clock className="w-3 h-3" />
+                            {meal.time || 'Anytime'}
+                          </div>
                         </div>
                       </div>
                     </div>
+                    <h4 className="font-medium text-gray-800 mb-1 text-sm">{meal.description}</h4>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600 mb-1">
+                      <span className="flex items-center gap-1">
+                        <Zap className="w-3 h-3 text-orange-400" />
+                        {meal.calories} cal
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Heart className="w-3 h-3 text-red-400" />
+                        {meal.protein}g protein
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="font-bold text-yellow-500">C</span>
+                        {meal.carbs}g carbs
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="font-bold text-green-500">F</span>
+                        {meal.fat}g fat
+                      </span>
+                    </div>
+                    {meal.serving_size && (
+                      <div className="text-xs text-gray-400 mt-1">Serving size: {meal.serving_size}</div>
+                    )}
+                    {meal.recipe && (
+                      <div className="text-xs text-gray-700 mt-1"><b>Recipe:</b> {meal.recipe}</div>
+                    )}
+                    {meal.completed ? (
+                      <button 
+                        onClick={() => handleUncompleteMeal(meal.id)}
+                        className="mt-3 w-full bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-gray-300 transition-all flex items-center justify-center gap-2 text-xs"
+                      >
+                        Undo
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => handleCompleteMeal(meal.id)}
+                        className="mt-3 w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2 text-xs"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Mark as Complete
+                      </button>
+                    )}
                   </div>
-                  <h4 className="font-medium text-gray-800 mb-1 text-sm">{meal.description}</h4>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600 mb-1">
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-orange-400" />
-                      {meal.calories} cal
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Heart className="w-3 h-3 text-red-400" />
-                      {meal.protein}g protein
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="font-bold text-yellow-500">C</span>
-                      {meal.carbs}g carbs
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="font-bold text-green-500">F</span>
-                      {meal.fat}g fat
-                    </span>
-                  </div>
-                  {meal.serving_size && (
-                    <div className="text-xs text-gray-400 mt-1">Serving size: {meal.serving_size}</div>
-                  )}
-                  {meal.recipe && (
-                    <div className="text-xs text-gray-700 mt-1"><b>Recipe:</b> {meal.recipe}</div>
-                  )}
-                  {meal.completed ? (
-                    <button 
-                      onClick={() => handleUncompleteMeal(meal.id)}
-                      className="mt-3 w-full bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-gray-300 transition-all flex items-center justify-center gap-2 text-xs"
-                    >
-                      Undo
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => handleCompleteMeal(meal.id)}
-                      className="mt-3 w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2 text-xs"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Mark as Complete
-                    </button>
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
           {/* Right: Compact, elongated Daily Nutrition Tracker */}
