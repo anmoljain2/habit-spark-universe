@@ -1,15 +1,11 @@
 {
   "routes": [
-    { "src": "/api/generate-meal-plan", "dest": "/api/generate-meal-plan.ts" },
-    { "src": "/api/generate-workout-plan", "dest": "/api/generate-workout-plan.ts" },
-    { "src": "/api/generate-grocery-list", "dest": "/api/generate-grocery-list.ts" },
+    { "src": "/api/generate-meal-plan", "dest": "/frontend/api/generate-meal-plan.ts" },
+    { "src": "/api/generate-workout-plan", "dest": "/frontend/api/generate-workout-plan.ts" },
+    { "src": "/api/generate-grocery-list", "dest": "/frontend/api/generate-grocery-list.ts" },
+    { "src": "/api/log-meal", "dest": "/frontend/api/log-meal.ts" },
+    { "src": "/api/find-recipe", "dest": "/frontend/api/find-recipe.ts" },
     { "src": "/(.*\\.(js|css|svg|png|jpg|jpeg|ico|json|txt|woff2?|ttf|eot|map))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
-  ],
-  "functions": {
-    "api/*.ts": {
-      "runtime": "vercel-node@canary"
-    }
-  },
-  "api": "frontend/api"
+  ]
 }
