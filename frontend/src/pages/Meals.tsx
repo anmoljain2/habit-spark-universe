@@ -1145,4 +1145,68 @@ const Meals = () => {
   );
 };
 
+function EdamamRecipeTester() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const EDAMAM_APP_ID = '8a1f97f9';
+  const EDAMAM_APP_KEY = 'def5c320af15c9bf3a059c20de31249c';
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setResults([]);
+    try {
+      const url = `https://api.edamam.com/search?q=${encodeURIComponent(query)}&app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}&to=10`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to fetch recipes');
+      const data = await res.json();
+      setResults(data.hits || []);
+    } catch (err: any) {
+      setError(err.message || 'Error searching recipes');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto mt-16 mb-24 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
+      <h2 className="text-2xl font-bold text-green-700 mb-4">Edamam Recipe Search (Test)</h2>
+      <form className="flex gap-2 mb-6" onSubmit={handleSearch}>
+        <input
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-green-500 focus:border-green-500"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="e.g. chicken, pasta, vegan..."
+        />
+        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700" disabled={loading}>
+          {loading ? 'Searching...' : 'Search'}
+        </button>
+      </form>
+      {error && <div className="text-red-600 mb-4">{error}</div>}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {results.map((hit, idx) => (
+          <div key={idx} className="bg-white rounded-xl shadow border p-4 flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              {hit.recipe.image && <img src={hit.recipe.image} alt={hit.recipe.label} className="w-20 h-20 object-cover rounded-lg border" />}
+              <div>
+                <div className="font-bold text-lg text-gray-900">{hit.recipe.label}</div>
+                <div className="text-xs text-gray-500">{Math.round(hit.recipe.calories)} cal &bull; {Math.round(hit.recipe.totalWeight)}g</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs text-gray-700">
+              {hit.recipe.dietLabels.map((d: string) => <span key={d} className="bg-green-100 text-green-700 rounded px-2 py-0.5">{d}</span>)}
+              {hit.recipe.healthLabels.map((h: string) => <span key={h} className="bg-blue-100 text-blue-700 rounded px-2 py-0.5">{h}</span>)}
+            </div>
+            <div className="text-xs text-gray-600 mt-2"><b>Ingredients:</b> {hit.recipe.ingredientLines.join(', ')}</div>
+            <a href={hit.recipe.url} target="_blank" rel="noopener noreferrer" className="mt-2 text-green-700 underline text-sm">View Full Recipe</a>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default Meals;

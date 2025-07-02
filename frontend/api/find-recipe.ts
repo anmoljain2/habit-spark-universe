@@ -3,14 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log('--- Find Recipe API handler start ---');
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
-  console.log('Request body:', req.body);
   const { user_id, query, date } = req.body;
-  console.log('Received fields:', { user_id, query, date });
   if (!user_id || !query || !date) {
     res.status(400).json({ error: 'Missing required fields' });
     return;
@@ -26,7 +23,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // 1. Call OpenAI to generate a recipe
     const prompt = `Generate a detailed recipe for the following dish: "${query}". Include:\n- A short meal name\n- Serving size\n- Step-by-step recipe instructions\n- Nutrition breakdown (calories, protein, carbs, fat)\n- A list of ingredients (with amounts)\nReturn ONLY a JSON object with fields: meal_name, serving_size, recipe, nutrition_breakdown (calories, protein, carbs, fat), ingredients (array of objects with name and quantity).`;
-    console.log('OpenAI prompt:', prompt);
     const completion = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o',
       messages: [{ role: 'user', content: prompt }],
@@ -34,7 +30,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let meal;
     try {
       let content = completion.choices[0].message.content;
-      console.log('OpenAI response content:', content);
       if (!content) throw new Error('No content from OpenAI');
       const codeBlocks = [...content.matchAll(/```json([\s\S]*?)```/g)].map(m => m[1].trim());
       for (const block of codeBlocks) {
@@ -54,7 +49,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       if (!meal) throw new Error('No valid JSON found');
     } catch (e) {
-      console.error('Failed to parse AI response:', e);
       return res.status(500).json({ error: 'Failed to parse AI response' });
     }
     // 2. Insert into user_meals
@@ -79,15 +73,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ingredients: meal.ingredients,
       source: 'find_recipe',
     }).select().single();
-    console.log('Supabase insert result:', { data, error });
     if (error) {
-      console.error('Supabase insert error:', error);
       return res.status(500).json({ error: error.message });
     }
     res.status(201).json({ meal: data });
   } catch (err: any) {
-    console.error('Server error:', err);
     res.status(500).json({ error: err.message || 'A server error has occurred' });
   }
-  console.log('--- Find Recipe API handler end ---');
 } 
