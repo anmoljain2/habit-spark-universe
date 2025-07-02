@@ -121,17 +121,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Robustly map meals to days
       let mealsByDay = {};
       if (typeof meals === 'object' && !Array.isArray(meals)) {
+        const aiKeys = Object.keys(meals);
+        console.log('AI meal plan keys:', aiKeys);
         // Try to map by ISO date keys
-        for (let i = 0; i < targetDates.length; i++) {
-          const day = targetDates[i];
-          let dayMeals = meals[day];
-          // Fallback: try to find a key that matches the weekday name
-          if (!dayMeals) {
-            const weekday = new Date(day).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            const altKey = Object.keys(meals).find(k => k.toLowerCase().includes(weekday));
-            if (altKey) dayMeals = meals[altKey];
+        let allKeysAreDates = aiKeys.every(k => targetDates.includes(k));
+        if (allKeysAreDates) {
+          for (let i = 0; i < targetDates.length; i++) {
+            const day = targetDates[i];
+            let dayMeals = meals[day];
+            mealsByDay[day] = Array.isArray(dayMeals) ? dayMeals.slice(0, 4) : [];
           }
-          mealsByDay[day] = Array.isArray(dayMeals) ? dayMeals.slice(0, 4) : [];
+        } else {
+          // Map values to days in order (first key = first day, etc.)
+          for (let i = 0; i < targetDates.length; i++) {
+            const day = targetDates[i];
+            const key = aiKeys[i];
+            let dayMeals = meals[key];
+            mealsByDay[day] = Array.isArray(dayMeals) ? dayMeals.slice(0, 4) : [];
+          }
         }
       } else if (Array.isArray(meals)) {
         // Fallback: flat array, split into 7 days
