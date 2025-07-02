@@ -1157,15 +1157,29 @@ function EdamamRecipeTester() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
     setResults([]);
+    if (!query.trim()) {
+      setError('Please enter a search term.');
+      return;
+    }
+    setLoading(true);
     try {
       const url = `https://api.edamam.com/search?q=${encodeURIComponent(query)}&app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}&to=10`;
+      console.log('Edamam search query:', query);
+      console.log('Edamam API URL:', url);
       const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch recipes');
+      console.log('Edamam response status:', res.status);
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('Edamam API error:', text);
+        throw new Error(`Failed to fetch recipes (status ${res.status}): ${text}`);
+      }
       const data = await res.json();
       setResults(data.hits || []);
+      if ((data.hits || []).length === 0) {
+        setError('No recipes found.');
+      }
     } catch (err: any) {
       setError(err.message || 'Error searching recipes');
     }
