@@ -74,6 +74,10 @@ const Meals = () => {
   const [recipeQuery, setRecipeQuery] = useState('');
   const [recipeResults, setRecipeResults] = useState<any[]>([]);
   const [recipeLoading, setRecipeLoading] = useState(false);
+  const [savedRecipes, setSavedRecipes] = useState<any[]>([]);
+  const [hoveredSavedRecipe, setHoveredSavedRecipe] = useState<any | null>(null);
+  const [savedRecipeTooltipPos, setSavedRecipeTooltipPos] = useState<{x: number, y: number} | null>(null);
+  const savedRecipeTooltipTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const fetchOrGenerateMeals = useCallback(async () => {
     if (!user) return;
@@ -534,6 +538,41 @@ const Meals = () => {
       toast.error(err?.response?.data?.error || 'Failed to find recipe.');
     }
     setRecipeLoading(false);
+  };
+
+  const fetchSavedRecipes = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('user_recipes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (!error && data) setSavedRecipes(data);
+    } catch {}
+  }, [user]);
+
+  useEffect(() => { fetchSavedRecipes(); }, [user]);
+
+  const handleSaveRecipe = async (recipe: any) => {
+    if (!user) return;
+    try {
+      await axios.post('/api/save-recipe', {
+        user_id: user.id,
+        name: recipe.description || recipe.name,
+        ingredients: recipe.ingredients,
+        recipe: recipe.recipe,
+        serving_size: recipe.serving_size,
+        calories: recipe.calories,
+        protein: recipe.protein,
+        carbs: recipe.carbs,
+        fat: recipe.fat,
+      });
+      toast.success('Recipe saved!');
+      fetchSavedRecipes();
+    } catch (err) {
+      toast.error('Failed to save recipe.');
+    }
   };
 
   if (loading) {
@@ -1042,6 +1081,7 @@ const Meals = () => {
                           <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {r.ingredients.map((ing: any) => ing.name + (ing.quantity ? ` (${ing.quantity})` : '')).join(', ')}</div>
                         )}
                         {r.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {r.recipe}</div>}
+                        <Button className="mt-2" onClick={() => handleSaveRecipe(r)}>Save Recipe</Button>
                       </li>
                     ))}
                   </ul>
@@ -1049,6 +1089,54 @@ const Meals = () => {
                   <div className="text-gray-400 text-sm py-4">Search for healthy recipes by ingredient, cuisine, or diet.</div>
                 )}
               </div>
+              {/* Saved Recipes List */}
+              {savedRecipes.length > 0 && (
+                <div className="mt-6 w-full">
+                  <h3 className="text-base font-semibold text-gray-700 mb-2">Your Saved Recipes</h3>
+                  <ul className="space-y-2">
+                    {savedRecipes.map((rec, idx) => (
+                      <li key={rec.id} className="relative">
+                        <button
+                          type="button"
+                          className="w-full text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all"
+                          onMouseEnter={e => {
+                            if (savedRecipeTooltipTimeout.current) clearTimeout(savedRecipeTooltipTimeout.current);
+                            setHoveredSavedRecipe(rec);
+                            const rect = (e.target as HTMLElement).getBoundingClientRect();
+                            setSavedRecipeTooltipPos({ x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY });
+                          }}
+                          onMouseLeave={() => {
+                            savedRecipeTooltipTimeout.current = setTimeout(() => setHoveredSavedRecipe(null), 200);
+                          }}
+                        >
+                          {rec.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {hoveredSavedRecipe && savedRecipeTooltipPos && (
+                    <div
+                      style={{ position: 'absolute', left: savedRecipeTooltipPos.x, top: savedRecipeTooltipPos.y + 8, zIndex: 50 }}
+                      className="bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-80 max-w-xs text-sm animate-fade-in-up"
+                      onMouseEnter={() => { if (savedRecipeTooltipTimeout.current) clearTimeout(savedRecipeTooltipTimeout.current); }}
+                      onMouseLeave={() => { setHoveredSavedRecipe(null); }}
+                    >
+                      <div className="font-bold text-lg mb-1">{hoveredSavedRecipe.name}</div>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <span className="text-orange-500 font-semibold">⚡ {hoveredSavedRecipe.calories} cal</span>
+                        <span className="text-red-500 font-semibold">❤️ {hoveredSavedRecipe.protein} protein</span>
+                        <span className="text-yellow-500 font-semibold">C {hoveredSavedRecipe.carbs} carbs</span>
+                        <span className="text-green-500 font-semibold">F {hoveredSavedRecipe.fat} fat</span>
+                      </div>
+                      {hoveredSavedRecipe.serving_size && <div className="text-xs text-gray-500 mb-1">Serving size: {hoveredSavedRecipe.serving_size}</div>}
+                      {hoveredSavedRecipe.ingredients && Array.isArray(hoveredSavedRecipe.ingredients) && hoveredSavedRecipe.ingredients.length > 0 && (
+                        <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {hoveredSavedRecipe.ingredients.map((ing: any) => ing.name + (ing.quantity ? ` (${ing.quantity})` : '')).join(', ')}</div>
+                      )}
+                      {hoveredSavedRecipe.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {hoveredSavedRecipe.recipe}</div>}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

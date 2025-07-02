@@ -42,6 +42,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   try {
+    // Delete any existing meal for this user, date, and meal_type
+    const { error: deleteError } = await supabase
+      .from('user_meals')
+      .delete()
+      .eq('user_id', user_id)
+      .eq('date_only', date)
+      .eq('meal_type', meal_type);
+    if (deleteError) {
+      console.error('Error deleting existing meal:', deleteError);
+    }
+    // Insert the new meal
     const { data, error } = await supabase.from('user_meals').insert({
       user_id,
       date,

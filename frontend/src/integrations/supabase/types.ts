@@ -716,6 +716,56 @@ export type Database = {
         };
         Relationships: [];
       },
+      user_recipes: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          ingredients: Json;
+          recipe: string;
+          serving_size: string;
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          ingredients: Json;
+          recipe: string;
+          serving_size: string;
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          ingredients?: Json;
+          recipe?: string;
+          serving_size?: string;
+          calories?: number;
+          protein?: number;
+          carbs?: number;
+          fat?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_recipes_user_id_fkey",
+            columns: ["user_id"],
+            isOneToOne: false,
+            referencedRelation: "users",
+            referencedColumns: ["id"]
+          }
+        ];
+      },
     }
     Views: {
       [_ in never]: never
