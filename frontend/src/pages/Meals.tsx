@@ -1141,6 +1141,7 @@ const Meals = () => {
           </div>
         </div>
       </div>
+      <EdamamRecipeTester />
     </div>
   );
 };
