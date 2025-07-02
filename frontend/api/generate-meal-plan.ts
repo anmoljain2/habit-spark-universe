@@ -176,6 +176,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             recipe,
             ingredients: meal.ingredients,
             tags: meal.tags,
+            source: 'ai',
           });
           insertedMeals.push({ ...meal, date: day });
           if (insertedMeals.length >= 28) break;
@@ -207,6 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           recipe,
           ingredients: meal.ingredients,
           tags: meal.tags,
+          source: 'ai',
         });
         insertedMeals.push({ ...meal, date: day });
       }

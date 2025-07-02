@@ -424,6 +424,7 @@ export type Database = {
           tags: string[] | null
           time: string | null
           user_id: string | null
+          source: string | null
         }
         Insert: {
           calories?: number | null
@@ -443,6 +444,7 @@ export type Database = {
           tags?: string[] | null
           time?: string | null
           user_id?: string | null
+          source?: string | null
         }
         Update: {
           calories?: number | null
@@ -462,6 +464,7 @@ export type Database = {
           tags?: string[] | null
           time?: string | null
           user_id?: string | null
+          source?: string | null
         }
         Relationships: [
           {
