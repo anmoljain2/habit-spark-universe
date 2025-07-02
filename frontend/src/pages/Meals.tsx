@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import MealsQuestionnaire from '../components/MealsQuestionnaire';
 import { Utensils, ChefHat, Calendar, Clock, Heart, Zap, CheckCircle, Loader2, ShoppingCart, Info, PackageCheck } from 'lucide-react';
 import axios from 'axios';
-import { format, startOfWeek, addDays } from 'date-fns';
+import { format, startOfWeek, addDays, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -560,26 +560,56 @@ const Meals = () => {
               })
             )}
           </div>
-          {/* Right: Compact, elongated Daily Nutrition Tracker */}
-          <div className="w-full md:w-auto flex-shrink-0 bg-gradient-to-br from-green-100 via-emerald-50 to-white rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-center justify-start min-h-[400px] max-h-[600px]">
-            <h3 className="text-lg font-bold text-green-700 mb-3 flex items-center gap-2">
-              <Heart className="w-5 h-5 text-green-500" />
-              Daily Nutrition
+          {/* Right: Classic Today's Nutrition Card with colored bars */}
+          <div className="w-full md:w-auto flex-shrink-0 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 flex flex-col items-start justify-start min-h-[300px] max-w-xs">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              Today's Nutrition
             </h3>
-            <div className="w-full space-y-3">
-              {nutritionStats.map((stat, idx) => {
-                const percent = Math.min(100, (stat.current / stat.target) * 100);
-                return (
-                  <div key={stat.label} className="w-full">
-                    <div className="flex justify-between items-center mb-0.5">
-                      <span className="font-medium text-gray-700 text-xs">{stat.label}</span>
-                      <span className="text-xs text-gray-500">{stat.current} / {stat.target}</span>
-                    </div>
-                    <Progress value={percent} className={`h-2 rounded-full bg-gray-200 ${stat.color}`} />
-                    <div className="text-xs text-gray-400 mt-0.5">{Math.round(percent)}%</div>
-                  </div>
-                );
-              })}
+            <div className="w-full space-y-5">
+              {/* Calories */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-semibold text-gray-800">Calories</span>
+                  <span className="text-xs text-gray-500">{totalCalories} / {nutritionPrefs?.calories_target || 2000}</span>
+                </div>
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-3 rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min(100, (totalCalories / (nutritionPrefs?.calories_target || 2000)) * 100)}%` }}></div>
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalCalories / (nutritionPrefs?.calories_target || 2000)) * 100)}%</div>
+              </div>
+              {/* Protein */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-semibold text-gray-800">Protein</span>
+                  <span className="text-xs text-gray-500">{totalProtein} / {nutritionPrefs?.protein_target || 100}g</span>
+                </div>
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-3 rounded-full bg-red-500 transition-all" style={{ width: `${Math.min(100, (totalProtein / (nutritionPrefs?.protein_target || 100)) * 100)}%` }}></div>
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalProtein / (nutritionPrefs?.protein_target || 100)) * 100)}%</div>
+              </div>
+              {/* Carbs */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-semibold text-gray-800">Carbs</span>
+                  <span className="text-xs text-gray-500">{totalCarbs} / {nutritionPrefs?.carbs_target || 250}g</span>
+                </div>
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-3 rounded-full bg-yellow-400 transition-all" style={{ width: `${Math.min(100, (totalCarbs / (nutritionPrefs?.carbs_target || 250)) * 100)}%` }}></div>
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalCarbs / (nutritionPrefs?.carbs_target || 250)) * 100)}%</div>
+              </div>
+              {/* Fat */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-semibold text-gray-800">Fat</span>
+                  <span className="text-xs text-gray-500">{totalFat} / {nutritionPrefs?.fat_target || 70}g</span>
+                </div>
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-3 rounded-full bg-green-500 transition-all" style={{ width: `${Math.min(100, (totalFat / (nutritionPrefs?.fat_target || 70)) * 100)}%` }}></div>
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalFat / (nutritionPrefs?.fat_target || 70)) * 100)}%</div>
+              </div>
             </div>
           </div>
         </div>
@@ -592,22 +622,36 @@ const Meals = () => {
           </h2>
           <div className="overflow-x-auto">
             <div className="grid grid-cols-7 gap-4 min-w-[700px]">
-              {weekDates.map(date => {
+              {weekDates.map((date, i) => {
                 const meals = weekMeals[date] || [];
                 const isToday = date === today;
+                const plan = weeklyPlan[i] || { color: 'bg-gray-100 text-gray-700', focus: '' };
                 return (
-                  <div key={date} className={`bg-white/80 rounded-xl p-4 shadow border border-white/50 flex flex-col items-center ${isToday ? 'ring-2 ring-green-400' : ''}`} style={{ minWidth: 180 }}>
-                    <div className="font-bold text-md text-gray-800 mb-2 flex items-center gap-2">
+                  <div key={date} className={`rounded-xl p-4 shadow border flex flex-col items-center transition-all duration-200 ${plan.color} ${isToday ? 'ring-2 ring-green-400 scale-105' : 'border-white/50 bg-white/80'}`} style={{ minWidth: 180 }}>
+                    <div className="font-bold text-md mb-1 flex items-center gap-2">
                       {isToday && <span className="inline-block w-2 h-2 rounded-full bg-green-500" />}
-                      {date}
+                      <span className="text-gray-800">{format(parseISO(date), 'EEEE')}</span>
                     </div>
+                    <div className="text-xs font-semibold mb-2 px-2 py-1 rounded-full bg-white/70 border border-gray-200 text-gray-700">{plan.focus}</div>
                     <div className="flex flex-col gap-2 w-full mb-4">
-                      {['breakfast', 'lunch', 'snack', 'dinner'].map(type => {
+                      {['breakfast', 'snack', 'lunch', 'dinner'].map(type => {
                         const meal = meals.find(m => m.meal_type === type);
+                        const pillColor =
+                          type === 'breakfast' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                          type === 'snack' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                          type === 'lunch' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                          type === 'dinner' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                          'bg-gray-100 text-gray-700 border-gray-200';
+                        const mealTypeFull =
+                          type === 'breakfast' ? 'Breakfast' :
+                          type === 'snack' ? 'Snack' :
+                          type === 'lunch' ? 'Lunch' :
+                          type === 'dinner' ? 'Dinner' :
+                          type;
                         return (
-                          <div key={type} className={`flex items-center justify-between px-2 py-1 rounded-lg text-sm font-medium border ${meal ? (meal.completed ? 'bg-green-100 border-green-400 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-700') : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
-                            <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
-                            {meal && <span className="truncate ml-2">{meal.description}</span>}
+                          <div key={type} className={`flex items-center justify-between px-2 py-1 rounded-lg text-sm font-medium border ${pillColor} ${meal ? (meal.completed ? 'ring-2 ring-green-300' : '') : ''}`}> 
+                            <span className="font-semibold capitalize">{mealTypeFull}</span>
+                            {meal && <span className="truncate ml-2 text-gray-700">{meal.description}</span>}
                             {meal && meal.completed && <CheckCircle className="inline ml-1 w-4 h-4 text-green-500 align-middle" />}
                           </div>
                         );
