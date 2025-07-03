@@ -57,24 +57,99 @@ function NutritionAnalysisTester() {
     setLoading(false);
   };
 
+  // Helper to render nutrition facts label
+  function NutritionLabel({ data }: { data: any }) {
+    if (!data) return null;
+    const nf = data.totalNutrients || {};
+    const daily = data.totalDaily || {};
+    return (
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 w-80 min-w-[320px] mx-auto">
+        <h2 className="text-2xl font-bold text-black mb-2 text-center border-b pb-2">Nutrition Facts</h2>
+        <div className="text-xs text-gray-700 mb-2 text-center">Amount Per Serving</div>
+        <div className="flex items-end justify-between mb-2">
+          <span className="text-3xl font-extrabold">Calories</span>
+          <span className="text-4xl font-extrabold">{Math.round(data.calories)}</span>
+        </div>
+        <div className="border-b border-gray-300 mb-2"></div>
+        <div className="flex justify-between font-semibold mb-1">
+          <span>Total Fat {nf.FAT?.quantity ? nf.FAT.quantity.toFixed(1) : 0} g</span>
+          <span>{daily.FAT?.quantity ? Math.round(daily.FAT.quantity) : 0} %</span>
+        </div>
+        <div className="ml-4 text-gray-600 text-sm mb-1">Saturated Fat {nf.FASAT?.quantity ? nf.FASAT.quantity.toFixed(1) : 0} g {daily.FASAT?.quantity ? Math.round(daily.FASAT.quantity) : 0}%</div>
+        <div className="ml-4 text-gray-600 text-sm mb-1">Trans Fat {nf.FATRN?.quantity ? nf.FATRN.quantity.toFixed(1) : 0} g</div>
+        <div className="flex justify-between font-semibold mb-1">
+          <span>Cholesterol {nf.CHOLE?.quantity ? nf.CHOLE.quantity.toFixed(0) : 0} mg</span>
+          <span>{daily.CHOLE?.quantity ? Math.round(daily.CHOLE.quantity) : 0} %</span>
+        </div>
+        <div className="flex justify-between font-semibold mb-1">
+          <span>Sodium {nf.NA?.quantity ? nf.NA.quantity.toFixed(0) : 0} mg</span>
+          <span>{daily.NA?.quantity ? Math.round(daily.NA.quantity) : 0} %</span>
+        </div>
+        <div className="flex justify-between font-semibold mb-1">
+          <span>Total Carbohydrate {nf.CHOCDF?.quantity ? nf.CHOCDF.quantity.toFixed(1) : 0} g</span>
+          <span>{daily.CHOCDF?.quantity ? Math.round(daily.CHOCDF.quantity) : 0} %</span>
+        </div>
+        <div className="ml-4 text-gray-600 text-sm mb-1">Dietary Fiber {nf.FIBTG?.quantity ? nf.FIBTG.quantity.toFixed(1) : 0} g {daily.FIBTG?.quantity ? Math.round(daily.FIBTG.quantity) : 0}%</div>
+        <div className="ml-4 text-gray-600 text-sm mb-1">Total Sugars {nf.SUGAR?.quantity ? nf.SUGAR.quantity.toFixed(1) : 0} g</div>
+        <div className="flex justify-between font-semibold mb-1">
+          <span>Protein {nf.PROCNT?.quantity ? nf.PROCNT.quantity.toFixed(1) : 0} g</span>
+          <span>{daily.PROCNT?.quantity ? Math.round(daily.PROCNT.quantity) : 0} %</span>
+        </div>
+        {/* Add more micronutrients as needed */}
+      </div>
+    );
+  }
+
+  // Helper to render parsed ingredients table
+  function IngredientsTable({ data }: { data: any }) {
+    if (!data || !data.ingredients) return null;
+    return (
+      <table className="w-full mt-4 text-sm border rounded-xl overflow-hidden">
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="px-2 py-1">Qty</th>
+            <th className="px-2 py-1">Unit</th>
+            <th className="px-2 py-1">Food</th>
+            <th className="px-2 py-1">Calories</th>
+            <th className="px-2 py-1">Weight</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.ingredients.map((ing: any, idx: number) => (
+            <tr key={idx} className="border-t">
+              <td className="px-2 py-1 text-center">{ing.parsed?.[0]?.quantity || '-'}</td>
+              <td className="px-2 py-1 text-center">{ing.parsed?.[0]?.measure || '-'}</td>
+              <td className="px-2 py-1">{ing.text || '-'}</td>
+              <td className="px-2 py-1 text-center">{ing.parsed?.[0]?.nutrients?.ENERC_KCAL ? Math.round(ing.parsed[0].nutrients.ENERC_KCAL) + ' kcal' : '-'}</td>
+              <td className="px-2 py-1 text-center">{ing.parsed?.[0]?.weight ? ing.parsed[0].weight.toFixed(1) + ' g' : '-'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+
   return (
-    <div className="w-full max-w-3xl mx-auto mt-8 mb-12 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
-      <h2 className="text-2xl font-bold text-blue-700 mb-4">Edamam Nutrition Analysis API Tester</h2>
-      <form className="flex gap-2 mb-6" onSubmit={handleAnalyze}>
-        <input
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="e.g. 1 cup rice, 2 eggs"
-        />
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700" disabled={loading}>
-          {loading ? 'Analyzing...' : 'Analyze'}
-        </button>
-      </form>
-      {error && <div className="text-red-600 mb-4">{error}</div>}
-      {result && (
-        <pre className="bg-gray-100 rounded p-4 text-xs overflow-x-auto max-h-96">{JSON.stringify(result, null, 2)}</pre>
-      )}
+    <div className="w-full max-w-5xl mx-auto mt-8 mb-12 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200 flex flex-col md:flex-row gap-8 items-start">
+      <div className="flex-1 flex flex-col items-center">
+        <h2 className="text-2xl font-bold text-blue-700 mb-4">Edamam Nutrition Analysis API Tester</h2>
+        <form className="flex gap-2 mb-6 w-full" onSubmit={handleAnalyze}>
+          <textarea
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="e.g. 1 cup rice, 2 eggs\n10 oz chickpeas"
+          />
+          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700" disabled={loading}>
+            {loading ? 'Analyzing...' : 'Analyze'}
+          </button>
+        </form>
+        {error && <div className="text-red-600 mb-4">{error}</div>}
+        {result && <IngredientsTable data={result} />}
+      </div>
+      <div className="flex-shrink-0">
+        {result && <NutritionLabel data={result} />}
+      </div>
     </div>
   );
 }
@@ -108,8 +183,38 @@ function FoodDatabaseTester() {
     setLoading(false);
   };
 
+  // Helper to render a food card
+  function FoodCard({ food }: { food: any }) {
+    const nf = food.nutrients || {};
+    return (
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-4 w-80 min-w-[280px] flex flex-col items-center mb-6">
+        <div className="w-24 h-24 bg-gray-100 rounded-full mb-2 flex items-center justify-center overflow-hidden">
+          {food.image ? <img src={food.image} alt={food.label} className="object-cover w-full h-full" /> : <span className="text-gray-400">No Image</span>}
+        </div>
+        <div className="text-lg font-bold text-gray-900 mb-1 text-center">{food.label}</div>
+        <div className="flex gap-2 text-xs text-gray-500 mb-2">
+          <span>⚡ {nf.ENERC_KCAL ? Math.round(nf.ENERC_KCAL) : 0} cal</span>
+          <span>❤️ {nf.PROCNT ? nf.PROCNT.toFixed(1) : 0}g protein</span>
+          <span>C {nf.CHOCDF ? nf.CHOCDF.toFixed(1) : 0}g carbs</span>
+          <span>F {nf.FAT ? nf.FAT.toFixed(1) : 0}g fat</span>
+        </div>
+        <div className="w-full mt-2">
+          <div className="bg-gray-50 rounded-xl p-2 text-xs">
+            <div className="font-semibold mb-1">Nutrition Facts (per 100g)</div>
+            <div>Total Fat: {nf.FAT ? nf.FAT.toFixed(1) : 0}g</div>
+            <div>Carbs: {nf.CHOCDF ? nf.CHOCDF.toFixed(1) : 0}g</div>
+            <div>Protein: {nf.PROCNT ? nf.PROCNT.toFixed(1) : 0}g</div>
+            <div>Fiber: {nf.FIBTG ? nf.FIBTG.toFixed(1) : 0}g</div>
+            <div>Sugar: {nf.SUGAR ? nf.SUGAR.toFixed(1) : 0}g</div>
+            <div>Sodium: {nf.NA ? nf.NA.toFixed(0) : 0}mg</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-3xl mx-auto mt-8 mb-24 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
+    <div className="w-full max-w-6xl mx-auto mt-8 mb-24 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
       <h2 className="text-2xl font-bold text-purple-700 mb-4">Edamam Food Database API Tester</h2>
       <form className="flex gap-2 mb-6" onSubmit={handleSearch}>
         <input
@@ -123,8 +228,12 @@ function FoodDatabaseTester() {
         </button>
       </form>
       {error && <div className="text-red-600 mb-4">{error}</div>}
-      {result && (
-        <pre className="bg-gray-100 rounded p-4 text-xs overflow-x-auto max-h-96">{JSON.stringify(result, null, 2)}</pre>
+      {result && result.hints && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {result.hints.map((hint: any, idx: number) => (
+            <FoodCard key={idx} food={hint.food} />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -159,8 +268,26 @@ function EdamamRecipeSearchTester() {
     setLoading(false);
   };
 
+  // Helper to render a recipe card
+  function RecipeCard({ recipe }: { recipe: any }) {
+    return (
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-4 w-80 min-w-[280px] flex flex-col items-center mb-6">
+        <div className="w-40 h-40 bg-gray-100 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
+          {recipe.image ? <img src={recipe.image} alt={recipe.label} className="object-cover w-full h-full" /> : <span className="text-gray-400">No Image</span>}
+        </div>
+        <div className="text-lg font-bold text-gray-900 mb-1 text-center">{recipe.label}</div>
+        <div className="flex gap-2 text-xs text-gray-500 mb-2">
+          <span>{Math.round(recipe.calories)} CALORIES</span>
+          <span>{recipe.ingredientLines?.length || 0} INGREDIENTS</span>
+        </div>
+        <div className="text-xs text-gray-500 mb-2">{recipe.source}</div>
+        <a href={recipe.url} target="_blank" rel="noopener noreferrer" className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 text-sm">View Recipe</a>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-3xl mx-auto mt-8 mb-12 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
+    <div className="w-full max-w-6xl mx-auto mt-8 mb-12 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
       <h2 className="text-2xl font-bold text-green-700 mb-4">Edamam Recipe Search API Tester</h2>
       <form className="flex gap-2 mb-6" onSubmit={handleSearch}>
         <input
@@ -174,59 +301,12 @@ function EdamamRecipeSearchTester() {
         </button>
       </form>
       {error && <div className="text-red-600 mb-4">{error}</div>}
-      {result && (
-        <pre className="bg-gray-100 rounded p-4 text-xs overflow-x-auto max-h-96">{JSON.stringify(result, null, 2)}</pre>
-      )}
-    </div>
-  );
-}
-
-function EdamamMealPlannerTester() {
-  const [query, setQuery] = useState('chicken, rice, broccoli');
-  const [result, setResult] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setResult(null);
-    setLoading(true);
-    try {
-      const res = await fetch('/api/edamam-search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, mealPlanner: true }),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Failed (status ${res.status}): ${text}`);
-      }
-      const data = await res.json();
-      setResult(data);
-    } catch (err: any) {
-      setError(err.message || 'Error searching meal planner');
-    }
-    setLoading(false);
-  };
-
-  return (
-    <div className="w-full max-w-3xl mx-auto mt-8 mb-12 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
-      <h2 className="text-2xl font-bold text-green-700 mb-4">Edamam Meal Planner API Tester</h2>
-      <form className="flex gap-2 mb-6" onSubmit={handleSearch}>
-        <input
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-green-500 focus:border-green-500"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="e.g. chicken, rice, broccoli"
-        />
-        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700" disabled={loading}>
-          {loading ? 'Searching...' : 'Search'}
-        </button>
-      </form>
-      {error && <div className="text-red-600 mb-4">{error}</div>}
-      {result && (
-        <pre className="bg-gray-100 rounded p-4 text-xs overflow-x-auto max-h-96">{JSON.stringify(result, null, 2)}</pre>
+      {result && result.hits && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {result.hits.map((hit: any, idx: number) => (
+            <RecipeCard key={idx} recipe={hit.recipe} />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -1345,7 +1425,6 @@ const Meals = () => {
         </div>
       </div>
       <EdamamRecipeSearchTester />
-      <EdamamMealPlannerTester />
       <NutritionAnalysisTester />
       <FoodDatabaseTester />
     </div>
