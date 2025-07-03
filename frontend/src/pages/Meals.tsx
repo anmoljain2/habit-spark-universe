@@ -40,7 +40,11 @@ function NutritionAnalysisTester() {
     setResult(null);
     setLoading(true);
     try {
-      const res = await fetch('https://api.edamam.com/api/nutrition-data?app_id=7b4b1d25&app_key=YOUR_NUTRITION_ANALYSIS_KEY&ingr=' + encodeURIComponent(input));
+      const res = await fetch('/api/edamam-nutrition-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: input }),
+      });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Failed (status ${res.status}): ${text}`);
@@ -87,7 +91,11 @@ function FoodDatabaseTester() {
     setResult(null);
     setLoading(true);
     try {
-      const res = await fetch('https://api.edamam.com/api/food-database/v2/parser?app_id=319a7a19&app_key=YOUR_FOOD_DATABASE_KEY&ingr=' + encodeURIComponent(input));
+      const res = await fetch('/api/edamam-food-database', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: input }),
+      });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Failed (status ${res.status}): ${text}`);
