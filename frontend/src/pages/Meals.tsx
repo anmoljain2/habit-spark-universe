@@ -74,13 +74,15 @@ function NutritionAnalysisTester() {
     if (!data) return null;
     const nf = data.totalNutrients || {};
     const daily = data.totalDaily || {};
+    // Defensive: calories may be missing or not a number
+    const calories = typeof data.calories === 'number' && !isNaN(data.calories) ? Math.round(data.calories) : 0;
     return (
       <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 w-80 min-w-[320px] mx-auto">
         <h2 className="text-2xl font-bold text-black mb-2 text-center border-b pb-2">Nutrition Facts</h2>
         <div className="text-xs text-gray-700 mb-2 text-center">Amount Per Serving</div>
         <div className="flex items-end justify-between mb-2">
           <span className="text-3xl font-extrabold">Calories</span>
-          <span className="text-4xl font-extrabold">{Math.round(data.calories)}</span>
+          <span className="text-4xl font-extrabold">{calories}</span>
         </div>
         <div className="border-b border-gray-300 mb-2"></div>
         <div className="flex justify-between font-semibold mb-1">
@@ -132,7 +134,7 @@ function NutritionAnalysisTester() {
               <td className="px-2 py-1 text-center">{ing.parsed?.[0]?.quantity || '-'}</td>
               <td className="px-2 py-1 text-center">{ing.parsed?.[0]?.measure || '-'}</td>
               <td className="px-2 py-1">{ing.text || '-'}</td>
-              <td className="px-2 py-1 text-center">{ing.parsed?.[0]?.nutrients?.ENERC_KCAL ? Math.round(ing.parsed[0].nutrients.ENERC_KCAL) + ' kcal' : '-'}</td>
+              <td className="px-2 py-1 text-center">{typeof ing.parsed?.[0]?.nutrients?.ENERC_KCAL === 'number' && !isNaN(ing.parsed[0].nutrients.ENERC_KCAL) ? Math.round(ing.parsed[0].nutrients.ENERC_KCAL) + ' kcal' : '-'}</td>
               <td className="px-2 py-1 text-center">{ing.parsed?.[0]?.weight ? ing.parsed[0].weight.toFixed(1) + ' g' : '-'}</td>
             </tr>
           ))}
@@ -413,53 +415,62 @@ function EdamamWeeklyMealPlan({ nutritionPrefs }: { nutritionPrefs: any }) {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto mt-16 mb-16 p-8 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
-      <h2 className="text-3xl font-bold text-green-700 mb-6">Edamam Weekly Meal Plan Demo</h2>
+    <div className="w-full max-w-4xl mx-auto mt-10 mb-10 p-4 bg-white/80 rounded-xl shadow border border-gray-100">
+      <h2 className="text-2xl font-bold text-blue-700 mb-4">AI Weekly Meal Calendar</h2>
       <button
         onClick={handleGenerate}
-        className="mb-8 bg-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-700 text-lg shadow"
+        className="mb-4 bg-gradient-to-r from-blue-500 to-green-400 text-white px-4 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-green-500 text-base shadow"
         disabled={loading}
       >
-        {loading ? 'Generating...' : 'Generate Edamam Meal Plan'}
+        {loading ? 'Generating...' : 'Generate AI Meal Plan'}
       </button>
-      {error && <div className="text-red-600 mb-4">{error}</div>}
+      {error && <div className="text-red-600 mb-4 text-sm">{error}</div>}
       {plan.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-y-6">
+          <table className="min-w-full border-separate border-spacing-y-2 border-spacing-x-1 text-xs">
             <thead>
               <tr>
-                <th className="text-lg font-bold text-gray-700 text-left px-4">Day</th>
+                <th className="font-semibold text-gray-600 text-left px-2 py-1">Day</th>
                 {meals.map(m => (
-                  <th key={m.mealType} className="text-lg font-bold text-gray-700 text-center px-4">{m.label}</th>
+                  <th key={m.mealType} className="font-semibold text-gray-600 text-center px-2 py-1">{m.label}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {plan.map((dayMeals, dIdx) => (
                 <tr key={days[dIdx]} className="align-top">
-                  <td className="font-semibold text-green-700 px-4 py-2 text-left whitespace-nowrap">{days[dIdx]}</td>
+                  <td className="font-semibold text-blue-700 px-2 py-1 text-left whitespace-nowrap">{days[dIdx]}</td>
                   {dayMeals.map((recipe, mIdx) => (
-                    <td key={mIdx} className="px-4 py-2">
+                    <td key={mIdx} className="px-2 py-1 align-top">
                       {recipe ? (
-                        <div className="bg-white rounded-2xl shadow border border-gray-200 p-4 w-64 flex flex-col items-center">
-                          <div className="w-28 h-28 bg-gray-100 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
-                            {/* User meals do not have an image property; always show placeholder */}
-                            <span className="text-gray-400">No Image</span>
+                        <div className="relative group rounded-md border border-gray-200 bg-white/70 px-2 py-1 text-center min-w-[90px] max-w-[120px] truncate text-gray-900" style={{ fontSize: '0.95em', cursor: 'pointer' }}>
+                          <div className="flex justify-center mb-1">
+                            {recipe.image ? (
+                              <img src={recipe.image} alt={recipe.label} className="w-10 h-10 object-cover rounded shadow-sm" />
+                            ) : (
+                              <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">No Image</div>
+                            )}
                           </div>
-                          <div className="text-base font-bold text-gray-900 mb-1 text-center">{recipe.label}</div>
-                          <div className="flex gap-2 text-xs text-gray-500 mb-2">
-                            <span>{recipe.yield} servings</span>
-                            <span>{Math.round(recipe.calories)} kcal</span>
-                          </div>
-                          <div className="flex gap-2 text-xs mb-2">
-                            <span className="text-green-600 font-semibold">PROTEIN {recipe.totalNutrients?.PROCNT?.quantity ? Math.round(recipe.totalNutrients.PROCNT.quantity) : 0}g</span>
-                            <span className="text-yellow-600 font-semibold">FAT {recipe.totalNutrients?.FAT?.quantity ? Math.round(recipe.totalNutrients.FAT.quantity) : 0}g</span>
-                            <span className="text-red-600 font-semibold">CARB {recipe.totalNutrients?.CHOCDF?.quantity ? Math.round(recipe.totalNutrients.CHOCDF.quantity) : 0}g</span>
-                          </div>
-                          <a href={recipe.url} target="_blank" rel="noopener noreferrer" className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 text-sm">View Recipe</a>
+                          {recipe.label}
+                          {recipe && (
+                            <div className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 hidden group-hover:flex flex-col bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[180px] text-xs text-left animate-fade-in-up">
+                              <div className="font-bold text-gray-900 mb-1">{recipe.label}</div>
+                              <div className="mb-1 text-gray-700">{recipe.yield} servings &middot; {Math.round(recipe.calories)} kcal</div>
+                              <div className="flex gap-2 mb-1">
+                                <span className="text-green-600 font-semibold">PROTEIN {recipe.totalNutrients?.PROCNT?.quantity ? Math.round(recipe.totalNutrients.PROCNT.quantity) : 0}g</span>
+                                <span className="text-yellow-600 font-semibold">FAT {recipe.totalNutrients?.FAT?.quantity ? Math.round(recipe.totalNutrients.FAT.quantity) : 0}g</span>
+                                <span className="text-red-600 font-semibold">CARB {recipe.totalNutrients?.CHOCDF?.quantity ? Math.round(recipe.totalNutrients.CHOCDF.quantity) : 0}g</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <div className="text-gray-400 text-sm">couldn't generate meal</div>
+                        <div className="relative group rounded-md border border-gray-200 bg-white/70 px-2 py-1 text-center min-w-[90px] max-w-[120px] truncate text-gray-400" style={{ fontSize: '0.95em' }}>
+                          <div className="flex justify-center mb-1">
+                            <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">No Image</div>
+                          </div>
+                          couldn't generate meal
+                        </div>
                       )}
                     </td>
                   ))}
