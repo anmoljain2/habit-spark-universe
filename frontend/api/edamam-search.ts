@@ -23,7 +23,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('[Edamam] Constructed URL:', url);
 
   try {
-    const edamamRes = await fetch(url);
+    const edamamRes = await fetch(url, {
+      headers: {
+        'Edamam-Account-User': 'anmoljain'
+      }
+    });
     console.log('[Edamam] Edamam response status:', edamamRes.status);
     if (!edamamRes.ok) {
       const text = await edamamRes.text();
