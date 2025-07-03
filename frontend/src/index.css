@@ -99,8 +99,8 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Subtle blue to green gradient, no purple, very soft */
-    background: linear-gradient(135deg, #e0f7fa 0%, #e0fdfb 40%, #d1fae5 100%);
+    /* Subtle, modern: start with translucent dark blue, blend to blue/green, no harsh contrast */
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.12) 0%, #e0f2fe 40%, #d1fae5 100%);
     position: relative;
     min-height: 100vh;
     overflow-x: hidden;
@@ -110,9 +110,9 @@
     position: fixed;
     inset: 0;
     z-index: -1;
-    /* Subtle blue/green radial overlay, no purple */
-    background: radial-gradient(ellipse at 60% 20%, #b2f5ea33 0%, #a7f3d033 60%, #e0f2fe22 100%);
-    opacity: 0.5;
+    /* Soft radial overlay, blue/green, very low opacity for harmony */
+    background: radial-gradient(ellipse at 60% 20%, rgba(30, 64, 175, 0.10) 0%, #a7f3d022 60%, #e0f2fe11 100%);
+    opacity: 0.35;
     pointer-events: none;
     animation: bg-pulse 8s ease-in-out infinite alternate;
   }
