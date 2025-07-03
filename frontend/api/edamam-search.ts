@@ -11,16 +11,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { query } = req.body;
-  console.log('[Edamam] Received query:', query);
+  const { query, mealPlanner } = req.body;
+  console.log('[Edamam] Received query:', query, 'mealPlanner:', mealPlanner);
   if (!query || typeof query !== 'string' || !query.trim()) {
     console.log('[Edamam] Missing or invalid query:', query);
     res.status(400).json({ error: 'Missing or invalid query' });
     return;
   }
 
-  const url = `https://api.edamam.com/api/recipes/v2?type=public&q=${encodeURIComponent(query)}&app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}&to=10`;
-  console.log('[Edamam] Constructed URL:', url);
+  let url;
+  if (mealPlanner) {
+    // Edamam Meal Planner API endpoint (example, update if needed)
+    url = `https://api.edamam.com/api/meal-planner/v1/planner?app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}&q=${encodeURIComponent(query)}`;
+    console.log('[Edamam] Using Meal Planner endpoint:', url);
+  } else {
+    url = `https://api.edamam.com/api/recipes/v2?type=public&q=${encodeURIComponent(query)}&app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}&to=10`;
+    console.log('[Edamam] Using Recipe Search endpoint:', url);
+  }
 
   try {
     const edamamRes = await fetch(url, {

@@ -7,6 +7,8 @@
     { "src": "/api/find-recipe", "dest": "/frontend/api/find-recipe.ts" },
     { "src": "/api/save-recipe", "dest": "/frontend/api/save-recipe.ts" },
     { "src": "/api/edamam-search", "dest": "/frontend/api/edamam-search.ts" },
+    { "src": "/api/edamam-nutrition-analysis", "dest": "/frontend/api/edamam-nutrition-analysis.ts" },
+    { "src": "/api/edamam-food-database", "dest": "/frontend/api/edamam-food-database.ts" },
     { "src": "/(.*\\.(js|css|svg|png|jpg|jpeg|ico|json|txt|woff2?|ttf|eot|map))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]

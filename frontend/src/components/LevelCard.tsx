@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,10 +23,12 @@ const LevelCard = ({ xpRefresh }: LevelCardProps) => {
   const neededXP = nextLevelXP - currentLevelXP;
   const progressPercentage = Math.min((progressXP / neededXP) * 100, 100);
 
+  const PROGRESS_COLOR = 'bg-gradient-to-r from-blue-500 to-cyan-400';
+  const PROGRESS_BG = 'bg-blue-100';
+
   useEffect(() => {
     const fetchLevelData = async () => {
       if (!user) return;
-      
       setLoading(true);
       try {
         const { data: profile, error } = await supabase
@@ -35,15 +36,25 @@ const LevelCard = ({ xpRefresh }: LevelCardProps) => {
           .select('level, total_xp')
           .eq('id', user.id)
           .maybeSingle();
-
+        let newLevel = 1;
+        let newXP = 0;
         if (error) {
-          console.error('Error fetching profile:', error);
-          // Set default values if there's an error
           setLevel(1);
           setTotalXP(0);
         } else if (profile) {
-          setLevel(profile.level || 1);
-          setTotalXP(profile.total_xp || 0);
+          // --- Level recalculation logic ---
+          let calculatedLevel = 1;
+          let xp = profile.total_xp || 0;
+          while (xp >= Math.pow(calculatedLevel, 2) * 100) {
+            calculatedLevel++;
+          }
+          calculatedLevel = Math.max(1, calculatedLevel - 1);
+          setLevel(calculatedLevel);
+          setTotalXP(xp);
+          // If level in DB is wrong, update it
+          if (profile.level !== calculatedLevel) {
+            await supabase.from('profiles').update({ level: calculatedLevel }).eq('id', user.id);
+          }
         } else {
           // No profile found, create one
           const { error: insertError } = await supabase
@@ -54,23 +65,19 @@ const LevelCard = ({ xpRefresh }: LevelCardProps) => {
               total_xp: 0,
               username: user.email?.split('@')[0] || 'User'
             });
-          
           if (insertError) {
             console.error('Error creating profile:', insertError);
           }
-          
           setLevel(1);
           setTotalXP(0);
         }
       } catch (error) {
-        console.error('Error in fetchLevelData:', error);
         setLevel(1);
         setTotalXP(0);
       } finally {
         setLoading(false);
       }
     };
-
     fetchLevelData();
   }, [user, xpRefresh]);
 
@@ -116,7 +123,12 @@ const LevelCard = ({ xpRefresh }: LevelCardProps) => {
             <span>{progressXP.toLocaleString()} XP</span>
             <span>{neededXP.toLocaleString()} XP to level {level + 1}</span>
           </div>
-          <Progress value={progressPercentage} className="h-3" />
+          <div className={`relative w-full h-3 rounded-full overflow-hidden ${PROGRESS_BG}`}>
+            <div
+              className={`${PROGRESS_COLOR} h-3 rounded-full transition-all duration-500 ease-out`}
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
           <p className="text-xs text-gray-500 text-center">
             {Math.max(0, neededXP - progressXP).toLocaleString()} XP needed for next level
           </p>

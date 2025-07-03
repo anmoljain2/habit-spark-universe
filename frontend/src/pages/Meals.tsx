@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import MealsQuestionnaire from '../components/MealsQuestionnaire';
-import { Utensils, ChefHat, Calendar, Clock, Heart, Zap, CheckCircle, Loader2, ShoppingCart, Info, PackageCheck } from 'lucide-react';
+import { Utensils, ChefHat, Calendar, Clock, Heart, Zap, CheckCircle, Loader2, ShoppingCart, Info, PackageCheck, ChevronDown, ChevronUp } from 'lucide-react';
 import axios from 'axios';
 import { format, startOfWeek, addDays, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -27,6 +27,151 @@ import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 
 type Meal = Database['public']['Tables']['user_meals']['Row'];
+
+function NutritionAnalysisTester() {
+  const [input, setInput] = useState('1 cup rice, 2 eggs');
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleAnalyze = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setResult(null);
+    setLoading(true);
+    try {
+      const res = await fetch('https://api.edamam.com/api/nutrition-data?app_id=7b4b1d25&app_key=YOUR_NUTRITION_ANALYSIS_KEY&ingr=' + encodeURIComponent(input));
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Failed (status ${res.status}): ${text}`);
+      }
+      const data = await res.json();
+      setResult(data);
+    } catch (err: any) {
+      setError(err.message || 'Error analyzing');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto mt-8 mb-12 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
+      <h2 className="text-2xl font-bold text-blue-700 mb-4">Edamam Nutrition Analysis API Tester</h2>
+      <form className="flex gap-2 mb-6" onSubmit={handleAnalyze}>
+        <input
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="e.g. 1 cup rice, 2 eggs"
+        />
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700" disabled={loading}>
+          {loading ? 'Analyzing...' : 'Analyze'}
+        </button>
+      </form>
+      {error && <div className="text-red-600 mb-4">{error}</div>}
+      {result && (
+        <pre className="bg-gray-100 rounded p-4 text-xs overflow-x-auto max-h-96">{JSON.stringify(result, null, 2)}</pre>
+      )}
+    </div>
+  );
+}
+
+function FoodDatabaseTester() {
+  const [input, setInput] = useState('apple');
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setResult(null);
+    setLoading(true);
+    try {
+      const res = await fetch('https://api.edamam.com/api/food-database/v2/parser?app_id=319a7a19&app_key=YOUR_FOOD_DATABASE_KEY&ingr=' + encodeURIComponent(input));
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Failed (status ${res.status}): ${text}`);
+      }
+      const data = await res.json();
+      setResult(data);
+    } catch (err: any) {
+      setError(err.message || 'Error searching food database');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto mt-8 mb-24 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
+      <h2 className="text-2xl font-bold text-purple-700 mb-4">Edamam Food Database API Tester</h2>
+      <form className="flex gap-2 mb-6" onSubmit={handleSearch}>
+        <input
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="e.g. apple, chicken breast, rice"
+        />
+        <button type="submit" className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700" disabled={loading}>
+          {loading ? 'Searching...' : 'Search'}
+        </button>
+      </form>
+      {error && <div className="text-red-600 mb-4">{error}</div>}
+      {result && (
+        <pre className="bg-gray-100 rounded p-4 text-xs overflow-x-auto max-h-96">{JSON.stringify(result, null, 2)}</pre>
+      )}
+    </div>
+  );
+}
+
+function EdamamMealPlannerTester() {
+  const [query, setQuery] = useState('chicken, rice, broccoli');
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setResult(null);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/edamam-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, mealPlanner: true }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Failed (status ${res.status}): ${text}`);
+      }
+      const data = await res.json();
+      setResult(data);
+    } catch (err: any) {
+      setError(err.message || 'Error searching meal planner');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto mt-8 mb-12 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
+      <h2 className="text-2xl font-bold text-green-700 mb-4">Edamam Meal Planner API Tester</h2>
+      <form className="flex gap-2 mb-6" onSubmit={handleSearch}>
+        <input
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-green-500 focus:border-green-500"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="e.g. chicken, rice, broccoli"
+        />
+        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700" disabled={loading}>
+          {loading ? 'Searching...' : 'Search'}
+        </button>
+      </form>
+      {error && <div className="text-red-600 mb-4">{error}</div>}
+      {result && (
+        <pre className="bg-gray-100 rounded p-4 text-xs overflow-x-auto max-h-96">{JSON.stringify(result, null, 2)}</pre>
+      )}
+    </div>
+  );
+}
 
 const Meals = () => {
   const { user } = useAuth();
@@ -78,6 +223,7 @@ const Meals = () => {
   const [hoveredSavedRecipe, setHoveredSavedRecipe] = useState<any | null>(null);
   const [savedRecipeTooltipPos, setSavedRecipeTooltipPos] = useState<{x: number, y: number} | null>(null);
   const savedRecipeTooltipTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [groceryCondensed, setGroceryCondensed] = useState(true);
 
   const fetchOrGenerateMeals = useCallback(async () => {
     if (!user) return;
@@ -864,17 +1010,6 @@ const Meals = () => {
                   <Loader2 className="w-8 h-8 text-green-500 animate-spin mb-2" />
                   <span className="text-green-700 font-medium">Loading grocery list...</span>
                 </div>
-              ) : groceryError ? (
-                <div className="flex flex-col items-center gap-2 py-4 w-full">
-                  <Info className="w-6 h-6 text-red-500" />
-                  <span className="text-red-600 font-semibold">{groceryError}</span>
-                  <button
-                    onClick={handleGenerateGroceryList}
-                    className="mt-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2"
-                  >
-                    <ShoppingCart className="w-5 h-5" /> Generate Grocery List
-                  </button>
-                </div>
               ) : groceryList.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-4 w-full">
                   <span className="text-gray-500 text-lg mb-2">No grocery list found for this week.</span>
@@ -888,7 +1023,7 @@ const Meals = () => {
               ) : (
                 <div className="w-full mt-2">
                   <ul className="divide-y divide-gray-200 w-full">
-                    {groceryList.map((item, idx) => (
+                    {(groceryCondensed ? groceryList.slice(0, 5) : groceryList).map((item, idx) => (
                       <li key={idx} className="flex items-center gap-3 py-2">
                         <input
                           type="checkbox"
@@ -902,14 +1037,23 @@ const Meals = () => {
                       </li>
                     ))}
                   </ul>
-                  <button
-                    onClick={handleGenerateGroceryList}
-                    className="mt-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2 mx-auto"
-                  >
-                    <ShoppingCart className="w-5 h-5" /> Regenerate Grocery List
-                  </button>
+                  {groceryList.length > 5 && (
+                    <button
+                      className="mt-2 flex items-center justify-center gap-1 text-xs text-green-700 underline hover:text-green-900 focus:outline-none w-full"
+                      onClick={() => setGroceryCondensed(c => !c)}
+                    >
+                      {groceryCondensed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                      {groceryCondensed ? `Show more` : 'Show less'}
+                    </button>
+                  )}
                 </div>
               )}
+              <button
+                onClick={handleGenerateGroceryList}
+                className="mt-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2 w-full"
+              >
+                <ShoppingCart className="w-5 h-5" /> Regenerate Grocery List
+              </button>
             </div>
           </div>
           {/* Log a Meal Section */}
@@ -1141,88 +1285,11 @@ const Meals = () => {
           </div>
         </div>
       </div>
-      <EdamamRecipeTester />
+      <EdamamMealPlannerTester />
+      <NutritionAnalysisTester />
+      <FoodDatabaseTester />
     </div>
   );
 };
-
-function EdamamRecipeTester() {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const { user } = useAuth();
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setResults([]);
-    if (!query.trim()) {
-      setError('Please enter a search term.');
-      return;
-    }
-    if (!user || !user.id) {
-      setError('You must be logged in to search recipes.');
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch('/api/edamam-search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, userId: user.id }),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Failed to fetch recipes (status ${res.status}): ${text}`);
-      }
-      const data = await res.json();
-      setResults((data.hits || data.recipes || data.hits) ?? []);
-      if (((data.hits || data.recipes || []).length) === 0) {
-        setError('No recipes found.');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Error searching recipes');
-    }
-    setLoading(false);
-  };
-
-  return (
-    <div className="w-full max-w-3xl mx-auto mt-16 mb-24 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
-      <h2 className="text-2xl font-bold text-green-700 mb-4">Edamam Recipe Search (Test)</h2>
-      <form className="flex gap-2 mb-6" onSubmit={handleSearch}>
-        <input
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-green-500 focus:border-green-500"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="e.g. chicken, pasta, vegan..."
-        />
-        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700" disabled={loading}>
-          {loading ? 'Searching...' : 'Search'}
-        </button>
-      </form>
-      {error && <div className="text-red-600 mb-4">{error}</div>}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {results.map((hit, idx) => (
-          <div key={idx} className="bg-white rounded-xl shadow border p-4 flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              {hit.recipe.image && <img src={hit.recipe.image} alt={hit.recipe.label} className="w-20 h-20 object-cover rounded-lg border" />}
-              <div>
-                <div className="font-bold text-lg text-gray-900">{hit.recipe.label}</div>
-                <div className="text-xs text-gray-500">{Math.round(hit.recipe.calories)} cal &bull; {Math.round(hit.recipe.totalWeight)}g</div>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 text-xs text-gray-700">
-              {hit.recipe.dietLabels.map((d: string) => <span key={d} className="bg-green-100 text-green-700 rounded px-2 py-0.5">{d}</span>)}
-              {hit.recipe.healthLabels.map((h: string) => <span key={h} className="bg-blue-100 text-blue-700 rounded px-2 py-0.5">{h}</span>)}
-            </div>
-            <div className="text-xs text-gray-600 mt-2"><b>Ingredients:</b> {hit.recipe.ingredientLines.join(', ')}</div>
-            <a href={hit.recipe.url} target="_blank" rel="noopener noreferrer" className="mt-2 text-green-700 underline text-sm">View Full Recipe</a>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default Meals;
