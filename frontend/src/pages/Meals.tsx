@@ -1151,9 +1151,7 @@ function EdamamRecipeTester() {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const EDAMAM_APP_ID = '8a1f97f9';
-  const EDAMAM_APP_KEY = 'def5c320af15c9bf3a059c20de31249c';
+  const { user } = useAuth();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1163,21 +1161,24 @@ function EdamamRecipeTester() {
       setError('Please enter a search term.');
       return;
     }
+    if (!user || !user.id) {
+      setError('You must be logged in to search recipes.');
+      return;
+    }
     setLoading(true);
     try {
-      const url = `https://api.edamam.com/search?q=${encodeURIComponent(query)}&app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}&to=10`;
-      console.log('Edamam search query:', query);
-      console.log('Edamam API URL:', url);
-      const res = await fetch(url);
-      console.log('Edamam response status:', res.status);
+      const res = await fetch('/api/edamam-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, userId: user.id }),
+      });
       if (!res.ok) {
         const text = await res.text();
-        console.error('Edamam API error:', text);
         throw new Error(`Failed to fetch recipes (status ${res.status}): ${text}`);
       }
       const data = await res.json();
-      setResults(data.hits || []);
-      if ((data.hits || []).length === 0) {
+      setResults((data.hits || data.recipes || data.hits) ?? []);
+      if (((data.hits || data.recipes || []).length) === 0) {
         setError('No recipes found.');
       }
     } catch (err: any) {
