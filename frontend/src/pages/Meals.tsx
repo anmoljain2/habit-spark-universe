@@ -152,6 +152,9 @@ function NutritionAnalysisTester() {
             onChange={e => setInput(e.target.value)}
             placeholder={"e.g. 1 cup rice\n2 eggs"}
           />
+          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700" disabled={loading}>
+            {loading ? 'Analyzing...' : 'Analyze'}
+          </button>
         </form>
         <div className="text-xs text-gray-500 mb-2">Enter one ingredient per line.</div>
         {error && <div className="text-red-600 mb-4">{error}</div>}
@@ -348,9 +351,13 @@ function EdamamWeeklyMealPlan({ nutritionPrefs }: { nutritionPrefs: any }) {
           if (meals[m].mealType === 'breakfast') defaultQuery = 'breakfast';
           else if (meals[m].mealType === 'lunch/dinner') defaultQuery = 'lunch';
           else if (meals[m].mealType === 'dinner') defaultQuery = 'dinner';
+          const from = d * meals.length + m;
+          const to = from + 1;
           const params: any = {
             query: defaultQuery,
             mealType: meals[m].mealType,
+            from,
+            to,
           };
           // Add user preferences as filters
           if (nutritionPrefs?.diet) params.diet = nutritionPrefs.diet;
