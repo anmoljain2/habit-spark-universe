@@ -12,7 +12,7 @@ const dietaryOptions = [
   { value: 'kosher', label: 'Kosher', icon: '✡️', color: 'from-indigo-400 to-blue-500' },
 ];
 
-const MealsQuestionnaire = ({ userId, onComplete }: { userId: string, onComplete: (prefs: any) => void }) => {
+const MealsQuestionnaire = ({ userId, onComplete }: { userId: string, onComplete?: (prefs: any) => void }) => {
   const [calories, setCalories] = useState('2000');
   const [protein, setProtein] = useState('100');
   const [carbs, setCarbs] = useState('250');
@@ -55,18 +55,20 @@ const MealsQuestionnaire = ({ userId, onComplete }: { userId: string, onComplete
     if (error) {
       setError(error.message);
     } else {
-      onComplete({
-        calories_target: calories,
-        protein_target: protein,
-        carbs_target: carbs,
-        fat_target: fat,
-        fiber_target: fiber,
-        sodium_limit: sodium,
-        sugar_limit: sugar,
-        dietary_restrictions: dietary,
-        allergies: allergies ? allergies.split(',').map(a => a.trim()) : [],
-        notes,
-      });
+      if (onComplete) {
+        onComplete({
+          calories_target: calories,
+          protein_target: protein,
+          carbs_target: carbs,
+          fat_target: fat,
+          fiber_target: fiber,
+          sodium_limit: sodium,
+          sugar_limit: sugar,
+          dietary_restrictions: dietary,
+          allergies: allergies ? allergies.split(',').map(a => a.trim()) : [],
+          notes,
+        });
+      }
     }
   };
 

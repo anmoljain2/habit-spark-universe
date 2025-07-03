@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { query } = req.body;
+  const { query, mealType, diet, calories } = req.body;
   console.log('[Edamam] Received query:', query);
   if (!query || typeof query !== 'string' || !query.trim()) {
     console.log('[Edamam] Missing or invalid query:', query);
@@ -19,7 +19,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const url = `https://api.edamam.com/api/recipes/v2?type=public&q=${encodeURIComponent(query)}&app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}&to=10`;
+  let url = `https://api.edamam.com/api/recipes/v2?type=public&q=${encodeURIComponent(query)}&app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}&to=10`;
+  if (mealType) url += `&mealType=${encodeURIComponent(mealType)}`;
+  if (diet) url += `&diet=${encodeURIComponent(diet)}`;
+  if (calories) url += `&calories=${encodeURIComponent(calories)}`;
   console.log('[Edamam] Using Recipe Search endpoint:', url);
 
   try {

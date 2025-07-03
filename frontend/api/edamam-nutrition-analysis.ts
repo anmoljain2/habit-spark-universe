@@ -14,24 +14,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(400).json({ error: 'Missing or invalid query' });
     return;
   }
-  // Support multiple ingredients: split by newlines, trim, and join with %0A
-  const ingrParam = query
+  // Split by newlines, trim, filter empty
+  const ingrArr = query
     .split(/\r?\n/)
     .map((line: string) => line.trim())
-    .filter(Boolean)
-    .join('%0A');
-  const url = `https://api.edamam.com/api/nutrition-data?app_id=${EDAMAM_NUTRITION_APP_ID}&app_key=${EDAMAM_NUTRITION_APP_KEY}&ingr=${ingrParam}`;
-  console.log('[Edamam Nutrition] Constructed URL:', url);
+    .filter(Boolean);
+  const url = `https://api.edamam.com/api/nutrition-details?app_id=${EDAMAM_NUTRITION_APP_ID}&app_key=${EDAMAM_NUTRITION_APP_KEY}`;
   try {
-    const edamamRes = await fetch(url);
-    console.log('[Edamam Nutrition] Edamam response status:', edamamRes.status);
+    const edamamRes = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ingr: ingrArr }),
+    });
+    const data = await edamamRes.json();
     if (!edamamRes.ok) {
-      const text = await edamamRes.text();
-      console.log('[Edamam Nutrition] Error response from Edamam:', text);
-      res.status(edamamRes.status).json({ error: text });
+      console.log('[Edamam Nutrition] Error response from Edamam:', data);
+      res.status(edamamRes.status).json({ error: data.error || data.message || 'Edamam error', details: data });
       return;
     }
-    const data = await edamamRes.json();
     console.log('[Edamam Nutrition] Success, data keys:', Object.keys(data));
     res.status(200).json(data);
   } catch (err: any) {
