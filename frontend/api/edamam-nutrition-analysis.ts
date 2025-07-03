@@ -14,7 +14,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(400).json({ error: 'Missing or invalid query' });
     return;
   }
-  const url = `https://api.edamam.com/api/nutrition-data?app_id=${EDAMAM_NUTRITION_APP_ID}&app_key=${EDAMAM_NUTRITION_APP_KEY}&ingr=${encodeURIComponent(query)}`;
+  // Support multiple ingredients: split by newlines, trim, and join with %0A
+  const ingrParam = query
+    .split(/\r?\n/)
+    .map((line: string) => line.trim())
+    .filter(Boolean)
+    .join('%0A');
+  const url = `https://api.edamam.com/api/nutrition-data?app_id=${EDAMAM_NUTRITION_APP_ID}&app_key=${EDAMAM_NUTRITION_APP_KEY}&ingr=${ingrParam}`;
   console.log('[Edamam Nutrition] Constructed URL:', url);
   try {
     const edamamRes = await fetch(url);

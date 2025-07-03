@@ -312,6 +312,117 @@ function EdamamRecipeSearchTester() {
   );
 }
 
+function EdamamWeeklyMealPlan({ nutritionPrefs }: { nutritionPrefs: any }) {
+  const [plan, setPlan] = useState<any[][]>([]); // [day][meal]
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const meals = [
+    { label: 'Breakfast', mealType: 'breakfast' },
+    { label: 'Lunch', mealType: 'lunch/dinner' },
+    { label: 'Dinner', mealType: 'dinner' },
+  ];
+
+  const handleGenerate = async () => {
+    setLoading(true);
+    setError('');
+    setPlan([]);
+    try {
+      // For each day and meal, fetch a recipe from Edamam
+      const weekPlan: any[][] = [];
+      for (let d = 0; d < days.length; d++) {
+        const dayMeals: any[] = [];
+        for (let m = 0; m < meals.length; m++) {
+          const params: any = {
+            query: '', // blank query to get any recipe
+            mealType: meals[m].mealType,
+          };
+          // Add user preferences as filters
+          if (nutritionPrefs?.diet) params.diet = nutritionPrefs.diet;
+          if (nutritionPrefs?.calories_target) params.calories = `${Math.max(0, nutritionPrefs.calories_target - 100)}-${nutritionPrefs.calories_target + 100}`;
+          // Add more filters as needed
+          const res = await fetch('/api/edamam-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params),
+          });
+          let recipe = null;
+          if (res.ok) {
+            const data = await res.json();
+            recipe = data.hits && data.hits[0] ? data.hits[0].recipe : null;
+          }
+          dayMeals.push(recipe);
+        }
+        weekPlan.push(dayMeals);
+      }
+      setPlan(weekPlan);
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate Edamam meal plan');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="w-full max-w-7xl mx-auto mt-16 mb-16 p-8 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
+      <h2 className="text-3xl font-bold text-green-700 mb-6">Edamam Weekly Meal Plan Demo</h2>
+      <button
+        onClick={handleGenerate}
+        className="mb-8 bg-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-700 text-lg shadow"
+        disabled={loading}
+      >
+        {loading ? 'Generating...' : 'Generate Edamam Meal Plan'}
+      </button>
+      {error && <div className="text-red-600 mb-4">{error}</div>}
+      {plan.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-y-6">
+            <thead>
+              <tr>
+                <th className="text-lg font-bold text-gray-700 text-left px-4">Day</th>
+                {meals.map(m => (
+                  <th key={m.mealType} className="text-lg font-bold text-gray-700 text-center px-4">{m.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {plan.map((dayMeals, dIdx) => (
+                <tr key={days[dIdx]} className="align-top">
+                  <td className="font-semibold text-green-700 px-4 py-2 text-left whitespace-nowrap">{days[dIdx]}</td>
+                  {dayMeals.map((recipe, mIdx) => (
+                    <td key={mIdx} className="px-4 py-2">
+                      {recipe ? (
+                        <div className="bg-white rounded-2xl shadow border border-gray-200 p-4 w-64 flex flex-col items-center">
+                          <div className="w-28 h-28 bg-gray-100 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
+                            {recipe.image ? <img src={recipe.image} alt={recipe.label} className="object-cover w-full h-full" /> : <span className="text-gray-400">No Image</span>}
+                          </div>
+                          <div className="text-base font-bold text-gray-900 mb-1 text-center">{recipe.label}</div>
+                          <div className="flex gap-2 text-xs text-gray-500 mb-2">
+                            <span>{recipe.yield} servings</span>
+                            <span>{Math.round(recipe.calories)} kcal</span>
+                          </div>
+                          <div className="flex gap-2 text-xs mb-2">
+                            <span className="text-green-600 font-semibold">PROTEIN {recipe.totalNutrients?.PROCNT?.quantity ? Math.round(recipe.totalNutrients.PROCNT.quantity) : 0}g</span>
+                            <span className="text-yellow-600 font-semibold">FAT {recipe.totalNutrients?.FAT?.quantity ? Math.round(recipe.totalNutrients.FAT.quantity) : 0}g</span>
+                            <span className="text-red-600 font-semibold">CARB {recipe.totalNutrients?.CHOCDF?.quantity ? Math.round(recipe.totalNutrients.CHOCDF.quantity) : 0}g</span>
+                          </div>
+                          <a href={recipe.url} target="_blank" rel="noopener noreferrer" className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 text-sm">View Recipe</a>
+                        </div>
+                      ) : (
+                        <div className="text-gray-400 text-sm">No recipe found</div>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const Meals = () => {
   const { user } = useAuth();
   const [nutritionPrefs, setNutritionPrefs] = useState<any>(null);
@@ -1427,6 +1538,7 @@ const Meals = () => {
       <EdamamRecipeSearchTester />
       <NutritionAnalysisTester />
       <FoodDatabaseTester />
+      <EdamamWeeklyMealPlan nutritionPrefs={nutritionPrefs} />
     </div>
   );
 };
