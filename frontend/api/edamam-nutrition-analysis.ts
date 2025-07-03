@@ -17,11 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = `https://api.edamam.com/api/nutrition-data?app_id=${EDAMAM_NUTRITION_APP_ID}&app_key=${EDAMAM_NUTRITION_APP_KEY}&ingr=${encodeURIComponent(query)}`;
   console.log('[Edamam Nutrition] Constructed URL:', url);
   try {
-    const edamamRes = await fetch(url, {
-      headers: {
-        'Edamam-Account-User': 'anmoljain'
-      }
-    });
+    const edamamRes = await fetch(url);
     console.log('[Edamam Nutrition] Edamam response status:', edamamRes.status);
     if (!edamamRes.ok) {
       const text = await edamamRes.text();
