@@ -20,6 +20,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .map((line: string) => line.trim())
     .filter(Boolean);
   const url = `https://api.edamam.com/api/nutrition-details?app_id=${EDAMAM_NUTRITION_APP_ID}&app_key=${EDAMAM_NUTRITION_APP_KEY}`;
+  console.log('[Edamam Nutrition] Requesting:', url);
+  console.log('[Edamam Nutrition] Request body:', { ingr: ingrArr });
   try {
     const edamamRes = await fetch(url, {
       method: 'POST',
@@ -27,12 +29,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify({ ingr: ingrArr }),
     });
     const data = await edamamRes.json();
+    console.log('[Edamam Nutrition] Edamam response status:', edamamRes.status);
+    console.log('[Edamam Nutrition] Edamam response body:', data);
     if (!edamamRes.ok) {
-      console.log('[Edamam Nutrition] Error response from Edamam:', data);
       res.status(edamamRes.status).json({ error: data.error || data.message || 'Edamam error', details: data });
       return;
     }
-    console.log('[Edamam Nutrition] Success, data keys:', Object.keys(data));
     res.status(200).json(data);
   } catch (err: any) {
     console.log('[Edamam Nutrition] Exception thrown:', err);

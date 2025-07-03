@@ -337,6 +337,11 @@ function EdamamWeeklyMealPlan({ nutritionPrefs }: { nutritionPrefs: any }) {
     { label: 'Dinner', mealType: 'dinner' },
   ];
 
+  // Meal idea lists for variety
+  const breakfastIdeas = ["omelette", "pancakes", "smoothie", "avocado toast", "breakfast burrito", "granola", "frittata", "waffles", "shakshuka", "breakfast sandwich"];
+  const lunchIdeas = ["chicken salad", "burrito", "pasta", "sandwich", "grain bowl", "quiche", "wrap", "soup", "poke bowl", "falafel"];
+  const dinnerIdeas = ["stir fry", "curry", "roast chicken", "pizza", "tacos", "lasagna", "risotto", "chili", "meatballs", "enchiladas"];
+
   const handleGenerate = async () => {
     setLoading(true);
     setError('');
@@ -347,10 +352,11 @@ function EdamamWeeklyMealPlan({ nutritionPrefs }: { nutritionPrefs: any }) {
       for (let d = 0; d < days.length; d++) {
         const dayMeals: any[] = [];
         for (let m = 0; m < meals.length; m++) {
+          // Pick a random query from the meal ideas list
           let defaultQuery = '';
-          if (meals[m].mealType === 'breakfast') defaultQuery = 'breakfast';
-          else if (meals[m].mealType === 'lunch/dinner') defaultQuery = 'lunch';
-          else if (meals[m].mealType === 'dinner') defaultQuery = 'dinner';
+          if (meals[m].mealType === 'breakfast') defaultQuery = breakfastIdeas[Math.floor(Math.random() * breakfastIdeas.length)];
+          else if (meals[m].mealType === 'lunch/dinner') defaultQuery = lunchIdeas[Math.floor(Math.random() * lunchIdeas.length)];
+          else if (meals[m].mealType === 'dinner') defaultQuery = dinnerIdeas[Math.floor(Math.random() * dinnerIdeas.length)];
           const from = d * meals.length + m;
           const to = from + 1;
           const params: any = {
@@ -641,11 +647,26 @@ const Meals = () => {
     });
   };
 
-  // Handler for regenerating a day's meals (stub)
-  const handleRegenerateDay = (date: string) => {
+  // Handler for regenerating a day's meals
+  const handleRegenerateDay = async (date: string) => {
+    if (!user) return;
     setDayLoading(date);
-    // ... actual logic here ...
-    setTimeout(() => setDayLoading(null), 1000);
+    try {
+      // Delete all meals for this user and date
+      await supabase.from('user_meals').delete().eq('user_id', user.id).eq('date_only', date);
+      // Call backend to generate new meals for this day
+      await axios.post('/api/generate-meal-plan', {
+        user_id: user.id,
+        mode: 'day',
+        date,
+      });
+      toast.success('Meals regenerated for ' + date);
+      // Refetch week meals
+      refetchWeekMeals();
+    } catch (err) {
+      toast.error('Failed to regenerate meals for ' + date);
+    }
+    setDayLoading(null);
   };
 
   // Handler for generating grocery list (stub)
@@ -670,6 +691,11 @@ const Meals = () => {
 
   // Handler for saving a recipe (stub)
   const handleSaveRecipe = (recipe: any) => {
+    // ... actual logic here ...
+  };
+
+  // New handler for generating weekly meals
+  const handleGenerateWeeklyMeals = () => {
     // ... actual logic here ...
   };
 
@@ -863,11 +889,23 @@ const Meals = () => {
             <Calendar className="w-5 h-5 text-green-600" />
             Weekly Calendar
           </h2>
+          <button
+            onClick={handleGenerateWeeklyMeals}
+            className="mb-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 text-lg shadow"
+            disabled={weekLoading}
+          >
+            {weekLoading ? 'Generating...' : 'Generate / Regenerate Weekly Meals'}
+          </button>
           <div className="flex gap-4 w-full">
             {weekDates.map((date, i) => {
               const meals = weekMeals[date] || [];
               const isToday = date === todayStr;
               const plan = weeklyPlan[i] || { color: 'bg-gray-100 text-gray-700', focus: '' };
+              // Map meals to mealOrder
+              const mealsByType: { [type: string]: Meal | undefined } = {};
+              mealOrder.forEach(type => {
+                mealsByType[type] = meals.find(m => m.meal_type && m.meal_type.toLowerCase() === type);
+              });
               return (
                 <div key={date} className={`rounded-xl p-4 shadow border flex flex-col items-center transition-all duration-200 ${plan.color} ${isToday ? 'ring-2 ring-green-400 scale-105' : 'border-white/50 bg-white/80'}`} style={{ minWidth: 180, flex: '1 1 180px' }}>
                   <div className="font-bold text-md mb-1 flex items-center gap-2">
@@ -876,7 +914,7 @@ const Meals = () => {
                   </div>
                   <div className="flex flex-col gap-2 w-full mb-4">
                     {mealOrder.map(type => {
-                      const meal = meals.find(m => m.meal_type === type);
+                      const meal = mealsByType[type];
                       const pillColor =
                         type === 'breakfast' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
                         type === 'snack' ? 'bg-blue-100 text-blue-700 border-blue-200' :
@@ -892,7 +930,7 @@ const Meals = () => {
                       return (
                         <div key={type} className={`flex items-center justify-between px-2 py-1 rounded-lg text-sm font-medium border ${pillColor} ${meal ? (meal.completed ? 'ring-2 ring-green-300' : '') : ''}`}> 
                           <span className="font-semibold capitalize">{mealTypeFull}</span>
-                          {meal && (
+                          {meal ? (
                             <span
                               className="ml-2 text-gray-700 cursor-pointer underline decoration-dotted"
                               onMouseEnter={e => {
@@ -907,6 +945,8 @@ const Meals = () => {
                             >
                               {meal.description}
                             </span>
+                          ) : (
+                            <span className="ml-2 text-gray-400">No meal found</span>
                           )}
                           {meal && meal.completed && <CheckCircle className="inline ml-1 w-4 h-4 text-green-500 align-middle" />}
                         </div>
