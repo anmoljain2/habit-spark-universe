@@ -26,7 +26,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (typeof from === 'number') url += `&from=${from}`;
   if (typeof to === 'number') url += `&to=${to}`;
   url += '&to=' + (typeof to === 'number' ? to : (typeof from === 'number' ? from + 1 : 10));
-  console.log('[Edamam] Using Recipe Search endpoint:', url);
 
   try {
     const edamamRes = await fetch(url, {
@@ -34,18 +33,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Edamam-Account-User': 'anmoljain'
       }
     });
-    console.log('[Edamam] Edamam response status:', edamamRes.status);
+    const data = await edamamRes.json();
+    console.log('[Edamam] URL:', url);
+    console.log('[Edamam] Response JSON:', data);
     if (!edamamRes.ok) {
-      const text = await edamamRes.text();
-      console.log('[Edamam] Error response from Edamam:', text);
-      res.status(edamamRes.status).json({ error: text });
+      res.status(edamamRes.status).json({ error: data });
       return;
     }
-    const data = await edamamRes.json();
-    console.log('[Edamam] Success, data keys:', Object.keys(data));
     res.status(200).json(data);
   } catch (err: any) {
-    console.log('[Edamam] Exception thrown:', err);
     res.status(500).json({ error: err.message || 'Failed to fetch from Edamam' });
   }
 } 

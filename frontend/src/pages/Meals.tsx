@@ -346,22 +346,53 @@ function EdamamWeeklyMealPlan({ nutritionPrefs }: { nutritionPrefs: any }) {
     setLoading(true);
     setError('');
     setPlan([]);
+    // Helper to fetch a recipe with retries
+    async function fetchRecipeWithRetries(params: any, mealType: string, maxRetries = 3): Promise<any> {
+      let attempt = 0;
+      let recipe = null;
+      let usedQueries = new Set();
+      while (attempt < maxRetries && !recipe) {
+        // Pick a new random query for each attempt
+        let defaultQuery = '';
+        if (mealType === 'breakfast') {
+          let options = breakfastIdeas.filter(q => !usedQueries.has(q));
+          if (options.length === 0) options = breakfastIdeas;
+          defaultQuery = options[Math.floor(Math.random() * options.length)];
+        } else if (mealType === 'lunch/dinner') {
+          let options = lunchIdeas.filter(q => !usedQueries.has(q));
+          if (options.length === 0) options = lunchIdeas;
+          defaultQuery = options[Math.floor(Math.random() * options.length)];
+        } else if (mealType === 'dinner') {
+          let options = dinnerIdeas.filter(q => !usedQueries.has(q));
+          if (options.length === 0) options = dinnerIdeas;
+          defaultQuery = options[Math.floor(Math.random() * options.length)];
+        }
+        usedQueries.add(defaultQuery);
+        const tryParams = { ...params, query: defaultQuery };
+        const res = await fetch('/api/edamam-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(tryParams),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          recipe = data.hits && data.hits[0] ? data.hits[0].recipe : null;
+        }
+        attempt++;
+      }
+      return recipe;
+    }
     try {
       // For each day and meal, fetch a recipe from Edamam
       const weekPlan: any[][] = [];
       for (let d = 0; d < days.length; d++) {
         const dayMeals: any[] = [];
         for (let m = 0; m < meals.length; m++) {
-          // Pick a random query from the meal ideas list
-          let defaultQuery = '';
-          if (meals[m].mealType === 'breakfast') defaultQuery = breakfastIdeas[Math.floor(Math.random() * breakfastIdeas.length)];
-          else if (meals[m].mealType === 'lunch/dinner') defaultQuery = lunchIdeas[Math.floor(Math.random() * lunchIdeas.length)];
-          else if (meals[m].mealType === 'dinner') defaultQuery = dinnerIdeas[Math.floor(Math.random() * dinnerIdeas.length)];
+          const mealType = meals[m].mealType;
           const from = d * meals.length + m;
           const to = from + 1;
           const params: any = {
-            query: defaultQuery,
-            mealType: meals[m].mealType,
+            mealType,
             from,
             to,
           };
@@ -369,16 +400,7 @@ function EdamamWeeklyMealPlan({ nutritionPrefs }: { nutritionPrefs: any }) {
           if (nutritionPrefs?.diet) params.diet = nutritionPrefs.diet;
           if (nutritionPrefs?.calories_target) params.calories = `${Math.max(0, nutritionPrefs.calories_target - 100)}-${nutritionPrefs.calories_target + 100}`;
           // Add more filters as needed
-          const res = await fetch('/api/edamam-search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(params),
-          });
-          let recipe = null;
-          if (res.ok) {
-            const data = await res.json();
-            recipe = data.hits && data.hits[0] ? data.hits[0].recipe : null;
-          }
+          const recipe = await fetchRecipeWithRetries(params, mealType, 3);
           dayMeals.push(recipe);
         }
         weekPlan.push(dayMeals);
@@ -421,7 +443,8 @@ function EdamamWeeklyMealPlan({ nutritionPrefs }: { nutritionPrefs: any }) {
                       {recipe ? (
                         <div className="bg-white rounded-2xl shadow border border-gray-200 p-4 w-64 flex flex-col items-center">
                           <div className="w-28 h-28 bg-gray-100 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
-                            {recipe.image ? <img src={recipe.image} alt={recipe.label} className="object-cover w-full h-full" /> : <span className="text-gray-400">No Image</span>}
+                            {/* User meals do not have an image property; always show placeholder */}
+                            <span className="text-gray-400">No Image</span>
                           </div>
                           <div className="text-base font-bold text-gray-900 mb-1 text-center">{recipe.label}</div>
                           <div className="flex gap-2 text-xs text-gray-500 mb-2">
@@ -436,7 +459,7 @@ function EdamamWeeklyMealPlan({ nutritionPrefs }: { nutritionPrefs: any }) {
                           <a href={recipe.url} target="_blank" rel="noopener noreferrer" className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 text-sm">View Recipe</a>
                         </div>
                       ) : (
-                        <div className="text-gray-400 text-sm">No recipe found</div>
+                        <div className="text-gray-400 text-sm">couldn't generate meal</div>
                       )}
                     </td>
                   ))}
@@ -896,96 +919,81 @@ const Meals = () => {
           >
             {weekLoading ? 'Generating...' : 'Generate / Regenerate Weekly Meals'}
           </button>
-          <div className="flex gap-4 w-full">
-            {weekDates.map((date, i) => {
-              const meals = weekMeals[date] || [];
-              const isToday = date === todayStr;
-              const plan = weeklyPlan[i] || { color: 'bg-gray-100 text-gray-700', focus: '' };
-              // Map meals to mealOrder
-              const mealsByType: { [type: string]: Meal | undefined } = {};
-              mealOrder.forEach(type => {
-                mealsByType[type] = meals.find(m => m.meal_type && m.meal_type.toLowerCase() === type);
-              });
-              return (
-                <div key={date} className={`rounded-xl p-4 shadow border flex flex-col items-center transition-all duration-200 ${plan.color} ${isToday ? 'ring-2 ring-green-400 scale-105' : 'border-white/50 bg-white/80'}`} style={{ minWidth: 180, flex: '1 1 180px' }}>
-                  <div className="font-bold text-md mb-1 flex items-center gap-2">
-                    {isToday && <span className="inline-block w-2 h-2 rounded-full bg-green-500" />}
-                    <span className="text-gray-800">{format(parseISO(date), 'EEEE')}</span>
-                  </div>
-                  <div className="flex flex-col gap-2 w-full mb-4">
-                    {mealOrder.map(type => {
-                      const meal = mealsByType[type];
-                      const pillColor =
-                        type === 'breakfast' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                        type === 'snack' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                        type === 'lunch' ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                        type === 'dinner' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                        'bg-gray-100 text-gray-700 border-gray-200';
-                      const mealTypeFull =
-                        type === 'breakfast' ? 'Breakfast' :
-                        type === 'snack' ? 'Snack' :
-                        type === 'lunch' ? 'Lunch' :
-                        type === 'dinner' ? 'Dinner' :
-                        type;
-                      return (
-                        <div key={type} className={`flex items-center justify-between px-2 py-1 rounded-lg text-sm font-medium border ${pillColor} ${meal ? (meal.completed ? 'ring-2 ring-green-300' : '') : ''}`}> 
-                          <span className="font-semibold capitalize">{mealTypeFull}</span>
-                          {meal ? (
-                            <span
-                              className="ml-2 text-gray-700 cursor-pointer underline decoration-dotted"
-                              onMouseEnter={e => {
-                                if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
-                                setHoveredMeal(meal);
-                                const rect = (e.target as HTMLElement).getBoundingClientRect();
-                                setTooltipPos({ x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY });
-                              }}
-                              onMouseLeave={() => {
-                                tooltipTimeout.current = setTimeout(() => setHoveredMeal(null), 200);
-                              }}
-                            >
-                              {meal.description}
-                            </span>
-                          ) : (
-                            <span className="ml-2 text-gray-400">No meal found</span>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-y-6">
+              <thead>
+                <tr>
+                  <th className="text-lg font-bold text-gray-700 text-left px-4">Day</th>
+                  {mealOrder.map(type => (
+                    <th key={type} className="text-lg font-bold text-gray-700 text-center px-4 capitalize">{type}</th>
+                  ))}
+                  <th className="text-lg font-bold text-gray-700 text-center px-4">Regenerate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {weekDates.map((date, dIdx) => {
+                  const meals = weekMeals[date] || [];
+                  const isToday = date === todayStr;
+                  // Map meals to mealOrder
+                  const mealsByType: { [type: string]: Meal | undefined } = {};
+                  mealOrder.forEach(type => {
+                    mealsByType[type] = meals.find(m => m.meal_type && m.meal_type.toLowerCase() === type);
+                  });
+                  return (
+                    <tr key={date} className={isToday ? 'ring-2 ring-green-400 scale-[1.01] bg-green-50/60' : ''}>
+                      <td className="font-semibold text-green-700 px-4 py-2 text-left whitespace-nowrap align-top">
+                        {format(parseISO(date), 'EEEE')}
+                        {isToday && <span className="inline-block ml-2 w-2 h-2 rounded-full bg-green-500" />}
+                      </td>
+                      {mealOrder.map(type => {
+                        const meal = mealsByType[type];
+                        return (
+                          <td key={type} className="px-4 py-2 align-top">
+                            {meal ? (
+                              <div className="bg-white rounded-2xl shadow border border-gray-200 p-4 w-64 flex flex-col items-center">
+                                <div className="w-28 h-28 bg-gray-100 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
+                                  {/* User meals do not have an image property; always show placeholder */}
+                                  <span className="text-gray-400">No Image</span>
+                                </div>
+                                <div className="text-base font-bold text-gray-900 mb-1 text-center">{meal.description}</div>
+                                <div className="flex gap-2 text-xs text-gray-500 mb-2">
+                                  <span>{meal.serving_size || '1 serving'}</span>
+                                  <span>{meal.calories ? Math.round(meal.calories) : 0} kcal</span>
+                                </div>
+                                <div className="flex gap-2 text-xs mb-2">
+                                  <span className="text-green-600 font-semibold">PROTEIN {meal.protein ? Math.round(meal.protein) : 0}g</span>
+                                  <span className="text-yellow-600 font-semibold">FAT {meal.fat ? Math.round(meal.fat) : 0}g</span>
+                                  <span className="text-red-600 font-semibold">CARB {meal.carbs ? Math.round(meal.carbs) : 0}g</span>
+                                </div>
+                                {meal.recipe && (
+                                  <a href={meal.recipe} target="_blank" rel="noopener noreferrer" className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 text-sm">View Recipe</a>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-gray-400 text-sm">couldn't generate meal</div>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td className="px-4 py-2 align-top">
+                        <button
+                          onClick={() => handleRegenerateDay(date)}
+                          className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2 text-xs"
+                          disabled={weekLoading || dayLoading === date}
+                        >
+                          <Zap className="w-4 h-4" />
+                          Regenerate
+                          {dayLoading === date && (
+                            <span className="ml-2 animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></span>
                           )}
-                          {meal && meal.completed && <CheckCircle className="inline ml-1 w-4 h-4 text-green-500 align-middle" />}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <button
-                    onClick={() => handleRegenerateDay(date)}
-                    className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2 text-xs"
-                    disabled={weekLoading || dayLoading === date}
-                  >
-                    <Zap className="w-4 h-4" />
-                    Regenerate
-                    {dayLoading === date && (
-                      <span className="ml-2 animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></span>
-                    )}
-                  </button>
-                </div>
-              );
-            })}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-          {hoveredMeal && tooltipPos && (
-            <div
-              style={{ position: 'absolute', left: tooltipPos.x, top: tooltipPos.y + 8, zIndex: 50 }}
-              className="bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-80 max-w-xs text-sm animate-fade-in-up"
-              onMouseEnter={() => { if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current); }}
-              onMouseLeave={() => { setHoveredMeal(null); }}
-            >
-              <div className="font-bold text-lg mb-1">{hoveredMeal.description}</div>
-              <div className="flex flex-wrap gap-2 mb-2">
-                <span className="text-orange-500 font-semibold">⚡ {hoveredMeal.calories} cal</span>
-                <span className="text-red-500 font-semibold">❤️ {hoveredMeal.protein} protein</span>
-                <span className="text-yellow-500 font-semibold">C {hoveredMeal.carbs} carbs</span>
-                <span className="text-green-500 font-semibold">F {hoveredMeal.fat} fat</span>
-              </div>
-              {hoveredMeal.serving_size && <div className="text-xs text-gray-500 mb-1">Serving size: {hoveredMeal.serving_size}</div>}
-              {hoveredMeal.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {hoveredMeal.recipe}</div>}
-            </div>
-          )}
         </div>
 
         {/* Middle Section: Grocery List and Log a Meal side by side */}
