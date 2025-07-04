@@ -1,25 +1,78 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShoppingCart, ChevronDown, ChevronUp, Loader2, Utensils } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GroceryListProps {
-  groceryList: any[];
-  groceryLoading: boolean;
-  checkedItems: Set<number>;
-  onToggleItem: (idx: number) => void;
-  onGenerate: () => void;
-  groceryCondensed: boolean;
-  setGroceryCondensed: (condensed: boolean) => void;
+  userId: string;
+  weekStart: string;
 }
 
-const GroceryList: React.FC<GroceryListProps> = ({
-  groceryList,
-  groceryLoading,
-  checkedItems,
-  onToggleItem,
-  onGenerate,
-  groceryCondensed,
-  setGroceryCondensed,
-}) => {
+const GroceryList: React.FC<GroceryListProps> = ({ userId, weekStart }) => {
+  const [groceryList, setGroceryList] = useState<any[]>([]);
+  const [groceryLoading, setGroceryLoading] = useState(true);
+  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
+  const [groceryCondensed, setGroceryCondensed] = useState(true);
+
+  const fetchGroceryList = async () => {
+    setGroceryLoading(true);
+    const { data, error } = await supabase
+      .from('grocery_lists')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('week_start', weekStart)
+      .single();
+    if (error || !data) {
+      setGroceryList([]);
+    } else {
+      setGroceryList(Array.isArray(data.items) ? data.items : []);
+    }
+    setGroceryLoading(false);
+  };
+
+  React.useEffect(() => {
+    if (userId && weekStart) fetchGroceryList();
+    // eslint-disable-next-line
+  }, [userId, weekStart]);
+
+  const handleToggleItem = (idx: number) => {
+    setCheckedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(idx)) {
+        newSet.delete(idx);
+      } else {
+        newSet.add(idx);
+      }
+      return newSet;
+    });
+  };
+
+  const handleGenerateGroceryList = async () => {
+    if (!userId) return;
+    setGroceryLoading(true);
+    try {
+      const res = await fetch('/api/generate-grocery-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, week_start: weekStart }),
+      });
+      if (!res.ok) throw new Error('Failed to generate grocery list');
+      const data = await res.json();
+      const items = Array.isArray(data.items) ? data.items : data;
+      await supabase
+        .from('grocery_lists')
+        .delete()
+        .eq('user_id', userId)
+        .eq('week_start', weekStart);
+      await supabase
+        .from('grocery_lists')
+        .insert([{ user_id: userId, week_start: weekStart, items }]);
+      fetchGroceryList();
+    } catch (err) {
+      // Optionally show error
+    }
+    setGroceryLoading(false);
+  };
+
   return (
     <div className="w-full max-w-md">
       <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
@@ -36,7 +89,7 @@ const GroceryList: React.FC<GroceryListProps> = ({
           <div className="flex flex-col items-center gap-2 py-4 w-full">
             <span className="text-gray-500 text-lg mb-2">No grocery list found for this week.</span>
             <button
-              onClick={onGenerate}
+              onClick={handleGenerateGroceryList}
               className="mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2"
             >
               <ShoppingCart className="w-5 h-5" /> Generate Grocery List
@@ -50,7 +103,7 @@ const GroceryList: React.FC<GroceryListProps> = ({
                   <input
                     type="checkbox"
                     checked={checkedItems.has(idx)}
-                    onChange={() => onToggleItem(idx)}
+                    onChange={() => handleToggleItem(idx)}
                     className="form-checkbox h-5 w-5 text-green-600 rounded focus:ring-green-500 border-gray-300"
                   />
                   <span className={`flex-1 text-gray-800 text-base ${checkedItems.has(idx) ? 'line-through text-gray-400' : ''}`}>{typeof item === 'object' && 'name' in item ? String(item.name) : String(item)}</span>
@@ -71,7 +124,7 @@ const GroceryList: React.FC<GroceryListProps> = ({
           </div>
         )}
         <button
-          onClick={onGenerate}
+          onClick={handleGenerateGroceryList}
           className="mt-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2 w-full"
         >
           <ShoppingCart className="w-5 h-5" /> Regenerate Grocery List

@@ -1,44 +1,108 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { ChefHat, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LogMealProps {
-  logMealExpanded: boolean;
-  setLogMealExpanded: (expanded: boolean) => void;
-  logMealForm: any;
-  setLogMealForm: (form: any) => void;
-  logMealError: string;
-  setLogMealError: (err: string) => void;
-  logMealLoading: boolean;
-  handleLogMealChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  handleLogMealSubmit: (e: React.FormEvent) => void;
-  userLoggedMeals: any[];
-  hoveredUserMeal: any | null;
-  setHoveredUserMeal: (meal: any | null) => void;
-  userMealTooltipPos: { x: number, y: number } | null;
-  setUserMealTooltipPos: (pos: { x: number, y: number } | null) => void;
-  userMealTooltipTimeout: React.MutableRefObject<NodeJS.Timeout | null>;
+  userId: string;
+  todayStr: string;
 }
 
-const LogMeal: React.FC<LogMealProps> = ({
-  logMealExpanded,
-  setLogMealExpanded,
-  logMealForm,
-  setLogMealForm,
-  logMealError,
-  setLogMealError,
-  logMealLoading,
-  handleLogMealChange,
-  handleLogMealSubmit,
-  userLoggedMeals,
-  hoveredUserMeal,
-  setHoveredUserMeal,
-  userMealTooltipPos,
-  setUserMealTooltipPos,
-  userMealTooltipTimeout,
-}) => {
+const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
+  const [logMealExpanded, setLogMealExpanded] = useState(false);
+  const [logMealForm, setLogMealForm] = useState({
+    meal_type: '',
+    description: '',
+    calories: '',
+    protein: '',
+    carbs: '',
+    fat: '',
+    serving_size: '',
+    recipe: '',
+    ingredients: '',
+    tags: '',
+    date: todayStr,
+  });
+  const [logMealLoading, setLogMealLoading] = useState(false);
+  const [logMealError, setLogMealError] = useState('');
+  const [userLoggedMeals, setUserLoggedMeals] = useState<any[]>([]);
+  const userMealTooltipTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [hoveredUserMeal, setHoveredUserMeal] = useState<any | null>(null);
+  const [userMealTooltipPos, setUserMealTooltipPos] = useState<{x: number, y: number} | null>(null);
+
+  const fetchUserLoggedMeals = async () => {
+    const { data, error } = await supabase
+      .from('user_meals')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date_only', todayStr)
+      .order('created_at', { ascending: false });
+    if (!error && data) {
+      setUserLoggedMeals(data.filter((m: any) => m.source === 'user'));
+    }
+  };
+
+  React.useEffect(() => {
+    if (userId && todayStr) fetchUserLoggedMeals();
+    // eslint-disable-next-line
+  }, [userId, todayStr]);
+
+  const handleLogMealChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setLogMealForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  };
+  const handleLogMealSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLogMealError('');
+    if (!logMealForm.meal_type) {
+      setLogMealError('Please select a meal type.');
+      return;
+    }
+    setLogMealLoading(true);
+    try {
+      const mealToInsert = {
+        ...logMealForm,
+        user_id: userId,
+        calories: logMealForm.calories ? Number(logMealForm.calories) : undefined,
+        protein: logMealForm.protein ? Number(logMealForm.protein) : undefined,
+        carbs: logMealForm.carbs ? Number(logMealForm.carbs) : undefined,
+        fat: logMealForm.fat ? Number(logMealForm.fat) : undefined,
+        ingredients: Array.isArray(logMealForm.ingredients)
+          ? logMealForm.ingredients
+          : typeof logMealForm.ingredients === 'string' && logMealForm.ingredients.trim() !== ''
+            ? logMealForm.ingredients.split(',').map(s => s.trim())
+            : [],
+        tags: Array.isArray(logMealForm.tags)
+          ? logMealForm.tags
+          : typeof logMealForm.tags === 'string' && logMealForm.tags.trim() !== ''
+            ? logMealForm.tags.split(',').map(s => s.trim())
+            : [],
+      };
+      const { error } = await supabase
+        .from('user_meals')
+        .insert([mealToInsert]);
+      if (error) throw new Error(error.message);
+      setLogMealForm({
+        meal_type: '',
+        description: '',
+        calories: '',
+        protein: '',
+        carbs: '',
+        fat: '',
+        serving_size: '',
+        recipe: '',
+        ingredients: '',
+        tags: '',
+        date: todayStr,
+      });
+      fetchUserLoggedMeals();
+    } catch (err: any) {
+      setLogMealError(err.message || 'Failed to log meal');
+    }
+    setLogMealLoading(false);
+  };
+
   return (
     <div className="w-full max-w-md">
       <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
