@@ -27,6 +27,15 @@ import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
+import TodaysMeals from '@/components/MealsComponents/TodaysMeals';
+import AICalendarMealPlanner from '@/components/MealsComponents/AICalendarMealPlanner';
+import GroceryList from '@/components/MealsComponents/GroceryList';
+import LogMeal from '@/components/MealsComponents/LogMeal';
+import AISearchRecipe from '@/components/MealsComponents/AISearchRecipe';
+import EdamamRecipeSearchTester from '@/components/MealsComponents/EdamamRecipeSearchTester';
+import EdamamNutritionAnalysisTester from '@/components/MealsComponents/EdamamNutritionAnalysisTester';
+import EdamamFoodDatabaseTester from '@/components/MealsComponents/EdamamFoodDatabaseTester';
+import EdamamWeeklyMealPlan from '@/components/MealsComponents/EdamamWeeklyMealPlan';
 
 type Meal = Database['public']['Tables']['user_meals']['Row'];
 
@@ -249,273 +258,6 @@ function FoodDatabaseTester() {
           {result.hints.map((hint: any, idx: number) => (
             <FoodCard key={idx} food={hint.food} />
           ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EdamamRecipeSearchTester() {
-  const [query, setQuery] = useState('chicken, rice, broccoli');
-  const [result, setResult] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setResult(null);
-    setLoading(true);
-    try {
-      const res = await fetch('/api/edamam-search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Failed (status ${res.status}): ${text}`);
-      }
-      const data = await res.json();
-      setResult(data);
-    } catch (err: any) {
-      setError(err.message || 'Error searching recipes');
-    }
-    setLoading(false);
-  };
-
-  // Helper to render a recipe card
-  function RecipeCard({ recipe }: { recipe: any }) {
-    return (
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-4 w-80 min-w-[280px] flex flex-col items-center mb-6">
-        <div className="w-40 h-40 bg-gray-100 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
-          {recipe.image ? <img src={recipe.image} alt={recipe.label} className="object-cover w-full h-full" /> : <span className="text-gray-400">No Image</span>}
-        </div>
-        <div className="text-lg font-bold text-gray-900 mb-1 text-center">{recipe.label}</div>
-        <div className="flex gap-2 text-xs text-gray-500 mb-2">
-          <span>{Math.round(recipe.calories)} CALORIES</span>
-          <span>{recipe.ingredientLines?.length || 0} INGREDIENTS</span>
-        </div>
-        <div className="text-xs text-gray-500 mb-2">{recipe.source}</div>
-        <a href={recipe.url} target="_blank" rel="noopener noreferrer" className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 text-sm">View Recipe</a>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full max-w-6xl mx-auto mt-8 mb-12 p-6 bg-white/90 rounded-2xl shadow-xl border border-gray-200">
-      <h2 className="text-2xl font-bold text-green-700 mb-4">Edamam Recipe Search API Tester</h2>
-      <form className="flex gap-2 mb-6" onSubmit={handleSearch}>
-        <input
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-green-500 focus:border-green-500"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="e.g. chicken, rice, broccoli"
-        />
-        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700" disabled={loading}>
-          {loading ? 'Searching...' : 'Search'}
-        </button>
-      </form>
-      {error && <div className="text-red-600 mb-4">{error}</div>}
-      {result && result.hits && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {result.hits.map((hit: any, idx: number) => (
-            <RecipeCard key={idx} recipe={hit.recipe} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutritionPrefs: any, handleRegenerateDay: (date: string) => void }) {
-  const [plan, setPlan] = useState<any[][]>([]); // [day][meal]
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [hoveredMeal, setHoveredMeal] = useState<any | null>(null);
-  const [hoverPos, setHoverPos] = useState<{ x: number, y: number } | null>(null);
-
-  const mealOrder = ["breakfast", "lunch", "snack", "dinner"];
-  const weekDates = [
-    "2024-06-10",
-    "2024-06-11",
-    "2024-06-12",
-    "2024-06-13",
-    "2024-06-14",
-    "2024-06-15",
-    "2024-06-16"
-  ];
-  const todayStr = weekDates[0];
-  const weekLoading = false;
-  const dayLoading = null;
-
-  // For variety, use a pool of queries for each meal type
-  const breakfastIdeas = ["omelette", "pancakes", "smoothie", "avocado toast", "granola", "frittata", "waffles", "shakshuka", "breakfast sandwich", "parfait"];
-  const lunchIdeas = ["chicken salad", "burrito", "pasta", "sandwich", "grain bowl", "quiche", "wrap", "soup", "poke bowl", "falafel"];
-  const snackIdeas = ["fruit", "yogurt", "nuts", "energy bar", "hummus", "veggie sticks", "trail mix", "rice cake", "protein shake", "popcorn"];
-  const dinnerIdeas = ["stir fry", "curry", "roast chicken", "pizza", "tacos", "lasagna", "risotto", "chili", "meatballs", "enchiladas"];
-
-  const getQueryForMeal = (mealType: string, dayIdx: number) => {
-    // Rotate through ideas for variety
-    if (mealType === "breakfast") return breakfastIdeas[dayIdx % breakfastIdeas.length];
-    if (mealType === "lunch") return lunchIdeas[dayIdx % lunchIdeas.length];
-    if (mealType === "snack") return snackIdeas[dayIdx % snackIdeas.length];
-    if (mealType === "dinner") return dinnerIdeas[dayIdx % dinnerIdeas.length];
-    return mealType;
-  };
-
-  const handleGenerate = async () => {
-    setLoading(true);
-    setError('');
-    setPlan([]);
-    try {
-      const weekPlan: any[][] = [];
-      for (let d = 0; d < weekDates.length; d++) {
-        const dayMeals: any[] = [];
-        for (let m = 0; m < mealOrder.length; m++) {
-          const mealType = mealOrder[m];
-          let recipe = null;
-          let attempt = 0;
-          let lastQuery = getQueryForMeal(mealType, d);
-          while (!recipe && attempt < 3) {
-            const params: any = {
-              query: lastQuery,
-              mealType,
-            };
-            if (nutritionPrefs?.diet) params.diet = nutritionPrefs.diet;
-            if (nutritionPrefs?.calories_target) params.calories = `${Math.max(0, nutritionPrefs.calories_target - 100)}-${nutritionPrefs.calories_target + 100}`;
-            const res = await fetch('/api/edamam-search', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(params),
-            });
-            if (res.ok) {
-              const data = await res.json();
-              recipe = data.hits && data.hits[0] ? data.hits[0].recipe : null;
-            }
-            attempt++;
-            // Optionally, rotate query for more variety on retry
-            if (!recipe && attempt < 3) {
-              // Try a different query from the pool
-              if (mealType === "breakfast") lastQuery = breakfastIdeas[(d + attempt) % breakfastIdeas.length];
-              if (mealType === "lunch") lastQuery = lunchIdeas[(d + attempt) % lunchIdeas.length];
-              if (mealType === "snack") lastQuery = snackIdeas[(d + attempt) % snackIdeas.length];
-              if (mealType === "dinner") lastQuery = dinnerIdeas[(d + attempt) % dinnerIdeas.length];
-            }
-          }
-          dayMeals.push(recipe);
-        }
-        weekPlan.push(dayMeals);
-      }
-      setPlan(weekPlan);
-    } catch (err) {
-      setError('Failed to generate Edamam meal plan');
-    }
-    setLoading(false);
-  };
-
-  return (
-    <div className="w-full max-w-4xl mx-auto mt-10 mb-10 p-4 bg-white/80 rounded-xl shadow border border-green-300">
-      <h2 className="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
-        <span>🥗</span> Edamam Weekly Meal Calendar
-      </h2>
-      <button
-        onClick={handleGenerate}
-        className="mb-4 bg-gradient-to-r from-green-500 to-emerald-400 text-white px-4 py-2 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-500 text-base shadow"
-        disabled={loading}
-      >
-        {loading ? 'Generating...' : 'Generate Edamam Meal Plan'}
-      </button>
-      {error && <div className="text-red-600 mb-4 text-sm">{error}</div>}
-      {plan.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-0 text-xs bg-white rounded-xl shadow border border-green-200">
-            <thead>
-              <tr>
-                <th className="bg-green-50 font-semibold text-green-700 text-left px-3 py-2 border-b border-r border-green-200 sticky left-0 z-10">Meal</th>
-                {weekDates.map((date) => {
-                  const isToday = date === todayStr;
-                  return (
-                    <th
-                      key={date}
-                      className={`font-semibold text-green-800 text-center px-4 py-2 border-b border-green-200 ${isToday ? 'bg-green-100 text-green-900' : 'bg-green-50'}`}
-                    >
-                      <div className="flex items-center justify-center gap-1 relative group">
-                        {format(parseISO(date), 'EEE')}
-                        <button
-                          onClick={() => handleRegenerateDay(date)}
-                          className="ml-1 p-1 rounded hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all relative"
-                          disabled={weekLoading || dayLoading === date}
-                          style={{ lineHeight: 0 }}
-                          onMouseEnter={e => {
-                            const tooltip = e.currentTarget.querySelector('.regen-tooltip');
-                            if (tooltip) tooltip.classList.remove('hidden');
-                          }}
-                          onMouseLeave={e => {
-                            const tooltip = e.currentTarget.querySelector('.regen-tooltip');
-                            if (tooltip) tooltip.classList.add('hidden');
-                          }}
-                        >
-                          {dayLoading === date ? (
-                            <span className="inline-block align-middle">
-                              <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 border-t-transparent border-l-transparent border-r-transparent"></span>
-                            </span>
-                          ) : (
-                            <Zap className="w-5 h-5 text-orange-500" />
-                          )}
-                          {/* Custom tooltip for regenerate button */}
-                          <span className="regen-tooltip hidden absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 bg-white border border-orange-300 rounded-xl shadow-lg px-3 py-2 text-xs text-orange-700 font-semibold whitespace-nowrap animate-fade-in-up transition-all duration-200">
-                            Regenerate meals for this day
-                          </span>
-                        </button>
-                      </div>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {mealOrder.map((type, mIdx) => (
-                <tr key={type}>
-                  <td className="font-bold text-green-900 px-3 py-2 border-r border-b border-green-200 bg-green-50 sticky left-0 z-10 capitalize">{type}</td>
-                  {weekDates.map((date, dIdx) => {
-                    const meal = plan[dIdx]?.[mIdx];
-                    const isToday = date === todayStr;
-                    return (
-                      <td
-                        key={date}
-                        className={`align-top px-2 py-2 border-b border-green-200 text-center min-w-[140px] max-w-[220px] ${isToday ? 'bg-green-100/70' : ''}`}
-                        style={{ verticalAlign: 'top' }}
-                      >
-                        {meal ? (
-                          <div className="flex flex-col items-center gap-1">
-                            {meal.image && (
-                              <img src={meal.image} alt={meal.label} className="w-16 h-16 object-cover rounded-lg border border-green-100 mb-1" />
-                            )}
-                            <div className="font-bold text-green-900 text-sm mb-1" style={{whiteSpace:'normal',wordBreak:'break-word'}}>{meal.label}</div>
-                            <div className="flex flex-wrap gap-1 justify-center text-xs text-gray-600 mb-1">
-                              {typeof meal.calories === 'number' && <span>⚡ {Math.round(meal.calories)} cal</span>}
-                              {meal.totalNutrients?.PROCNT && <span>❤️ {Math.round(meal.totalNutrients.PROCNT.quantity)}g protein</span>}
-                              {meal.totalNutrients?.CHOCDF && <span>C {Math.round(meal.totalNutrients.CHOCDF.quantity)}g carbs</span>}
-                              {meal.totalNutrients?.FAT && <span>F {Math.round(meal.totalNutrients.FAT.quantity)}g fat</span>}
-                            </div>
-                            {meal.yield && <div className="text-xs text-gray-400 mb-1">Servings: {meal.yield}</div>}
-                            {meal.url && (
-                              <a href={meal.url} target="_blank" rel="noopener noreferrer" className="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold hover:bg-green-200 transition">View Recipe</a>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="relative rounded-md border border-green-200 bg-white/70 px-2 py-1 text-center text-gray-400" style={{ fontSize: '1.12em', whiteSpace: 'normal', overflow: 'visible' }}>
-                            —
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
     </div>
@@ -970,516 +712,86 @@ const Meals = () => {
         </div>
 
         {/* Section: Today's Meals and Nutrition (side by side, full width) */}
-        <div className="w-full max-w-7xl mx-auto mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Today's Meals</h2>
-          <div className="flex flex-col md:flex-row gap-8 items-start w-full">
-            {/* Meals: 2x2 grid, fills most of the width */}
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {todaysMeals.length === 0 ? (
-                <div className="col-span-full text-center py-8">
-                  <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 mb-4">No meals found for today.</p>
-                </div>
-              ) : (
-                mealOrder.map((type) => {
-                  const meal = todaysMeals.find(m => m.meal_type === type);
-                  if (!meal) return null;
-                  return (
-                    <div
-                      key={type}
-                      className={`relative flex flex-col h-full bg-white rounded-2xl shadow-lg border-2 transition-all duration-200 group hover:shadow-2xl ${meal.completed ? 'border-green-500 bg-green-50/90' : 'border-gray-200 bg-white'} p-6 hover:-translate-y-1`}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-3xl">🍽️</span>
-                        <h3 className="font-extrabold text-gray-900 capitalize text-xl tracking-tight leading-tight">{meal.meal_type}</h3>
-                        {meal.completed && <CheckCircle className="w-6 h-6 text-green-500 ml-auto" />}
-                      </div>
-                      <div className="font-bold text-gray-800 text-lg mb-1">{meal.description}</div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-base font-semibold mb-2">
-                        <span className="flex items-center gap-1 text-orange-500"><Zap className="w-5 h-5" />{meal.calories} <span className="font-normal text-gray-600 text-xs ml-0.5">cal</span></span>
-                        <span className="flex items-center gap-1 text-red-500"><Heart className="w-5 h-5" />{meal.protein} <span className="font-normal text-gray-600 text-xs ml-0.5">protein</span></span>
-                        <span className="flex items-center gap-1 text-yellow-500"><span className="font-bold">C</span>{meal.carbs} <span className="font-normal text-gray-600 text-xs ml-0.5">carbs</span></span>
-                        <span className="flex items-center gap-1 text-green-500"><span className="font-bold">F</span>{meal.fat} <span className="font-normal text-gray-600 text-xs ml-0.5">fat</span></span>
-                      </div>
-                      {meal.serving_size && (
-                        <div className="text-xs text-gray-500 mb-1">Serving size: {meal.serving_size}</div>
-                      )}
-                      {meal.recipe && (
-                        <div className="text-xs text-gray-600 mb-2"><b>Recipe:</b> {meal.recipe}</div>
-                      )}
-                      <div className="mt-auto pt-2">
-                        {meal.completed ? (
-                          <button
-                            onClick={() => handleUncompleteMeal(meal.id)}
-                            className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded-full font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 text-base border border-gray-200 shadow-sm"
-                          >
-                            Undo
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleCompleteMeal(meal.id)}
-                            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-2 rounded-full font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 text-base"
-                          >
-                            <CheckCircle className="w-6 h-6" />
-                            Mark as Complete
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-            {/* Nutrition Card: right side, match height to meals grid */}
-            <div className="w-full md:w-80 flex-shrink-0 bg-white rounded-2xl shadow-xl border border-gray-100 p-6 flex flex-col items-start justify-start h-full self-stretch" style={{height: '100%'}}>
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                Today's Nutrition
-              </h3>
-              <div className="w-full space-y-5">
-                {/* Calories */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-gray-800">Calories</span>
-                    <span className="text-xs text-gray-500">{totalCalories} / {nutritionPrefs?.calories_target || 2000}</span>
-                  </div>
-                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-3 rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min(100, (totalCalories / (nutritionPrefs?.calories_target || 2000)) * 100)}%` }}></div>
-                  </div>
-                  <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalCalories / (nutritionPrefs?.calories_target || 2000)) * 100)}%</div>
-                </div>
-                {/* Protein */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-gray-800">Protein</span>
-                    <span className="text-xs text-gray-500">{totalProtein} / {nutritionPrefs?.protein_target || 100}g</span>
-                  </div>
-                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-3 rounded-full bg-red-500 transition-all" style={{ width: `${Math.min(100, (totalProtein / (nutritionPrefs?.protein_target || 100)) * 100)}%` }}></div>
-                  </div>
-                  <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalProtein / (nutritionPrefs?.protein_target || 100)) * 100)}%</div>
-                </div>
-                {/* Carbs */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-gray-800">Carbs</span>
-                    <span className="text-xs text-gray-500">{totalCarbs} / {nutritionPrefs?.carbs_target || 250}g</span>
-                  </div>
-                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-3 rounded-full bg-yellow-400 transition-all" style={{ width: `${Math.min(100, (totalCarbs / (nutritionPrefs?.carbs_target || 250)) * 100)}%` }}></div>
-                  </div>
-                  <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalCarbs / (nutritionPrefs?.carbs_target || 250)) * 100)}%</div>
-                </div>
-                {/* Fat */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-gray-800">Fat</span>
-                    <span className="text-xs text-gray-500">{totalFat} / {nutritionPrefs?.fat_target || 70}g</span>
-                  </div>
-                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-3 rounded-full bg-green-500 transition-all" style={{ width: `${Math.min(100, (totalFat / (nutritionPrefs?.fat_target || 70)) * 100)}%` }}></div>
-                  </div>
-                  <div className="text-xs text-gray-400 mt-0.5">{Math.round((totalFat / (nutritionPrefs?.fat_target || 70)) * 100)}%</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <TodaysMeals
+          meals={todaysMeals}
+          mealOrder={mealOrder}
+          onCompleteMeal={handleCompleteMeal}
+          onUncompleteMeal={handleUncompleteMeal}
+          nutrition={{
+            calories: totalCalories,
+            caloriesTarget: nutritionPrefs?.calories_target || 2000,
+            protein: totalProtein,
+            proteinTarget: nutritionPrefs?.protein_target || 100,
+            carbs: totalCarbs,
+            carbsTarget: nutritionPrefs?.carbs_target || 250,
+            fat: totalFat,
+            fatTarget: nutritionPrefs?.fat_target || 70,
+          }}
+        />
 
         {/* Section: Weekly Calendar (AI/user meal plan) */}
-        <div className="w-full max-w-7xl mx-auto mb-16">
-          <h2 className="text-2xl font-bold text-blue-700 mb-1 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-blue-700" />
-            Your AI Meal Plan Calendar
-          </h2>
-          <p className="text-sm text-gray-500 mb-4">This calendar shows your personalized meal plan generated by the AI, based on your preferences and logged meals.</p>
-          <button
-            onClick={handleGenerateWeeklyMeals}
-            className="mb-6 bg-gradient-to-r from-blue-500 to-green-400 text-white px-6 py-2 rounded-xl font-semibold hover:from-blue-600 hover:to-green-500 text-lg shadow"
-            disabled={weekLoading}
-          >
-            {weekLoading ? 'Generating...' : 'Generate / Regenerate Weekly Meals'}
-          </button>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-0 text-xs bg-white rounded-xl shadow border border-gray-200">
-              <thead>
-                <tr>
-                  <th className="bg-gray-50 font-semibold text-gray-600 text-left px-3 py-2 border-b border-r border-gray-200 sticky left-0 z-10">Meal</th>
-                  {weekDates.map((date) => {
-                    const isToday = date === todayDateStr;
-                    return (
-                      <th
-                        key={date}
-                        className={`font-semibold text-gray-700 text-center px-4 py-2 border-b border-gray-200 ${isToday ? 'bg-green-50 text-green-700' : 'bg-gray-50'}`}
-                      >
-                        <div className="flex items-center justify-center gap-1 relative group">
-                          {format(parseISO(date), 'EEE')}
-                          <button
-                            onClick={() => handleRegenerateDay(date)}
-                            className="ml-1 p-1 rounded hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all relative"
-                            disabled={weekLoading || dayLoading === date}
-                            style={{ lineHeight: 0 }}
-                            onMouseEnter={e => {
-                              const tooltip = e.currentTarget.querySelector('.regen-tooltip');
-                              if (tooltip) tooltip.classList.remove('hidden');
-                            }}
-                            onMouseLeave={e => {
-                              const tooltip = e.currentTarget.querySelector('.regen-tooltip');
-                              if (tooltip) tooltip.classList.add('hidden');
-                            }}
-                          >
-                            {dayLoading === date ? (
-                              <span className="inline-block align-middle">
-                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 border-t-transparent border-l-transparent border-r-transparent"></span>
-                              </span>
-                            ) : (
-                              <Zap className="w-5 h-5 text-orange-500" />
-                            )}
-                            {/* Custom tooltip for regenerate button */}
-                            <span className="regen-tooltip hidden absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 bg-white border border-orange-300 rounded-xl shadow-lg px-3 py-2 text-xs text-orange-700 font-semibold whitespace-nowrap animate-fade-in-up transition-all duration-200">
-                              Regenerate meals for this day
-                            </span>
-                          </button>
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {mealOrder.map((type, mIdx) => (
-                  <tr key={type}>
-                    <td className="font-bold text-gray-800 px-3 py-2 border-r border-b border-gray-200 bg-gray-50 sticky left-0 z-10 capitalize">{type}</td>
-                    {weekDates.map((date, dIdx) => {
-                      const meal = weekMeals[date]?.find((m: any) => m.meal_type === type);
-                      const isToday = date === todayDateStr;
-                      return (
-                        <td
-                          key={date}
-                          className={`align-top px-2 py-2 border-b border-gray-200 text-center min-w-[110px] max-w-[180px] ${isToday ? 'bg-green-50/70' : ''}`}
-                          style={{ verticalAlign: 'top' }}
-                        >
-                          {meal ? (
-                            <div
-                              className="relative group rounded-md border border-gray-200 bg-white/80 px-2 py-1 text-center text-gray-900 hover:shadow-md transition-shadow duration-150"
-                              style={{ fontSize: '1.12em', fontWeight: 600, whiteSpace: 'normal', overflow: 'visible' }}
-                              onMouseEnter={e => {
-                                setHoveredMeal(meal);
-                                const rect = (e.target as HTMLElement).getBoundingClientRect();
-                                setHoverPos({ x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY });
-                              }}
-                              onMouseLeave={() => setHoveredMeal(null)}
-                            >
-                              {meal.description}
-                            </div>
-                          ) : (
-                            <div className="relative rounded-md border border-gray-200 bg-white/70 px-2 py-1 text-center text-gray-400" style={{ fontSize: '1.12em', whiteSpace: 'normal', overflow: 'visible' }}>
-                              —
-                            </div>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <AICalendarMealPlanner
+          weekMeals={weekMeals}
+          weekDates={weekDates}
+          mealOrder={mealOrder}
+          todayDateStr={todayDateStr}
+          weekLoading={weekLoading}
+          dayLoading={dayLoading}
+          handleRegenerateDay={handleRegenerateDay}
+          setHoveredMeal={setHoveredMeal}
+          setHoverPos={setHoverPos}
+        />
 
         {/* Middle Section: Grocery List and Log a Meal side by side */}
         <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-6 justify-center items-start mt-12 mb-16">
           {/* Grocery List Section */}
-          <div className="w-full max-w-md">
-            <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
-              <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-                <Utensils className="w-5 h-5 text-green-600" />
-                Grocery List
-              </h2>
-              {groceryLoading ? (
-                <div className="flex flex-col items-center justify-center py-8 w-full">
-                  <Loader2 className="w-8 h-8 text-green-500 animate-spin mb-2" />
-                  <span className="text-green-700 font-medium">Loading grocery list...</span>
-                </div>
-              ) : groceryList.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-4 w-full">
-                  <span className="text-gray-500 text-lg mb-2">No grocery list found for this week.</span>
-                  <button
-                    onClick={handleGenerateGroceryList}
-                    className="mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2"
-                  >
-                    <ShoppingCart className="w-5 h-5" /> Generate Grocery List
-                  </button>
-                </div>
-              ) : (
-                <div className="w-full mt-2">
-                  <ul className="divide-y divide-gray-200 w-full">
-                    {(groceryCondensed ? groceryList.slice(0, 5) : groceryList).map((item, idx) => (
-                      <li key={idx} className="flex items-center gap-3 py-2">
-                        <input
-                          type="checkbox"
-                          checked={checkedItems.has(idx)}
-                          onChange={() => handleToggleItem(idx)}
-                          className="form-checkbox h-5 w-5 text-green-600 rounded focus:ring-green-500 border-gray-300"
-                        />
-                        <span className={`flex-1 text-gray-800 text-base ${checkedItems.has(idx) ? 'line-through text-gray-400' : ''}`}>{typeof item === 'object' && 'name' in item ? String(item.name) : String(item)}</span>
-                        {typeof item === 'object' && 'quantity' in item && <span className="text-xs text-gray-500 ml-2">x{String(item.quantity)}</span>}
-                        {typeof item === 'object' && 'unit' in item && <span className="text-xs text-gray-400 ml-1">{String(item.unit)}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                  {groceryList.length > 5 && (
-                    <button
-                      className="mt-2 flex items-center justify-center gap-1 text-xs text-green-700 underline hover:text-green-900 focus:outline-none w-full"
-                      onClick={() => setGroceryCondensed(c => !c)}
-                    >
-                      {groceryCondensed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-                      {groceryCondensed ? `Show more` : 'Show less'}
-                    </button>
-                  )}
-                </div>
-              )}
-              <button
-                onClick={handleGenerateGroceryList}
-                className="mt-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2 w-full"
-              >
-                <ShoppingCart className="w-5 h-5" /> Regenerate Grocery List
-              </button>
-            </div>
-          </div>
+          <GroceryList
+            groceryList={groceryList}
+            groceryLoading={groceryLoading}
+            checkedItems={checkedItems}
+            onToggleItem={handleToggleItem}
+            onGenerate={handleGenerateGroceryList}
+            groceryCondensed={groceryCondensed}
+            setGroceryCondensed={c => setGroceryCondensed(c)}
+          />
           {/* Log a Meal Section */}
-          <div className="w-full max-w-md">
-            <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
-              <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-                <ChefHat className="w-5 h-5 text-green-600" />
-                Log a Meal
-              </h2>
-              {!logMealExpanded && (
-                <Button className="w-full mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold shadow hover:from-green-600 hover:to-emerald-700" onClick={() => setLogMealExpanded(true)}>
-                  Log a Meal
-                </Button>
-              )}
-              {logMealExpanded && (
-                <form className="w-full space-y-3 mb-4" onSubmit={handleLogMealSubmit}>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Meal Type</label>
-                    <select name="meal_type" value={logMealForm.meal_type} onChange={handleLogMealChange} className="w-full rounded-lg border-gray-300 focus:ring-green-500 focus:border-green-500" required>
-                      <option value="">Select...</option>
-                      <option value="breakfast">Breakfast</option>
-                      <option value="lunch">Lunch</option>
-                      <option value="snack">Snack</option>
-                      <option value="dinner">Dinner</option>
-                      <option value="custom">Custom</option>
-                    </select>
-                    {logMealError && <div className="text-red-600 text-xs mt-1">{logMealError}</div>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Meal Name</label>
-                    <Input name="description" value={logMealForm.description} onChange={handleLogMealChange} required placeholder="e.g. Chicken Salad" />
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-500">Calories</label>
-                      <Input name="calories" value={logMealForm.calories} onChange={handleLogMealChange} type="number" min="0" />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-500">Protein</label>
-                      <Input name="protein" value={logMealForm.protein} onChange={handleLogMealChange} type="number" min="0" />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-500">Carbs</label>
-                      <Input name="carbs" value={logMealForm.carbs} onChange={handleLogMealChange} type="number" min="0" />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-xs text-gray-500">Fat</label>
-                      <Input name="fat" value={logMealForm.fat} onChange={handleLogMealChange} type="number" min="0" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500">Serving Size</label>
-                    <Input name="serving_size" value={logMealForm.serving_size} onChange={handleLogMealChange} />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500">Recipe</label>
-                    <Textarea name="recipe" value={logMealForm.recipe} onChange={handleLogMealChange} rows={2} />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500">Ingredients (comma separated)</label>
-                    <Input name="ingredients" value={logMealForm.ingredients} onChange={handleLogMealChange} />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500">Tags (comma separated, optional)</label>
-                    <Input name="tags" value={logMealForm.tags} onChange={handleLogMealChange} />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500">Date</label>
-                    <Input name="date" value={logMealForm.date} onChange={handleLogMealChange} type="date" />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit" className="w-full mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold shadow hover:from-green-600 hover:to-emerald-700" disabled={logMealLoading}>
-                      {logMealLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log Meal'}
-                    </Button>
-                    <Button type="button" variant="outline" className="w-full mt-2" onClick={() => setLogMealExpanded(false)} disabled={logMealLoading}>
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              )}
-              {userLoggedMeals.length > 0 && (
-                <div className="mt-2 w-full">
-                  <h3 className="text-base font-semibold text-gray-700 mb-2">Your Logged Meals</h3>
-                  <ul className="space-y-2">
-                    {userLoggedMeals.map((meal, idx) => (
-                      <li key={meal.id} className="relative">
-                        <button
-                          type="button"
-                          className="w-full text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all"
-                          onMouseEnter={e => {
-                            if (userMealTooltipTimeout.current) clearTimeout(userMealTooltipTimeout.current);
-                            setHoveredUserMeal(meal);
-                            const rect2 = (e.target as HTMLElement).getBoundingClientRect();
-                            setUserMealTooltipPos({ x: rect2.left + rect2.width / 2, y: rect2.bottom + window.scrollY });
-                          }}
-                          onMouseLeave={() => {
-                            userMealTooltipTimeout.current = setTimeout(() => setHoveredUserMeal(null), 200);
-                          }}
-                        >
-                          {meal.description}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  {hoveredUserMeal && userMealTooltipPos && (
-                    <div
-                      style={{ position: 'absolute', left: userMealTooltipPos.x, top: userMealTooltipPos.y + 8, zIndex: 50 }}
-                      className="bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-80 max-w-xs text-sm animate-fade-in-up"
-                      onMouseEnter={() => { if (userMealTooltipTimeout.current) clearTimeout(userMealTooltipTimeout.current); }}
-                      onMouseLeave={() => { setHoveredUserMeal(null); }}
-                    >
-                      <div className="font-bold text-lg mb-1">{hoveredUserMeal.description}</div>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        <span className="text-orange-500 font-semibold">⚡ {hoveredUserMeal.calories} cal</span>
-                        <span className="text-red-500 font-semibold">❤️ {hoveredUserMeal.protein} protein</span>
-                        <span className="text-yellow-500 font-semibold">C {hoveredUserMeal.carbs} carbs</span>
-                        <span className="text-green-500 font-semibold">F {hoveredUserMeal.fat} fat</span>
-                      </div>
-                      {hoveredUserMeal.serving_size && <div className="text-xs text-gray-500 mb-1">Serving size: {hoveredUserMeal.serving_size}</div>}
-                      {hoveredUserMeal.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {hoveredUserMeal.recipe}</div>}
-                      {hoveredUserMeal.ingredients && Array.isArray(hoveredUserMeal.ingredients) && hoveredUserMeal.ingredients.length > 0 && (
-                        <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {hoveredUserMeal.ingredients.join(', ')}</div>
-                      )}
-                      {hoveredUserMeal.tags && Array.isArray(hoveredUserMeal.tags) && hoveredUserMeal.tags.length > 0 && (
-                        <div className="text-xs text-gray-400 mb-1"><b>Tags:</b> {hoveredUserMeal.tags.join(', ')}</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          <LogMeal
+            logMealExpanded={logMealExpanded}
+            setLogMealExpanded={setLogMealExpanded}
+            logMealForm={logMealForm}
+            setLogMealForm={setLogMealForm}
+            logMealError={logMealError}
+            setLogMealError={setLogMealError}
+            logMealLoading={logMealLoading}
+            handleLogMealChange={handleLogMealChange}
+            handleLogMealSubmit={handleLogMealSubmit}
+            userLoggedMeals={userLoggedMeals}
+            hoveredUserMeal={hoveredUserMeal}
+            setHoveredUserMeal={setHoveredUserMeal}
+            userMealTooltipPos={userMealTooltipPos}
+            setUserMealTooltipPos={setUserMealTooltipPos}
+            userMealTooltipTimeout={userMealTooltipTimeout}
+          />
           {/* Search a Recipe Section */}
-          <div className="w-full max-w-md">
-            <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
-              <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-                <Utensils className="w-5 h-5 text-green-600" />
-                AI Search a Recipe
-              </h2>
-              <form className="w-full flex gap-2 mb-4" onSubmit={handleRecipeSearch}>
-                <Input
-                  name="recipeQuery"
-                  value={recipeQuery}
-                  onChange={e => setRecipeQuery(e.target.value)}
-                  placeholder="e.g. salmon, pasta, vegan..."
-                  className="flex-1"
-                />
-                <Button type="submit" className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold shadow hover:from-green-600 hover:to-emerald-700" disabled={recipeLoading}>
-                  {recipeLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
-                </Button>
-              </form>
-              <div className="w-full">
-                {recipeError && <div className="text-red-600 mb-2">{recipeError}</div>}
-                {recipeLoading ? (
-                  <div className="flex items-center justify-center py-6 text-green-600"><Loader2 className="w-6 h-6 animate-spin" /></div>
-                ) : recipeResults.length > 0 ? (
-                  <ul className="divide-y divide-gray-200">
-                    {recipeResults.map((r, idx) => (
-                      <li key={idx} className="py-2">
-                        <div className="font-semibold text-gray-900 text-lg mb-1">{r.description || r.name}</div>
-                        <div className="flex gap-3 text-xs text-gray-500 mb-2">
-                          <span>⚡ {r.calories} cal</span>
-                          <span>❤️ {r.protein}g protein</span>
-                          <span>C {r.carbs}g carbs</span>
-                          <span>F {r.fat}g fat</span>
-                        </div>
-                        {r.serving_size && <div className="text-xs text-gray-500 mb-1">Serving size: {r.serving_size}</div>}
-                        {r.ingredients && Array.isArray(r.ingredients) && r.ingredients.length > 0 && (
-                          <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {r.ingredients.map((ing: any) => ing.name + (ing.quantity ? ` (${ing.quantity})` : '')).join(', ')}</div>
-                        )}
-                        {r.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {r.recipe}</div>}
-                        <Button className="mt-2" onClick={() => handleSaveRecipe(r)}>Save Recipe</Button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-gray-400 text-sm py-4">Search for healthy recipes by ingredient, cuisine, or diet.</div>
-                )}
-              </div>
-              {/* Saved Recipes List */}
-              {savedRecipes.length > 0 && (
-                <div className="mt-6 w-full">
-                  <h3 className="text-base font-semibold text-gray-700 mb-2">Your Saved Recipes</h3>
-                  <ul className="space-y-2">
-                    {savedRecipes.map((rec, idx) => (
-                      <li key={rec.id} className="relative">
-                        <button
-                          type="button"
-                          className="w-full text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all"
-                          onMouseEnter={e => {
-                            if (savedRecipeTooltipTimeout.current) clearTimeout(savedRecipeTooltipTimeout.current);
-                            setHoveredSavedRecipe(rec);
-                            const rect2 = (e.target as HTMLElement).getBoundingClientRect();
-                            setSavedRecipeTooltipPos({ x: rect2.left + rect2.width / 2, y: rect2.bottom + window.scrollY });
-                          }}
-                          onMouseLeave={() => {
-                            savedRecipeTooltipTimeout.current = setTimeout(() => setHoveredSavedRecipe(null), 200);
-                          }}
-                        >
-                          {rec.name}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  {hoveredSavedRecipe && savedRecipeTooltipPos && (
-                    <div
-                      style={{ position: 'absolute', left: savedRecipeTooltipPos.x, top: savedRecipeTooltipPos.y + 8, zIndex: 50 }}
-                      className="bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-80 max-w-xs text-sm animate-fade-in-up"
-                      onMouseEnter={() => { if (savedRecipeTooltipTimeout.current) clearTimeout(savedRecipeTooltipTimeout.current); }}
-                      onMouseLeave={() => { setHoveredSavedRecipe(null); }}
-                    >
-                      <div className="font-bold text-lg mb-1">{hoveredSavedRecipe.name}</div>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        <span className="text-orange-500 font-semibold">⚡ {hoveredSavedRecipe.calories} cal</span>
-                        <span className="text-red-500 font-semibold">❤️ {hoveredSavedRecipe.protein} protein</span>
-                        <span className="text-yellow-500 font-semibold">C {hoveredSavedRecipe.carbs} carbs</span>
-                        <span className="text-green-500 font-semibold">F {hoveredSavedRecipe.fat} fat</span>
-                      </div>
-                      {hoveredSavedRecipe.serving_size && <div className="text-xs text-gray-500 mb-1">Serving size: {hoveredSavedRecipe.serving_size}</div>}
-                      {hoveredSavedRecipe.ingredients && Array.isArray(hoveredSavedRecipe.ingredients) && hoveredSavedRecipe.ingredients.length > 0 && (
-                        <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {hoveredSavedRecipe.ingredients.map((ing: any) => ing.name + (ing.quantity ? ` (${ing.quantity})` : '')).join(', ')}</div>
-                      )}
-                      {hoveredSavedRecipe.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {hoveredSavedRecipe.recipe}</div>}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          <AISearchRecipe
+            recipeQuery={recipeQuery}
+            setRecipeQuery={setRecipeQuery}
+            recipeLoading={recipeLoading}
+            recipeResults={recipeResults}
+            recipeError={recipeError}
+            handleRecipeSearch={handleRecipeSearch}
+            handleSaveRecipe={handleSaveRecipe}
+            savedRecipes={savedRecipes}
+            hoveredSavedRecipe={hoveredSavedRecipe}
+            setHoveredSavedRecipe={setHoveredSavedRecipe}
+            savedRecipeTooltipPos={savedRecipeTooltipPos}
+            setSavedRecipeTooltipPos={setSavedRecipeTooltipPos}
+            savedRecipeTooltipTimeout={savedRecipeTooltipTimeout}
+          />
         </div>
       </div>
-      <EdamamRecipeSearchTester />
-      <NutritionAnalysisTester />
-      <FoodDatabaseTester />
+      <EdamamNutritionAnalysisTester />
+      <EdamamFoodDatabaseTester />
       {/* Edamam Demo Meal Plan Calendar moved below all Edamam testers */}
       <div className="w-full max-w-7xl mx-auto mb-16">
         <h2 className="text-2xl font-bold text-green-700 mb-1 flex items-center gap-2">
