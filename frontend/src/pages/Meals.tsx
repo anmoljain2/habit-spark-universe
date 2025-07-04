@@ -26,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { createPortal } from 'react-dom';
 
 type Meal = Database['public']['Tables']['user_meals']['Row'];
 
@@ -331,6 +332,9 @@ function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutriti
   const [plan, setPlan] = useState<any[][]>([]); // [day][meal]
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Add local hover state for this component
+  const [hoveredMeal, setHoveredMeal] = useState<any | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ x: number, y: number } | null>(null);
 
   // Add these demo values to fix linter errors for the Edamam demo calendar
   const mealOrder = ["breakfast", "lunch", "snack", "dinner"];
@@ -480,7 +484,7 @@ function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutriti
               {mealOrder.map(type => (
                 <tr key={type}>
                   <td className="font-bold text-gray-800 px-3 py-2 border-r border-b border-gray-200 bg-gray-50 sticky left-0 z-10 capitalize">{type}</td>
-                  {weekDates.map((date, dIdx) => {
+                  {weekDates.map((date) => {
                     const meals = weekMeals[date] || [];
                     const meal = meals.find(m => m.meal_type && m.meal_type.toLowerCase() === type);
                     const isToday = date === todayStr;
@@ -494,27 +498,17 @@ function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutriti
                           <div
                             className="relative group rounded-md border border-gray-200 bg-white/80 px-2 py-1 text-center truncate text-gray-900 hover:shadow-md transition-shadow duration-150"
                             style={{ fontSize: '0.98em', cursor: 'pointer' }}
+                            onMouseEnter={e => {
+                              setHoveredMeal(meal);
+                              const rect1 = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              setHoverPos({ x: rect1.left + rect1.width / 2, y: rect1.bottom + window.scrollY });
+                            }}
+                            onMouseLeave={() => {
+                              setHoveredMeal(null);
+                              setHoverPos(null);
+                            }}
                           >
                             {meal.description}
-                            {/* Hover card for meal details */}
-                            <div className="absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 hidden group-hover:flex flex-col bg-white border border-gray-300 rounded-xl shadow-2xl p-4 min-w-[220px] max-w-[320px] text-xs text-left animate-fade-in-up transition-all duration-200">
-                              <div className="font-bold text-base text-gray-900 mb-1">{meal.description}</div>
-                              <div className="mb-1 text-gray-700">{meal.serving_size || '1 serving'} &middot; {meal.calories ? Math.round(meal.calories) : 0} kcal</div>
-                              <div className="flex gap-2 mb-1">
-                                <span className="text-green-600 font-semibold">PROTEIN {meal.protein ? Math.round(meal.protein) : 0}g</span>
-                                <span className="text-yellow-600 font-semibold">FAT {meal.fat ? Math.round(meal.fat) : 0}g</span>
-                                <span className="text-red-600 font-semibold">CARB {meal.carbs ? Math.round(meal.carbs) : 0}g</span>
-                              </div>
-                              {meal.recipe && (
-                                <div className="text-xs text-gray-600 mt-1 mb-1"><b>Recipe:</b> {meal.recipe}</div>
-                              )}
-                              {meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0 && (
-                                <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {Array.isArray(meal.ingredients) ? meal.ingredients.map((ing: any) => typeof ing === 'string' ? ing : (ing.name || '')).join(', ') : ''}</div>
-                              )}
-                              {meal.tags && Array.isArray(meal.tags) && meal.tags.length > 0 && (
-                                <div className="text-xs text-gray-400 mb-1"><b>Tags:</b> {meal.tags.join(', ')}</div>
-                              )}
-                            </div>
                           </div>
                         ) : (
                           <div className="relative rounded-md border border-gray-200 bg-white/70 px-2 py-1 text-center truncate text-gray-400" style={{ fontSize: '0.98em' }}>
@@ -531,6 +525,26 @@ function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutriti
         </div>
       )}
     </div>
+  );
+}
+
+// HoverCardPortal component for robust hover card rendering
+function HoverCardPortal({ children, pos }: { children: React.ReactNode, pos: { x: number, y: number } | null }) {
+  if (!pos) return null;
+  return createPortal(
+    <div
+      style={{
+        position: 'absolute',
+        left: pos.x,
+        top: pos.y + 8,
+        zIndex: 9999,
+        pointerEvents: 'auto'
+      }}
+      className="bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-80 max-w-xs text-sm animate-fade-in-up"
+    >
+      {children}
+    </div>,
+    document.body
   );
 }
 
@@ -643,8 +657,7 @@ const Meals = () => {
 
   // Tooltip state for hovered meal
   const [hoveredMeal, setHoveredMeal] = useState<any | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<{x: number, y: number} | null>(null);
-  const tooltipTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ x: number, y: number } | null>(null);
 
   // Derived values for nutrition
   const completedMeals = todaysMeals.filter((meal: any) => meal.completed);
@@ -1034,27 +1047,17 @@ const Meals = () => {
                             <div
                               className="relative group rounded-md border border-gray-200 bg-white/80 px-2 py-1 text-center truncate text-gray-900 hover:shadow-md transition-shadow duration-150"
                               style={{ fontSize: '0.98em', cursor: 'pointer' }}
+                              onMouseEnter={e => {
+                                setHoveredMeal(meal);
+                                const rect1 = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                setHoverPos({ x: rect1.left + rect1.width / 2, y: rect1.bottom + window.scrollY });
+                              }}
+                              onMouseLeave={() => {
+                                setHoveredMeal(null);
+                                setHoverPos(null);
+                              }}
                             >
                               {meal.description}
-                              {/* Hover card for meal details */}
-                              <div className="absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 hidden group-hover:flex flex-col bg-white border border-gray-300 rounded-xl shadow-2xl p-4 min-w-[220px] max-w-[320px] text-xs text-left animate-fade-in-up transition-all duration-200">
-                                <div className="font-bold text-base text-gray-900 mb-1">{meal.description}</div>
-                                <div className="mb-1 text-gray-700">{meal.serving_size || '1 serving'} &middot; {meal.calories ? Math.round(meal.calories) : 0} kcal</div>
-                                <div className="flex gap-2 mb-1">
-                                  <span className="text-green-600 font-semibold">PROTEIN {meal.protein ? Math.round(meal.protein) : 0}g</span>
-                                  <span className="text-yellow-600 font-semibold">FAT {meal.fat ? Math.round(meal.fat) : 0}g</span>
-                                  <span className="text-red-600 font-semibold">CARB {meal.carbs ? Math.round(meal.carbs) : 0}g</span>
-                                </div>
-                                {meal.recipe && (
-                                  <div className="text-xs text-gray-600 mt-1 mb-1"><b>Recipe:</b> {meal.recipe}</div>
-                                )}
-                                {meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0 && (
-                                  <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {Array.isArray(meal.ingredients) ? meal.ingredients.map((ing: any) => typeof ing === 'string' ? ing : (ing.name || '')).join(', ') : ''}</div>
-                                )}
-                                {meal.tags && Array.isArray(meal.tags) && meal.tags.length > 0 && (
-                                  <div className="text-xs text-gray-400 mb-1"><b>Tags:</b> {meal.tags.join(', ')}</div>
-                                )}
-                              </div>
                             </div>
                           ) : (
                             <div className="relative rounded-md border border-gray-200 bg-white/70 px-2 py-1 text-center truncate text-gray-400" style={{ fontSize: '0.98em' }}>
@@ -1232,8 +1235,8 @@ const Meals = () => {
                           onMouseEnter={e => {
                             if (userMealTooltipTimeout.current) clearTimeout(userMealTooltipTimeout.current);
                             setHoveredUserMeal(meal);
-                            const rect = (e.target as HTMLElement).getBoundingClientRect();
-                            setUserMealTooltipPos({ x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY });
+                            const rect2 = (e.target as HTMLElement).getBoundingClientRect();
+                            setUserMealTooltipPos({ x: rect2.left + rect2.width / 2, y: rect2.bottom + window.scrollY });
                           }}
                           onMouseLeave={() => {
                             userMealTooltipTimeout.current = setTimeout(() => setHoveredUserMeal(null), 200);
@@ -1331,8 +1334,8 @@ const Meals = () => {
                           onMouseEnter={e => {
                             if (savedRecipeTooltipTimeout.current) clearTimeout(savedRecipeTooltipTimeout.current);
                             setHoveredSavedRecipe(rec);
-                            const rect = (e.target as HTMLElement).getBoundingClientRect();
-                            setSavedRecipeTooltipPos({ x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY });
+                            const rect2 = (e.target as HTMLElement).getBoundingClientRect();
+                            setSavedRecipeTooltipPos({ x: rect2.left + rect2.width / 2, y: rect2.bottom + window.scrollY });
                           }}
                           onMouseLeave={() => {
                             savedRecipeTooltipTimeout.current = setTimeout(() => setHoveredSavedRecipe(null), 200);
@@ -1373,6 +1376,28 @@ const Meals = () => {
       <EdamamRecipeSearchTester />
       <NutritionAnalysisTester />
       <FoodDatabaseTester />
+      {/* Render the hover card portal for meal details */}
+      <HoverCardPortal pos={hoverPos}>
+        {hoveredMeal && (
+          <>
+            <div className="font-bold text-lg mb-1">{hoveredMeal.description}</div>
+            <div className="flex flex-wrap gap-2 mb-2">
+              <span className="text-orange-500 font-semibold">⚡ {hoveredMeal.calories} cal</span>
+              <span className="text-red-500 font-semibold">❤️ {hoveredMeal.protein} protein</span>
+              <span className="text-yellow-500 font-semibold">C {hoveredMeal.carbs} carbs</span>
+              <span className="text-green-500 font-semibold">F {hoveredMeal.fat} fat</span>
+            </div>
+            {hoveredMeal.serving_size && <div className="text-xs text-gray-500 mb-1">Serving size: {hoveredMeal.serving_size}</div>}
+            {hoveredMeal.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {hoveredMeal.recipe}</div>}
+            {hoveredMeal.ingredients && Array.isArray(hoveredMeal.ingredients) && hoveredMeal.ingredients.length > 0 && (
+              <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {hoveredMeal.ingredients.join(', ')}</div>
+            )}
+            {hoveredMeal.tags && Array.isArray(hoveredMeal.tags) && hoveredMeal.tags.length > 0 && (
+              <div className="text-xs text-gray-400 mb-1"><b>Tags:</b> {hoveredMeal.tags.join(', ')}</div>
+            )}
+          </>
+        )}
+      </HoverCardPortal>
     </div>
   );
 };
