@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Utensils, Coffee, Sandwich, Drumstick, Flame, Heart, Leaf, Egg } from 'lucide-react';
+import { Loader2, Utensils, Coffee, Sandwich, Drumstick, Flame, Heart, Leaf, Egg, CheckCircle } from 'lucide-react';
 
 interface TodaysMealsProps {
   userId: string;
@@ -33,31 +33,33 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
   const [todayMeals, setTodayMeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [nutrition, setNutrition] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+  const [completing, setCompleting] = useState<string | null>(null);
+
+  const fetchTodayMeals = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('user_meals')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date_only', todayStr);
+    if (!error && data) {
+      setTodayMeals(data);
+      let cals = 0, prot = 0, carbs = 0, fat = 0;
+      data.forEach((m: any) => {
+        cals += Number(m.calories) || 0;
+        prot += Number(m.protein) || 0;
+        carbs += Number(m.carbs) || 0;
+        fat += Number(m.fat) || 0;
+      });
+      setNutrition({ calories: cals, protein: prot, carbs: carbs, fat: fat });
+    } else {
+      setTodayMeals([]);
+      setNutrition({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchTodayMeals = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('user_meals')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('date_only', todayStr);
-      if (!error && data) {
-        setTodayMeals(data);
-        let cals = 0, prot = 0, carbs = 0, fat = 0;
-        data.forEach((m: any) => {
-          cals += Number(m.calories) || 0;
-          prot += Number(m.protein) || 0;
-          carbs += Number(m.carbs) || 0;
-          fat += Number(m.fat) || 0;
-        });
-        setNutrition({ calories: cals, protein: prot, carbs: carbs, fat: fat });
-      } else {
-        setTodayMeals([]);
-        setNutrition({ calories: 0, protein: 0, carbs: 0, fat: 0 });
-      }
-      setLoading(false);
-    };
     if (userId && todayStr) fetchTodayMeals();
   }, [userId, todayStr]);
 
@@ -66,6 +68,16 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
     const value = nutrition[macro];
     if (!goal || goal <= 0) return 0;
     return Math.min(100, Math.round((value / goal) * 100));
+  };
+
+  const handleMarkComplete = async (mealId: string) => {
+    setCompleting(mealId);
+    await supabase
+      .from('user_meals')
+      .update({ completed: true })
+      .eq('id', mealId);
+    await fetchTodayMeals();
+    setCompleting(null);
   };
 
   return (
@@ -91,7 +103,7 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
                   </div>
                   {meal ? (
                     <>
-                      <div className="text-xl font-semibold text-gray-900 mb-1">{meal.food_name || 'Meal logged'}</div>
+                      <div className="text-xl font-semibold text-gray-900 mb-1">{meal.description || meal.food_name || ''}</div>
                       <div className="flex gap-3 mb-1">
                         <span className="text-orange-600 font-bold flex items-center gap-1">{macroIcons.calories} {meal.calories} <span className="text-xs font-normal">cal</span></span>
                         <span className="text-pink-600 font-bold flex items-center gap-1">{macroIcons.protein} {meal.protein} <span className="text-xs font-normal">protein</span></span>
@@ -101,7 +113,19 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
                       {meal.serving_size && <div className="text-gray-500 text-sm mb-1">Serving size: {meal.serving_size}</div>}
                       {meal.recipe && <div className="text-gray-700 text-sm mb-2"><b>Recipe:</b> {meal.recipe}</div>}
                       {meal.notes && <div className="mt-1 text-xs text-gray-500 italic">{meal.notes}</div>}
-                      <button className="mt-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow transition-all">Mark as Complete</button>
+                      {meal.completed ? (
+                        <button className="mt-auto bg-green-200 text-green-700 font-semibold py-2 px-4 rounded-lg shadow flex items-center gap-2 cursor-default" disabled>
+                          <CheckCircle className="w-5 h-5" /> Completed
+                        </button>
+                      ) : (
+                        <button
+                          className="mt-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow transition-all flex items-center gap-2"
+                          onClick={() => handleMarkComplete(meal.id)}
+                          disabled={completing === meal.id}
+                        >
+                          {completing === meal.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />} Mark as Complete
+                        </button>
+                      )}
                     </>
                   ) : (
                     <div className="text-gray-400 italic">No {type.label.toLowerCase()} logged yet.</div>

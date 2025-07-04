@@ -12,6 +12,7 @@ const GroceryList: React.FC<GroceryListProps> = ({ userId, weekStart }) => {
   const [groceryLoading, setGroceryLoading] = useState(true);
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
   const [groceryCondensed, setGroceryCondensed] = useState(true);
+  const [popup, setPopup] = useState<string | null>(null);
 
   const fetchGroceryList = async () => {
     setGroceryLoading(true);
@@ -47,7 +48,14 @@ const GroceryList: React.FC<GroceryListProps> = ({ userId, weekStart }) => {
   };
 
   const handleGenerateGroceryList = async () => {
-    if (!userId) return;
+    if (!userId || !weekStart) {
+      let missing = [];
+      if (!userId) missing.push('User ID');
+      if (!weekStart) missing.push('Week Start');
+      setPopup(`Cannot regenerate grocery list. Missing: ${missing.join(' and ')}`);
+      setTimeout(() => setPopup(null), 3500);
+      return;
+    }
     setGroceryLoading(true);
     try {
       const res = await fetch('/api/generate-grocery-list', {
@@ -129,6 +137,11 @@ const GroceryList: React.FC<GroceryListProps> = ({ userId, weekStart }) => {
         >
           <ShoppingCart className="w-5 h-5" /> Regenerate Grocery List
         </button>
+        {popup && (
+          <div className="fixed z-50 left-1/2 bottom-8 -translate-x-1/2 bg-red-100 border border-red-300 text-red-800 px-6 py-3 rounded-xl shadow-lg text-base font-semibold animate-fade-in-up">
+            {popup}
+          </div>
+        )}
       </div>
     </div>
   );

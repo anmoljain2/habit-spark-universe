@@ -61,6 +61,14 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
     }
     setLogMealLoading(true);
     try {
+      // Delete any existing meal for this user, date, and meal_type
+      await supabase
+        .from('user_meals')
+        .delete()
+        .eq('user_id', userId)
+        .eq('date_only', todayStr)
+        .eq('meal_type', logMealForm.meal_type);
+      // Insert the new meal
       const mealToInsert = {
         ...logMealForm,
         user_id: userId,
@@ -97,6 +105,8 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
         date: todayStr,
       });
       fetchUserLoggedMeals();
+      // Optionally, reload the page or trigger a refresh in parent components if needed
+      // window.location.reload(); // Uncomment if you want a full reload
     } catch (err: any) {
       setLogMealError(err.message || 'Failed to log meal');
     }

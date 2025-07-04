@@ -58,7 +58,7 @@ const Meals: React.FC = () => {
     setRecipeLoading(true);
     setRecipeResults([]);
     try {
-      const res = await fetch('/api/generate-recipe', {
+      const res = await fetch('/api/find-recipe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: recipeQuery, user_id: userId }),

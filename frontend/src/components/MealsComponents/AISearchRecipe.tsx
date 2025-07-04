@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Utensils, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,24 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
   setSavedRecipeTooltipPos,
   savedRecipeTooltipTimeout,
 }) => {
+  const [popup, setPopup] = useState<string | null>(null);
+
+  // Wrap the search handler to add validation and error popup
+  const wrappedHandleRecipeSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!recipeQuery || recipeQuery.trim().length === 0) {
+      setPopup('Please enter a search query.');
+      setTimeout(() => setPopup(null), 3500);
+      return;
+    }
+    try {
+      await handleRecipeSearch(e);
+    } catch (err: any) {
+      setPopup('Failed to search recipes. Please try again.');
+      setTimeout(() => setPopup(null), 3500);
+    }
+  };
+
   return (
     <div className="w-full max-w-md">
       <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
@@ -41,7 +59,7 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
           <Utensils className="w-5 h-5 text-green-600" />
           AI Search a Recipe
         </h2>
-        <form className="w-full flex gap-2 mb-4" onSubmit={handleRecipeSearch}>
+        <form className="w-full flex gap-2 mb-4" onSubmit={wrappedHandleRecipeSearch}>
           <Input
             name="recipeQuery"
             value={recipeQuery}
@@ -127,6 +145,11 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
                 {hoveredSavedRecipe.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {hoveredSavedRecipe.recipe}</div>}
               </div>
             )}
+          </div>
+        )}
+        {popup && (
+          <div className="fixed z-50 left-1/2 bottom-8 -translate-x-1/2 bg-red-100 border border-red-300 text-red-800 px-6 py-3 rounded-xl shadow-lg text-base font-semibold animate-fade-in-up">
+            {popup}
           </div>
         )}
       </div>
