@@ -374,24 +374,34 @@ function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutriti
         const dayMeals: any[] = [];
         for (let m = 0; m < mealOrder.length; m++) {
           const mealType = mealOrder[m];
-          const query = getQueryForMeal(mealType, d);
-          // Build params using user nutrition preferences
-          const params: any = {
-            query,
-            mealType,
-          };
-          if (nutritionPrefs?.diet) params.diet = nutritionPrefs.diet;
-          if (nutritionPrefs?.calories_target) params.calories = `${Math.max(0, nutritionPrefs.calories_target - 100)}-${nutritionPrefs.calories_target + 100}`;
-          // Add more filters as needed from nutritionPrefs
-          const res = await fetch('/api/edamam-search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(params),
-          });
           let recipe = null;
-          if (res.ok) {
-            const data = await res.json();
-            recipe = data.hits && data.hits[0] ? data.hits[0].recipe : null;
+          let attempt = 0;
+          let lastQuery = getQueryForMeal(mealType, d);
+          while (!recipe && attempt < 3) {
+            const params: any = {
+              query: lastQuery,
+              mealType,
+            };
+            if (nutritionPrefs?.diet) params.diet = nutritionPrefs.diet;
+            if (nutritionPrefs?.calories_target) params.calories = `${Math.max(0, nutritionPrefs.calories_target - 100)}-${nutritionPrefs.calories_target + 100}`;
+            const res = await fetch('/api/edamam-search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(params),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              recipe = data.hits && data.hits[0] ? data.hits[0].recipe : null;
+            }
+            attempt++;
+            // Optionally, rotate query for more variety on retry
+            if (!recipe && attempt < 3) {
+              // Try a different query from the pool
+              if (mealType === "breakfast") lastQuery = breakfastIdeas[(d + attempt) % breakfastIdeas.length];
+              if (mealType === "lunch") lastQuery = lunchIdeas[(d + attempt) % lunchIdeas.length];
+              if (mealType === "snack") lastQuery = snackIdeas[(d + attempt) % snackIdeas.length];
+              if (mealType === "dinner") lastQuery = dinnerIdeas[(d + attempt) % dinnerIdeas.length];
+            }
           }
           dayMeals.push(recipe);
         }
@@ -704,6 +714,7 @@ const Meals = () => {
     date: todayStr,
   });
   const [logMealLoading, setLogMealLoading] = useState(false);
+  const [logMealError, setLogMealError] = useState('');
   const userLoggedMeals = todaysMeals.filter((m: any) => m.source === 'user');
   const userMealTooltipTimeout = useRef<NodeJS.Timeout | null>(null);
   const [hoveredUserMeal, setHoveredUserMeal] = useState<any | null>(null);
@@ -711,6 +722,7 @@ const Meals = () => {
   const [recipeQuery, setRecipeQuery] = useState('');
   const [recipeLoading, setRecipeLoading] = useState(false);
   const [recipeResults, setRecipeResults] = useState<any[]>([]);
+  const [recipeError, setRecipeError] = useState('');
   const [hoveredSavedRecipe, setHoveredSavedRecipe] = useState<any | null>(null);
   const [savedRecipeTooltipPos, setSavedRecipeTooltipPos] = useState<{x: number, y: number} | null>(null);
   const savedRecipeTooltipTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -750,35 +762,144 @@ const Meals = () => {
     setDayLoading(null);
   };
 
-  // Handler for generating grocery list (stub)
-  const handleGenerateGroceryList = () => {
-    // ... actual logic here ...
+  // Handler for generating grocery list
+  const handleGenerateGroceryList = async () => {
+    if (!user) return;
+    try {
+      // 1. Call the API to generate the grocery list
+      const res = await fetch('/api/generate-grocery-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, week_start: weekStart }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Failed to generate grocery list: ${text}`);
+      }
+      const data = await res.json();
+      const items = Array.isArray(data.items) ? data.items : data;
+      // 2. Delete the existing grocery list row for this user and week
+      await supabase
+        .from('grocery_lists')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('week_start', weekStart);
+      // 3. Insert the new grocery list row
+      const { error } = await supabase
+        .from('grocery_lists')
+        .insert([{ user_id: user.id, week_start: weekStart, items }]);
+      if (error) throw new Error(error.message);
+      // 4. Refetch grocery list and show toast
+      refetchGrocery();
+      toast.success('Grocery list regenerated!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to regenerate grocery list');
+    }
   };
 
   // Handler for logging a meal (stub)
   const handleLogMealChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setLogMealForm(f => ({ ...f, [e.target.name]: e.target.value }));
   };
-  const handleLogMealSubmit = (e: React.FormEvent) => {
+  const handleLogMealSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // ... actual logic here ...
+    setLogMealError('');
+    if (!logMealForm.meal_type) {
+      setLogMealError('Please select a meal type.');
+      return;
+    }
+    setLogMealLoading(true);
+    try {
+      // Prepare the meal object with correct types
+      const mealToInsert = {
+        ...logMealForm,
+        user_id: user.id,
+        calories: logMealForm.calories ? Number(logMealForm.calories) : undefined,
+        protein: logMealForm.protein ? Number(logMealForm.protein) : undefined,
+        carbs: logMealForm.carbs ? Number(logMealForm.carbs) : undefined,
+        fat: logMealForm.fat ? Number(logMealForm.fat) : undefined,
+        ingredients: Array.isArray(logMealForm.ingredients)
+          ? logMealForm.ingredients
+          : typeof logMealForm.ingredients === 'string' && logMealForm.ingredients.trim() !== ''
+            ? logMealForm.ingredients.split(',').map(s => s.trim())
+            : [],
+        tags: Array.isArray(logMealForm.tags)
+          ? logMealForm.tags
+          : typeof logMealForm.tags === 'string' && logMealForm.tags.trim() !== ''
+            ? logMealForm.tags.split(',').map(s => s.trim())
+            : [],
+      };
+      const { error } = await supabase
+        .from('user_meals')
+        .insert([mealToInsert]);
+      if (error) throw new Error(error.message);
+      toast.success('Meal logged!');
+      setLogMealForm({
+        meal_type: '',
+        description: '',
+        calories: '',
+        protein: '',
+        carbs: '',
+        fat: '',
+        serving_size: '',
+        recipe: '',
+        ingredients: '',
+        tags: '',
+        date: todayStr,
+      });
+      refetchMeals();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to log meal');
+    }
+    setLogMealLoading(false);
   };
 
-  // Handler for recipe search (stub)
-  const handleRecipeSearch = (e: React.FormEvent) => {
+  // Handler for recipe search (AI-powered, not Edamam)
+  const handleRecipeSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    // ... actual logic here ...
+    setRecipeLoading(true);
+    setRecipeResults([]);
+    setRecipeError('');
+    try {
+      const res = await fetch('/api/find-recipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: recipeQuery }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Failed (status ${res.status}): ${text}`);
+      }
+      const data = await res.json();
+      setRecipeResults(Array.isArray(data) ? data : (data.results || []));
+    } catch (err: any) {
+      setRecipeError(err.message || 'Error searching recipes');
+    }
+    setRecipeLoading(false);
   };
 
-  // Handler for saving a recipe (stub)
-  const handleSaveRecipe = (recipe: any) => {
-    // ... actual logic here ...
+  // Handler for saving a recipe (works as before)
+  const handleSaveRecipe = async (recipe: any) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('user_recipes')
+        .insert([{ ...recipe, user_id: user.id }]);
+      if (error) throw new Error(error.message);
+      toast.success('Recipe saved!');
+      refetchSavedRecipes();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save recipe');
+    }
   };
 
   // New handler for generating weekly meals
   const handleGenerateWeeklyMeals = () => {
     // ... actual logic here ...
   };
+
+  // Use today's date for highlighting the current day
+  const todayDateStr = format(new Date(), 'yyyy-MM-dd');
 
   if (prefsLoading || mealsLoading || weekLoading || groceryLoading) {
     return (
@@ -984,7 +1105,7 @@ const Meals = () => {
                 <tr>
                   <th className="bg-gray-50 font-semibold text-gray-600 text-left px-3 py-2 border-b border-r border-gray-200 sticky left-0 z-10">Meal</th>
                   {weekDates.map((date) => {
-                    const isToday = date === todayStr;
+                    const isToday = date === todayDateStr;
                     return (
                       <th
                         key={date}
@@ -1030,7 +1151,7 @@ const Meals = () => {
                     <td className="font-bold text-gray-800 px-3 py-2 border-r border-b border-gray-200 bg-gray-50 sticky left-0 z-10 capitalize">{type}</td>
                     {weekDates.map((date, dIdx) => {
                       const meal = weekMeals[date]?.find((m: any) => m.meal_type === type);
-                      const isToday = date === todayStr;
+                      const isToday = date === todayDateStr;
                       return (
                         <td
                           key={date}
@@ -1063,16 +1184,6 @@ const Meals = () => {
               </tbody>
             </table>
           </div>
-        </div>
-
-        {/* Section: Edamam Demo Meal Plan Calendar */}
-        <div className="w-full max-w-7xl mx-auto mb-16">
-          <h2 className="text-2xl font-bold text-green-700 mb-1 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-green-700" />
-            Edamam Demo Meal Plan Calendar
-          </h2>
-          <p className="text-sm text-gray-500 mb-4">This calendar is a demo using the Edamam API, showing example meal plans from Edamam's recipe database.</p>
-          <EdamamWeeklyMealPlan nutritionPrefs={nutritionPrefs} handleRegenerateDay={() => {}} />
         </div>
 
         {/* Middle Section: Grocery List and Log a Meal side by side */}
@@ -1151,7 +1262,7 @@ const Meals = () => {
                 <form className="w-full space-y-3 mb-4" onSubmit={handleLogMealSubmit}>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Meal Type</label>
-                    <select name="meal_type" value={logMealForm.meal_type} onChange={handleLogMealChange} className="w-full rounded-lg border-gray-300 focus:ring-green-500 focus:border-green-500">
+                    <select name="meal_type" value={logMealForm.meal_type} onChange={handleLogMealChange} className="w-full rounded-lg border-gray-300 focus:ring-green-500 focus:border-green-500" required>
                       <option value="">Select...</option>
                       <option value="breakfast">Breakfast</option>
                       <option value="lunch">Lunch</option>
@@ -1159,6 +1270,7 @@ const Meals = () => {
                       <option value="dinner">Dinner</option>
                       <option value="custom">Custom</option>
                     </select>
+                    {logMealError && <div className="text-red-600 text-xs mt-1">{logMealError}</div>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Meal Name</label>
@@ -1271,7 +1383,7 @@ const Meals = () => {
             <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
               <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
                 <Utensils className="w-5 h-5 text-green-600" />
-                Search a Recipe
+                AI Search a Recipe
               </h2>
               <form className="w-full flex gap-2 mb-4" onSubmit={handleRecipeSearch}>
                 <Input
@@ -1286,6 +1398,7 @@ const Meals = () => {
                 </Button>
               </form>
               <div className="w-full">
+                {recipeError && <div className="text-red-600 mb-2">{recipeError}</div>}
                 {recipeLoading ? (
                   <div className="flex items-center justify-center py-6 text-green-600"><Loader2 className="w-6 h-6 animate-spin" /></div>
                 ) : recipeResults.length > 0 ? (
@@ -1367,6 +1480,15 @@ const Meals = () => {
       <EdamamRecipeSearchTester />
       <NutritionAnalysisTester />
       <FoodDatabaseTester />
+      {/* Edamam Demo Meal Plan Calendar moved below all Edamam testers */}
+      <div className="w-full max-w-7xl mx-auto mb-16">
+        <h2 className="text-2xl font-bold text-green-700 mb-1 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-green-700" />
+          Edamam Demo Meal Plan Calendar
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">This calendar is a demo using the Edamam API, showing example meal plans from Edamam's recipe database.</p>
+        <EdamamWeeklyMealPlan nutritionPrefs={nutritionPrefs} handleRegenerateDay={() => {}} />
+      </div>
       {/* Render the hover card portal for meal details */}
       {hoveredMeal && hoverPos && (
         <HoverCardPortal pos={hoverPos}>
