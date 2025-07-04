@@ -967,7 +967,89 @@ const Meals = () => {
             {weekLoading ? 'Generating...' : 'Generate / Regenerate Weekly Meals'}
           </button>
           <div className="overflow-x-auto">
-            <EdamamWeeklyMealPlan nutritionPrefs={nutritionPrefs} handleRegenerateDay={() => {}} />
+            <table className="min-w-full border-separate border-spacing-0 text-xs bg-white rounded-xl shadow border border-gray-200">
+              <thead>
+                <tr>
+                  <th className="bg-gray-50 font-semibold text-gray-600 text-left px-3 py-2 border-b border-r border-gray-200 sticky left-0 z-10">Meal</th>
+                  {weekDates.map((date) => {
+                    const isToday = date === todayStr;
+                    return (
+                      <th
+                        key={date}
+                        className={`font-semibold text-gray-700 text-center px-4 py-2 border-b border-gray-200 ${isToday ? 'bg-green-50 text-green-700' : 'bg-gray-50'}`}
+                      >
+                        <div className="flex items-center justify-center gap-1 relative group">
+                          {format(parseISO(date), 'EEE')}
+                          <button
+                            onClick={() => handleRegenerateDay(date)}
+                            className="ml-1 p-1 rounded hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all relative"
+                            disabled={weekLoading || dayLoading === date}
+                            style={{ lineHeight: 0 }}
+                            onMouseEnter={e => {
+                              const tooltip = e.currentTarget.querySelector('.regen-tooltip');
+                              if (tooltip) tooltip.classList.remove('hidden');
+                            }}
+                            onMouseLeave={e => {
+                              const tooltip = e.currentTarget.querySelector('.regen-tooltip');
+                              if (tooltip) tooltip.classList.add('hidden');
+                            }}
+                          >
+                            {dayLoading === date ? (
+                              <span className="inline-block align-middle">
+                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 border-t-transparent border-l-transparent border-r-transparent"></span>
+                              </span>
+                            ) : (
+                              <Zap className="w-5 h-5 text-orange-500" />
+                            )}
+                            {/* Custom tooltip for regenerate button */}
+                            <span className="regen-tooltip hidden absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 bg-white border border-orange-300 rounded-xl shadow-lg px-3 py-2 text-xs text-orange-700 font-semibold whitespace-nowrap animate-fade-in-up transition-all duration-200">
+                              Regenerate meals for this day
+                            </span>
+                          </button>
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {mealOrder.map((type, mIdx) => (
+                  <tr key={type}>
+                    <td className="font-bold text-gray-800 px-3 py-2 border-r border-b border-gray-200 bg-gray-50 sticky left-0 z-10 capitalize">{type}</td>
+                    {weekDates.map((date, dIdx) => {
+                      const meal = weekMeals[date]?.find((m: any) => m.meal_type === type);
+                      const isToday = date === todayStr;
+                      return (
+                        <td
+                          key={date}
+                          className={`align-top px-2 py-2 border-b border-gray-200 text-center min-w-[110px] max-w-[180px] ${isToday ? 'bg-green-50/70' : ''}`}
+                          style={{ verticalAlign: 'top' }}
+                        >
+                          {meal ? (
+                            <div
+                              className="relative group rounded-md border border-gray-200 bg-white/80 px-2 py-1 text-center text-gray-900 hover:shadow-md transition-shadow duration-150"
+                              style={{ fontSize: '1.12em', fontWeight: 600, whiteSpace: 'normal', overflow: 'visible' }}
+                              onMouseEnter={e => {
+                                setHoveredMeal(meal);
+                                const rect = (e.target as HTMLElement).getBoundingClientRect();
+                                setHoverPos({ x: rect.left + rect.width / 2, y: rect.bottom + window.scrollY });
+                              }}
+                              onMouseLeave={() => setHoveredMeal(null)}
+                            >
+                              {meal.description}
+                            </div>
+                          ) : (
+                            <div className="relative rounded-md border border-gray-200 bg-white/70 px-2 py-1 text-center text-gray-400" style={{ fontSize: '1.12em', whiteSpace: 'normal', overflow: 'visible' }}>
+                              —
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
