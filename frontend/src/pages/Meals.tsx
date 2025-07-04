@@ -19,7 +19,7 @@ const Meals: React.FC = () => {
   const todayStr = today.toISOString().slice(0, 10);
   const weekStart = (() => {
     const d = new Date(today);
-    d.setDate(d.getDate() - d.getDay() + 1); // Monday as startx
+    d.setDate(d.getDate() - d.getDay() + 1); // Monday as start
     return d.toISOString().slice(0, 10);
   })();
 
@@ -85,6 +85,14 @@ const Meals: React.FC = () => {
   return (
     <div className="bg-gradient-to-br from-blue-50 to-green-50 min-h-screen w-full py-12">
       <div className="max-w-6xl mx-auto flex flex-col gap-12">
+        {/* Nutrition Hub Header */}
+        <div className="flex flex-col items-center text-center gap-3 mb-2">
+          <span className="inline-block bg-green-100 text-green-700 font-semibold px-4 py-1 rounded-full text-xs tracking-wider shadow-sm">Nutrition Hub</span>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-green-700 leading-tight">Meal Planning & Nutrition</h1>
+          <p className="text-gray-600 max-w-2xl mx-auto text-base md:text-lg">Track your meals, plan your nutrition, and achieve your health goals with personalized recommendations.</p>
+        </div>
+        {/* Today's Meals Section Title */}
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Today's Meals</h2>
         {/* Today's Meals and Nutrition Card */}
         <TodaysMeals userId={userId} todayStr={todayStr} nutritionPrefs={nutritionPrefs || {}} />
         {/* AI Meal Plan Calendar */}

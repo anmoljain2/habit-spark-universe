@@ -15,7 +15,9 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   const [weekMeals, setWeekMeals] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [regeneratingDay, setRegeneratingDay] = useState<string | null>(null);
+  const [regeneratingWeek, setRegeneratingWeek] = useState(false);
   const [hoveredMeal, setHoveredMeal] = useState<{ day: string; type: string } | null>(null);
+  const [showTooltip, setShowTooltip] = useState<string | null>(null);
 
   const fetchWeekMeals = async () => {
     setLoading(true);
@@ -58,6 +60,21 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
     setRegeneratingDay(null);
   };
 
+  const handleRegenerateWeek = async () => {
+    setRegeneratingWeek(true);
+    try {
+      await fetch('/api/generate-meal-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, week_start: weekStart, nutritionPrefs, force_regen_week: true }),
+      });
+      await fetchWeekMeals();
+    } catch (err) {
+      // Optionally show error
+    }
+    setRegeneratingWeek(false);
+  };
+
   const getDateForDay = (start: string, dayIdx: number) => {
     const d = new Date(start);
     d.setDate(d.getDate() + dayIdx);
@@ -65,12 +82,31 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   };
 
   return (
-    <div className="w-full max-w-4xl">
-      <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
-        <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-green-600" />
-          AI Meal Plan Calendar
-        </h2>
+    <div className="w-full">
+      <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-6 flex flex-col items-start justify-center w-full">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full mb-4 gap-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-green-600" />
+            <h2 className="text-2xl font-bold text-gray-800">AI Meal Plan Calendar</h2>
+          </div>
+          <div className="relative">
+            <button
+              className="flex items-center gap-2 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white font-semibold px-4 py-2 rounded-lg shadow transition-all text-sm"
+              onClick={handleRegenerateWeek}
+              disabled={regeneratingWeek}
+              onMouseEnter={() => setShowTooltip('week')}
+              onMouseLeave={() => setShowTooltip(null)}
+            >
+              {regeneratingWeek ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+              Regenerate Week
+            </button>
+            {showTooltip === 'week' && (
+              <div className="absolute z-50 left-1/2 top-full mt-2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-64 text-xs text-gray-700 animate-fade-in-up">
+                <b>Regenerate Week</b>: Generate a new meal plan for the entire week based on your latest preferences.
+              </div>
+            )}
+          </div>
+        </div>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8 w-full">
             <Loader2 className="w-8 h-8 text-green-500 animate-spin mb-2" />
@@ -78,21 +114,30 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
-            <table className="min-w-full border-collapse">
+            <table className="w-full border-collapse text-base">
               <thead>
                 <tr>
-                  <th className="p-2 border-b text-left text-sm font-semibold text-gray-700">Meal Type</th>
+                  <th className="p-3 border-b text-left text-base font-semibold text-gray-700">Meal Type</th>
                   {daysOfWeek.map((day, idx) => (
-                    <th key={day} className="p-2 border-b text-center text-sm font-semibold text-gray-700">
-                      {day}
-                      <button
-                        className="ml-2 text-xs text-green-600 hover:text-green-900"
-                        title="Regenerate meals for this day"
-                        onClick={() => handleRegenerateDay(getDateForDay(weekStart, idx))}
-                        disabled={regeneratingDay === getDateForDay(weekStart, idx)}
-                      >
-                        {regeneratingDay === getDateForDay(weekStart, idx) ? <Loader2 className="w-4 h-4 animate-spin inline" /> : <RefreshCw className="w-4 h-4 inline" />}
-                      </button>
+                    <th key={day} className="p-3 border-b text-center text-base font-semibold text-gray-700 relative">
+                      <span>{day}</span>
+                      <span className="inline-block ml-2 relative">
+                        <button
+                          className="text-green-600 hover:text-green-900"
+                          title="Regenerate meals for this day"
+                          onClick={() => handleRegenerateDay(getDateForDay(weekStart, idx))}
+                          disabled={regeneratingDay === getDateForDay(weekStart, idx)}
+                          onMouseEnter={() => setShowTooltip(day)}
+                          onMouseLeave={() => setShowTooltip(null)}
+                        >
+                          {regeneratingDay === getDateForDay(weekStart, idx) ? <Loader2 className="w-4 h-4 animate-spin inline" /> : <RefreshCw className="w-4 h-4 inline" />}
+                        </button>
+                        {showTooltip === day && (
+                          <div className="absolute z-50 left-1/2 top-full mt-2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-200 p-2 w-48 text-xs text-gray-700 animate-fade-in-up">
+                            <b>Regenerate Day</b>: Generate a new meal plan for this day only.
+                          </div>
+                        )}
+                      </span>
                     </th>
                   ))}
                 </tr>
@@ -100,14 +145,14 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
               <tbody>
                 {mealTypes.map(type => (
                   <tr key={type}>
-                    <td className="p-2 border-b text-sm font-semibold text-gray-700 capitalize">{type}</td>
+                    <td className="p-3 border-b text-base font-semibold text-gray-700 capitalize">{type}</td>
                     {daysOfWeek.map((day, idx) => {
                       const dateStr = getDateForDay(weekStart, idx);
                       const meal = weekMeals[dateStr]?.[type];
                       return (
                         <td
                           key={day}
-                          className="p-2 border-b text-center text-sm relative group"
+                          className="p-3 border-b text-center text-base relative group min-w-[160px]"
                           onMouseEnter={() => meal && setHoveredMeal({ day: dateStr, type })}
                           onMouseLeave={() => setHoveredMeal(null)}
                         >
