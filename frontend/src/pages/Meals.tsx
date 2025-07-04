@@ -405,28 +405,30 @@ function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutriti
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-10 mb-10 p-4 bg-white/80 rounded-xl shadow border border-gray-100">
-      <h2 className="text-2xl font-bold text-blue-700 mb-4">AI Weekly Meal Calendar</h2>
+    <div className="w-full max-w-4xl mx-auto mt-10 mb-10 p-4 bg-white/80 rounded-xl shadow border border-green-300">
+      <h2 className="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
+        <span>🥗</span> Edamam Weekly Meal Calendar
+      </h2>
       <button
         onClick={handleGenerate}
-        className="mb-4 bg-gradient-to-r from-blue-500 to-green-400 text-white px-4 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-green-500 text-base shadow"
+        className="mb-4 bg-gradient-to-r from-green-500 to-emerald-400 text-white px-4 py-2 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-500 text-base shadow"
         disabled={loading}
       >
-        {loading ? 'Generating...' : 'Generate AI Meal Plan'}
+        {loading ? 'Generating...' : 'Generate Edamam Meal Plan'}
       </button>
       {error && <div className="text-red-600 mb-4 text-sm">{error}</div>}
       {plan.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-0 text-xs bg-white rounded-xl shadow border border-gray-200">
+          <table className="min-w-full border-separate border-spacing-0 text-xs bg-white rounded-xl shadow border border-green-200">
             <thead>
               <tr>
-                <th className="bg-gray-50 font-semibold text-gray-600 text-left px-3 py-2 border-b border-r border-gray-200 sticky left-0 z-10">Meal</th>
+                <th className="bg-green-50 font-semibold text-green-700 text-left px-3 py-2 border-b border-r border-green-200 sticky left-0 z-10">Meal</th>
                 {weekDates.map((date) => {
                   const isToday = date === todayStr;
                   return (
                     <th
                       key={date}
-                      className={`font-semibold text-gray-700 text-center px-4 py-2 border-b border-gray-200 ${isToday ? 'bg-green-50 text-green-700' : 'bg-gray-50'}`}
+                      className={`font-semibold text-green-800 text-center px-4 py-2 border-b border-green-200 ${isToday ? 'bg-green-100 text-green-900' : 'bg-green-50'}`}
                     >
                       <div className="flex items-center justify-center gap-1 relative group">
                         {format(parseISO(date), 'EEE')}
@@ -465,25 +467,35 @@ function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutriti
             <tbody>
               {mealOrder.map((type, mIdx) => (
                 <tr key={type}>
-                  <td className="font-bold text-gray-800 px-3 py-2 border-r border-b border-gray-200 bg-gray-50 sticky left-0 z-10 capitalize">{type}</td>
+                  <td className="font-bold text-green-900 px-3 py-2 border-r border-b border-green-200 bg-green-50 sticky left-0 z-10 capitalize">{type}</td>
                   {weekDates.map((date, dIdx) => {
                     const meal = plan[dIdx]?.[mIdx];
                     const isToday = date === todayStr;
                     return (
                       <td
                         key={date}
-                        className={`align-top px-2 py-2 border-b border-gray-200 text-center min-w-[110px] max-w-[180px] ${isToday ? 'bg-green-50/70' : ''}`}
+                        className={`align-top px-2 py-2 border-b border-green-200 text-center min-w-[140px] max-w-[220px] ${isToday ? 'bg-green-100/70' : ''}`}
                         style={{ verticalAlign: 'top' }}
                       >
                         {meal ? (
-                          <div
-                            className="relative group rounded-md border border-gray-200 bg-white/80 px-2 py-1 text-center text-gray-900 hover:shadow-md transition-shadow duration-150"
-                            style={{ fontSize: '1.12em', fontWeight: 600, whiteSpace: 'normal', overflow: 'visible' }}
-                          >
-                            {meal.label}
+                          <div className="flex flex-col items-center gap-1">
+                            {meal.image && (
+                              <img src={meal.image} alt={meal.label} className="w-16 h-16 object-cover rounded-lg border border-green-100 mb-1" />
+                            )}
+                            <div className="font-bold text-green-900 text-sm mb-1" style={{whiteSpace:'normal',wordBreak:'break-word'}}>{meal.label}</div>
+                            <div className="flex flex-wrap gap-1 justify-center text-xs text-gray-600 mb-1">
+                              {typeof meal.calories === 'number' && <span>⚡ {Math.round(meal.calories)} cal</span>}
+                              {meal.totalNutrients?.PROCNT && <span>❤️ {Math.round(meal.totalNutrients.PROCNT.quantity)}g protein</span>}
+                              {meal.totalNutrients?.CHOCDF && <span>C {Math.round(meal.totalNutrients.CHOCDF.quantity)}g carbs</span>}
+                              {meal.totalNutrients?.FAT && <span>F {Math.round(meal.totalNutrients.FAT.quantity)}g fat</span>}
+                            </div>
+                            {meal.yield && <div className="text-xs text-gray-400 mb-1">Servings: {meal.yield}</div>}
+                            {meal.url && (
+                              <a href={meal.url} target="_blank" rel="noopener noreferrer" className="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold hover:bg-green-200 transition">View Recipe</a>
+                            )}
                           </div>
                         ) : (
-                          <div className="relative rounded-md border border-gray-200 bg-white/70 px-2 py-1 text-center text-gray-400" style={{ fontSize: '1.12em', whiteSpace: 'normal', overflow: 'visible' }}>
+                          <div className="relative rounded-md border border-green-200 bg-white/70 px-2 py-1 text-center text-gray-400" style={{ fontSize: '1.12em', whiteSpace: 'normal', overflow: 'visible' }}>
                             —
                           </div>
                         )}
@@ -1356,8 +1368,8 @@ const Meals = () => {
       <NutritionAnalysisTester />
       <FoodDatabaseTester />
       {/* Render the hover card portal for meal details */}
-      <HoverCardPortal pos={hoverPos}>
-        {hoveredMeal && (
+      {hoveredMeal && hoverPos && (
+        <HoverCardPortal pos={hoverPos}>
           <>
             <div className="font-bold text-lg mb-1">{hoveredMeal.description}</div>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -1375,8 +1387,8 @@ const Meals = () => {
               <div className="text-xs text-gray-400 mb-1"><b>Tags:</b> {hoveredMeal.tags.join(', ')}</div>
             )}
           </>
-        )}
-      </HoverCardPortal>
+        </HoverCardPortal>
+      )}
     </div>
   );
 };
