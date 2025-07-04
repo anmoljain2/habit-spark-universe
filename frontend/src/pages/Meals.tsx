@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import TodaysMeals from '@/components/MealsComponents/TodaysMeals';
-import TodaysNutritionCard from '@/components/MealsComponents/TodaysNutritionCard';
 import AICalendarMealPlanner from '@/components/MealsComponents/AICalendarMealPlanner';
 import GroceryList from '@/components/MealsComponents/GroceryList';
 import LogMeal from '@/components/MealsComponents/LogMeal';
@@ -20,13 +19,12 @@ const Meals: React.FC = () => {
   const todayStr = today.toISOString().slice(0, 10);
   const weekStart = (() => {
     const d = new Date(today);
-    d.setDate(d.getDate() - d.getDay() + 1); // Monday as start
+    d.setDate(d.getDate() - d.getDay() + 1); // Monday as startx
     return d.toISOString().slice(0, 10);
   })();
 
   const [nutritionPrefs, setNutritionPrefs] = useState<any>(null);
   const [prefsLoading, setPrefsLoading] = useState(true);
-  const [nutrition, setNutrition] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
 
   // AI Recipe Search state (for modularity, can be moved to a custom hook)
   const [recipeQuery, setRecipeQuery] = useState('');
@@ -88,14 +86,7 @@ const Meals: React.FC = () => {
     <div className="bg-gradient-to-br from-blue-50 to-green-50 min-h-screen w-full py-12">
       <div className="max-w-6xl mx-auto flex flex-col gap-12">
         {/* Today's Meals and Nutrition Card */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 w-full">
-          <div className="lg:col-span-4">
-            <TodaysMeals userId={userId} todayStr={todayStr} onNutrition={setNutrition} />
-          </div>
-          <div className="lg:col-span-1 flex items-stretch">
-            <TodaysNutritionCard nutrition={nutrition} nutritionPrefs={nutritionPrefs || {}} />
-          </div>
-        </div>
+        <TodaysMeals userId={userId} todayStr={todayStr} nutritionPrefs={nutritionPrefs || {}} />
         {/* AI Meal Plan Calendar */}
         <div className="w-full">
           <h2 className="text-2xl font-bold text-blue-900 mb-2">Your AI Meal Plan Calendar</h2>
@@ -128,7 +119,7 @@ const Meals: React.FC = () => {
         <EdamamRecipeSearchTester />
         <EdamamNutritionAnalysisTester />
         <EdamamFoodDatabaseTester />
-        {/* Edamam Demo Meal Plan Calendar (moved to bottom) */}
+        {/* Edamam Demo Meal Plan Calendar (bottom) */}
         <div>
           <h2 className="text-2xl font-bold text-green-700 mb-2 flex items-center gap-2"><span>📅</span> Edamam Demo Meal Plan Calendar</h2>
           <p className="text-gray-600 mb-4">This calendar is a demo using the Edamam API, showing example meal plans from Edamam's recipe database.</p>
