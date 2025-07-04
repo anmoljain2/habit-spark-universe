@@ -332,11 +332,9 @@ function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutriti
   const [plan, setPlan] = useState<any[][]>([]); // [day][meal]
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  // Add local hover state for this component
   const [hoveredMeal, setHoveredMeal] = useState<any | null>(null);
   const [hoverPos, setHoverPos] = useState<{ x: number, y: number } | null>(null);
 
-  // Add these demo values to fix linter errors for the Edamam demo calendar
   const mealOrder = ["breakfast", "lunch", "snack", "dinner"];
   const weekDates = [
     "2024-06-10",
@@ -347,90 +345,61 @@ function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutriti
     "2024-06-15",
     "2024-06-16"
   ];
-  const todayStr = weekDates[0]; // Just pick the first for demo
+  const todayStr = weekDates[0];
   const weekLoading = false;
   const dayLoading = null;
-  const weekMeals: { [date: string]: any[] } = {};
-  weekDates.forEach(date => { weekMeals[date] = []; });
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const meals = [
-    { label: 'Breakfast', mealType: 'breakfast' },
-    { label: 'Lunch', mealType: 'lunch/dinner' },
-    { label: 'Dinner', mealType: 'dinner' },
-  ];
-
-  // Meal idea lists for variety
-  const breakfastIdeas = ["omelette", "pancakes", "smoothie", "avocado toast", "breakfast burrito", "granola", "frittata", "waffles", "shakshuka", "breakfast sandwich"];
+  // For variety, use a pool of queries for each meal type
+  const breakfastIdeas = ["omelette", "pancakes", "smoothie", "avocado toast", "granola", "frittata", "waffles", "shakshuka", "breakfast sandwich", "parfait"];
   const lunchIdeas = ["chicken salad", "burrito", "pasta", "sandwich", "grain bowl", "quiche", "wrap", "soup", "poke bowl", "falafel"];
+  const snackIdeas = ["fruit", "yogurt", "nuts", "energy bar", "hummus", "veggie sticks", "trail mix", "rice cake", "protein shake", "popcorn"];
   const dinnerIdeas = ["stir fry", "curry", "roast chicken", "pizza", "tacos", "lasagna", "risotto", "chili", "meatballs", "enchiladas"];
+
+  const getQueryForMeal = (mealType: string, dayIdx: number) => {
+    // Rotate through ideas for variety
+    if (mealType === "breakfast") return breakfastIdeas[dayIdx % breakfastIdeas.length];
+    if (mealType === "lunch") return lunchIdeas[dayIdx % lunchIdeas.length];
+    if (mealType === "snack") return snackIdeas[dayIdx % snackIdeas.length];
+    if (mealType === "dinner") return dinnerIdeas[dayIdx % dinnerIdeas.length];
+    return mealType;
+  };
 
   const handleGenerate = async () => {
     setLoading(true);
     setError('');
     setPlan([]);
-    // Helper to fetch a recipe with retries
-    async function fetchRecipeWithRetries(params: any, mealType: string, maxRetries = 3): Promise<any> {
-      let attempt = 0;
-      let recipe = null;
-      let usedQueries = new Set();
-      while (attempt < maxRetries && !recipe) {
-        // Pick a new random query for each attempt
-        let defaultQuery = '';
-        if (mealType === 'breakfast') {
-          let options = breakfastIdeas.filter(q => !usedQueries.has(q));
-          if (options.length === 0) options = breakfastIdeas;
-          defaultQuery = options[Math.floor(Math.random() * options.length)];
-        } else if (mealType === 'lunch/dinner') {
-          let options = lunchIdeas.filter(q => !usedQueries.has(q));
-          if (options.length === 0) options = lunchIdeas;
-          defaultQuery = options[Math.floor(Math.random() * options.length)];
-        } else if (mealType === 'dinner') {
-          let options = dinnerIdeas.filter(q => !usedQueries.has(q));
-          if (options.length === 0) options = dinnerIdeas;
-          defaultQuery = options[Math.floor(Math.random() * options.length)];
-        }
-        usedQueries.add(defaultQuery);
-        const tryParams = { ...params, query: defaultQuery };
-        const res = await fetch('/api/edamam-search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(tryParams),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          recipe = data.hits && data.hits[0] ? data.hits[0].recipe : null;
-        }
-        attempt++;
-      }
-      return recipe;
-    }
     try {
-      // For each day and meal, fetch a recipe from Edamam
       const weekPlan: any[][] = [];
-      for (let d = 0; d < days.length; d++) {
+      for (let d = 0; d < weekDates.length; d++) {
         const dayMeals: any[] = [];
-        for (let m = 0; m < meals.length; m++) {
-          const mealType = meals[m].mealType;
-          const from = d * meals.length + m;
-          const to = from + 1;
+        for (let m = 0; m < mealOrder.length; m++) {
+          const mealType = mealOrder[m];
+          const query = getQueryForMeal(mealType, d);
+          // Build params using user nutrition preferences
           const params: any = {
+            query,
             mealType,
-            from,
-            to,
           };
-          // Add user preferences as filters
           if (nutritionPrefs?.diet) params.diet = nutritionPrefs.diet;
           if (nutritionPrefs?.calories_target) params.calories = `${Math.max(0, nutritionPrefs.calories_target - 100)}-${nutritionPrefs.calories_target + 100}`;
-          // Add more filters as needed
-          const recipe = await fetchRecipeWithRetries(params, mealType, 3);
+          // Add more filters as needed from nutritionPrefs
+          const res = await fetch('/api/edamam-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params),
+          });
+          let recipe = null;
+          if (res.ok) {
+            const data = await res.json();
+            recipe = data.hits && data.hits[0] ? data.hits[0].recipe : null;
+          }
           dayMeals.push(recipe);
         }
         weekPlan.push(dayMeals);
       }
       setPlan(weekPlan);
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate Edamam meal plan');
+    } catch (err) {
+      setError('Failed to generate Edamam meal plan');
     }
     setLoading(false);
   };
@@ -452,27 +421,40 @@ function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutriti
             <thead>
               <tr>
                 <th className="bg-gray-50 font-semibold text-gray-600 text-left px-3 py-2 border-b border-r border-gray-200 sticky left-0 z-10">Meal</th>
-                {weekDates.map((date, dIdx) => {
+                {weekDates.map((date) => {
                   const isToday = date === todayStr;
                   return (
                     <th
                       key={date}
                       className={`font-semibold text-gray-700 text-center px-4 py-2 border-b border-gray-200 ${isToday ? 'bg-green-50 text-green-700' : 'bg-gray-50'}`}
                     >
-                      <div className="flex items-center justify-center gap-1">
+                      <div className="flex items-center justify-center gap-1 relative group">
                         {format(parseISO(date), 'EEE')}
                         <button
                           onClick={() => handleRegenerateDay(date)}
-                          className="ml-1 p-1 rounded hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all"
-                          title="Regenerate meals for this day"
+                          className="ml-1 p-1 rounded hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all relative"
                           disabled={weekLoading || dayLoading === date}
                           style={{ lineHeight: 0 }}
+                          onMouseEnter={e => {
+                            const tooltip = e.currentTarget.querySelector('.regen-tooltip');
+                            if (tooltip) tooltip.classList.remove('hidden');
+                          }}
+                          onMouseLeave={e => {
+                            const tooltip = e.currentTarget.querySelector('.regen-tooltip');
+                            if (tooltip) tooltip.classList.add('hidden');
+                          }}
                         >
                           {dayLoading === date ? (
-                            <span className="inline-block align-middle"><span className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 border-t-transparent border-l-transparent border-r-transparent"></span></span>
+                            <span className="inline-block align-middle">
+                              <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 border-t-transparent border-l-transparent border-r-transparent"></span>
+                            </span>
                           ) : (
-                            <Zap className="w-4 h-4 text-orange-500" />
+                            <Zap className="w-5 h-5 text-orange-500" />
                           )}
+                          {/* Custom tooltip for regenerate button */}
+                          <span className="regen-tooltip hidden absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 bg-white border border-orange-300 rounded-xl shadow-lg px-3 py-2 text-xs text-orange-700 font-semibold whitespace-nowrap animate-fade-in-up transition-all duration-200">
+                            Regenerate meals for this day
+                          </span>
                         </button>
                       </div>
                     </th>
@@ -481,37 +463,27 @@ function EdamamWeeklyMealPlan({ nutritionPrefs, handleRegenerateDay }: { nutriti
               </tr>
             </thead>
             <tbody>
-              {mealOrder.map(type => (
+              {mealOrder.map((type, mIdx) => (
                 <tr key={type}>
                   <td className="font-bold text-gray-800 px-3 py-2 border-r border-b border-gray-200 bg-gray-50 sticky left-0 z-10 capitalize">{type}</td>
-                  {weekDates.map((date) => {
-                    const meals = weekMeals[date] || [];
-                    const meal = meals.find(m => m.meal_type && m.meal_type.toLowerCase() === type);
+                  {weekDates.map((date, dIdx) => {
+                    const meal = plan[dIdx]?.[mIdx];
                     const isToday = date === todayStr;
                     return (
                       <td
                         key={date}
-                        className={`align-top px-2 py-2 border-b border-gray-200 text-center min-w-[110px] max-w-[150px] ${isToday ? 'bg-green-50/70' : ''}`}
+                        className={`align-top px-2 py-2 border-b border-gray-200 text-center min-w-[110px] max-w-[180px] ${isToday ? 'bg-green-50/70' : ''}`}
                         style={{ verticalAlign: 'top' }}
                       >
                         {meal ? (
                           <div
-                            className="relative group rounded-md border border-gray-200 bg-white/80 px-2 py-1 text-center truncate text-gray-900 hover:shadow-md transition-shadow duration-150"
-                            style={{ fontSize: '0.98em', cursor: 'pointer' }}
-                            onMouseEnter={e => {
-                              setHoveredMeal(meal);
-                              const rect1 = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                              setHoverPos({ x: rect1.left + rect1.width / 2, y: rect1.bottom + window.scrollY });
-                            }}
-                            onMouseLeave={() => {
-                              setHoveredMeal(null);
-                              setHoverPos(null);
-                            }}
+                            className="relative group rounded-md border border-gray-200 bg-white/80 px-2 py-1 text-center text-gray-900 hover:shadow-md transition-shadow duration-150"
+                            style={{ fontSize: '1.12em', fontWeight: 600, whiteSpace: 'normal', overflow: 'visible' }}
                           >
-                            {meal.description}
+                            {meal.label}
                           </div>
                         ) : (
-                          <div className="relative rounded-md border border-gray-200 bg-white/70 px-2 py-1 text-center truncate text-gray-400" style={{ fontSize: '0.98em' }}>
+                          <div className="relative rounded-md border border-gray-200 bg-white/70 px-2 py-1 text-center text-gray-400" style={{ fontSize: '1.12em', whiteSpace: 'normal', overflow: 'visible' }}>
                             —
                           </div>
                         )}
@@ -995,82 +967,7 @@ const Meals = () => {
             {weekLoading ? 'Generating...' : 'Generate / Regenerate Weekly Meals'}
           </button>
           <div className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-0 text-xs bg-white rounded-xl shadow border border-gray-200">
-              <thead>
-                <tr>
-                  <th className="bg-gray-50 font-semibold text-gray-600 text-left px-3 py-2 border-b border-r border-gray-200 sticky left-0 z-10">Meal</th>
-                  {weekDates.map((date) => {
-                    const isToday = date === todayStr;
-                    return (
-                      <th
-                        key={date}
-                        className={`font-semibold text-gray-700 text-center px-4 py-2 border-b border-gray-200 ${isToday ? 'bg-green-50 text-green-700' : 'bg-gray-50'}`}
-                      >
-                        <div className="flex items-center justify-center gap-1">
-                          {format(parseISO(date), 'EEE')}
-                          <button
-                            onClick={() => handleRegenerateDay(date)}
-                            className="ml-1 p-1 rounded hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all"
-                            title="Regenerate meals for this day"
-                            disabled={weekLoading || dayLoading === date}
-                            style={{ lineHeight: 0 }}
-                          >
-                            {dayLoading === date ? (
-                              <span className="inline-block align-middle">
-                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 border-t-transparent border-l-transparent border-r-transparent"></span>
-                              </span>
-                            ) : (
-                              <Zap className="w-4 h-4 text-orange-500" />
-                            )}
-                          </button>
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {mealOrder.map(type => (
-                  <tr key={type}>
-                    <td className="font-bold text-gray-800 px-3 py-2 border-r border-b border-gray-200 bg-gray-50 sticky left-0 z-10 capitalize">{type}</td>
-                    {weekDates.map((date) => {
-                      const meals = weekMeals[date] || [];
-                      const meal = meals.find(m => m.meal_type && m.meal_type.toLowerCase() === type);
-                      const isToday = date === todayStr;
-                      return (
-                        <td
-                          key={date}
-                          className={`align-top px-2 py-2 border-b border-gray-200 text-center min-w-[110px] max-w-[150px] ${isToday ? 'bg-green-50/70' : ''}`}
-                          style={{ verticalAlign: 'top' }}
-                        >
-                          {meal ? (
-                            <div
-                              className="relative group rounded-md border border-gray-200 bg-white/80 px-2 py-1 text-center truncate text-gray-900 hover:shadow-md transition-shadow duration-150"
-                              style={{ fontSize: '0.98em', cursor: 'pointer' }}
-                              onMouseEnter={e => {
-                                setHoveredMeal(meal);
-                                const rect1 = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                setHoverPos({ x: rect1.left + rect1.width / 2, y: rect1.bottom + window.scrollY });
-                              }}
-                              onMouseLeave={() => {
-                                setHoveredMeal(null);
-                                setHoverPos(null);
-                              }}
-                            >
-                              {meal.description}
-                            </div>
-                          ) : (
-                            <div className="relative rounded-md border border-gray-200 bg-white/70 px-2 py-1 text-center truncate text-gray-400" style={{ fontSize: '0.98em' }}>
-                              —
-                            </div>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <EdamamWeeklyMealPlan nutritionPrefs={nutritionPrefs} handleRegenerateDay={() => {}} />
           </div>
         </div>
 
