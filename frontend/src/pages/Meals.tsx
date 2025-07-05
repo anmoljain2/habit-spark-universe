@@ -12,16 +12,20 @@ import EdamamWeeklyMealPlan from '@/components/MealsComponents/EdamamWeeklyMealP
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Calendar } from 'lucide-react';
 import { startOfWeek, formatISO } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import MealsQuestionnaire from '@/components/MealsQuestionnaire';
 
 const Meals: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id;
+  const navigate = useNavigate();
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
   const weekStart = formatISO(startOfWeek(today, { weekStartsOn: 0 }), { representation: 'date' });
 
   const [nutritionPrefs, setNutritionPrefs] = useState<any>(null);
   const [prefsLoading, setPrefsLoading] = useState(true);
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
 
   // AI Recipe Search state (for modularity, can be moved to a custom hook)
   const [recipeQuery, setRecipeQuery] = useState('');
@@ -44,6 +48,7 @@ const Meals: React.FC = () => {
         .single();
       setNutritionPrefs(data || {});
       setPrefsLoading(false);
+      if (!data) setShowQuestionnaire(true);
     };
     fetchPrefs();
   }, [userId]);
@@ -124,6 +129,11 @@ const Meals: React.FC = () => {
   }
   if (prefsLoading) {
     return <div className="flex flex-col items-center justify-center min-h-[60vh] text-lg text-gray-600"><Loader2 className="w-8 h-8 animate-spin mb-2 text-green-500" /> Loading your nutrition preferences...</div>;
+  }
+  if (showQuestionnaire) {
+    return <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
+      <MealsQuestionnaire userId={userId} onComplete={() => window.location.reload()} />
+    </div>;
   }
 
   return (
