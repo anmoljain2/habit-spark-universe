@@ -699,6 +699,7 @@ export type Database = {
           week_start: string;
           items: Json | null;
           updated_at: string;
+          checklist: Json | null;
         };
         Insert: {
           id?: string;
@@ -706,6 +707,7 @@ export type Database = {
           week_start: string;
           items?: Json | null;
           updated_at?: string;
+          checklist?: Json | null;
         };
         Update: {
           id?: string;
@@ -713,6 +715,7 @@ export type Database = {
           week_start?: string;
           items?: Json | null;
           updated_at?: string;
+          checklist?: Json | null;
         };
         Relationships: [];
       },

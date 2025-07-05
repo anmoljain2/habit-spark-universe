@@ -17,6 +17,7 @@ interface AISearchRecipeProps {
   savedRecipeTooltipPos: { x: number, y: number } | null;
   setSavedRecipeTooltipPos: (pos: { x: number, y: number } | null) => void;
   savedRecipeTooltipTimeout: React.MutableRefObject<NodeJS.Timeout | null>;
+  setRecipeResults: (results: any[]) => void;
 }
 
 const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
@@ -33,6 +34,7 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
   savedRecipeTooltipPos,
   setSavedRecipeTooltipPos,
   savedRecipeTooltipTimeout,
+  setRecipeResults,
 }) => {
   const [popup, setPopup] = useState<string | null>(null);
 
@@ -69,6 +71,12 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
       setPopup(err.message || 'Failed to delete recipe');
       setTimeout(() => setPopup(null), 3500);
     }
+  };
+
+  // Remove recipe from search results after saving
+  const handleSaveAndRemove = async (recipe: any) => {
+    await handleSaveRecipe(recipe);
+    setRecipeResults(recipeResults.filter(r => r !== recipe));
   };
 
   return (
@@ -110,7 +118,7 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
                     <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {r.ingredients.map((ing: any) => ing.name + (ing.quantity ? ` (${ing.quantity})` : '')).join(', ')}</div>
                   )}
                   {r.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {r.recipe}</div>}
-                  <Button className="mt-2" onClick={() => handleSaveRecipe(r)}>Save Recipe</Button>
+                  <Button className="mt-2" onClick={() => handleSaveAndRemove(r)}>Save Recipe</Button>
                 </li>
               ))}
             </ul>

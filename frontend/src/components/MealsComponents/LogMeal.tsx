@@ -92,6 +92,10 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
         const errData = await res.json();
         throw new Error(errData.error || 'Failed to log meal');
       }
+      // Reload the page to show the new meal
+      if (typeof window !== 'undefined' && window.location) {
+        window.location.reload();
+      }
       setLogMealForm({
         meal_type: '',
         description: '',

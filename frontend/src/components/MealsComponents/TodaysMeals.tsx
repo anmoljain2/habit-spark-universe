@@ -59,8 +59,10 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
       .eq('date_only', todayStr);
     if (!error && data) {
       setTodayMeals(data);
+      // Only count completed meals for nutrition totals
+      const completedMeals = data.filter((m: any) => m.completed);
       let cals = 0, prot = 0, carbs = 0, fat = 0;
-      data.forEach((m: any) => {
+      completedMeals.forEach((m: any) => {
         cals += Number(m.calories) || 0;
         prot += Number(m.protein) || 0;
         carbs += Number(m.carbs) || 0;

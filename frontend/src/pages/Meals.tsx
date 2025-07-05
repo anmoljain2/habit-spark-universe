@@ -164,6 +164,7 @@ const Meals: React.FC = () => {
             savedRecipeTooltipPos={savedRecipeTooltipPos}
             setSavedRecipeTooltipPos={setSavedRecipeTooltipPos}
             savedRecipeTooltipTimeout={savedRecipeTooltipTimeout}
+            setRecipeResults={setRecipeResults}
           />
         </div>
         {/* Edamam Testers */}

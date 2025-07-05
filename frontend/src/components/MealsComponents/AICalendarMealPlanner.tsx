@@ -9,7 +9,7 @@ interface AICalendarMealPlannerProps {
 }
 
 const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'];
-const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, weekStart, nutritionPrefs }) => {
   const [weekMeals, setWeekMeals] = useState<any>({});
@@ -84,7 +84,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   };
 
   return (
-    <div className="w-full bg-gradient-to-br from-green-50 via-white to-emerald-50 rounded-2xl shadow-xl border border-white/50 p-6 flex flex-col items-start justify-center">
+    <div className="w-full bg-gradient-to-br from-green-50 via-white to-emerald-50 rounded-2xl shadow-2xl border border-white/50 p-6 flex flex-col items-start justify-center">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full mb-4 gap-3">
         <div className="flex items-center gap-2">
           <Calendar className="w-6 h-6 text-green-600" />
@@ -114,16 +114,18 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
           <span className="text-green-700 font-medium">Loading meal plan...</span>
         </div>
       ) : (
-        <table className="w-full border-collapse text-base">
+        <table className="w-full border-collapse text-base bg-white/90 rounded-2xl shadow-xl">
           <thead>
             <tr>
               <th className="p-3 border-b text-left text-base font-semibold text-gray-700">Meal Type</th>
               {daysOfWeek.map((day, idx) => {
-                const dateObj = new Date(weekStart);
-                dateObj.setDate(dateObj.getDate() + idx);
-                const dateStr = dateObj.toISOString().slice(0, 10);
-                const todayObj = new Date();
-                const isToday = dateStr === todayObj.toISOString().slice(0, 10);
+                const dateStr = (() => {
+                  const d = new Date(weekStart);
+                  d.setDate(new Date(weekStart).getDate() + idx);
+                  return d.toISOString().slice(0, 10);
+                })();
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const isToday = dateStr === todayStr;
                 return (
                   <th key={day} className={`p-3 border-b text-center text-base font-semibold text-gray-700 relative ${isToday ? 'bg-green-100 text-green-900' : ''}`}>
                     <span>{day}</span>
@@ -131,12 +133,12 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                       <button
                         className="text-green-600 hover:text-green-900"
                         title="Regenerate meals for this day"
-                        onClick={() => handleRegenerateDay(getDateForDay(weekStart, idx))}
-                        disabled={regeneratingDay === getDateForDay(weekStart, idx)}
+                        onClick={() => handleRegenerateDay(dateStr)}
+                        disabled={regeneratingDay === dateStr}
                         onMouseEnter={() => setShowTooltip(day)}
                         onMouseLeave={() => setShowTooltip(null)}
                       >
-                        {regeneratingDay === getDateForDay(weekStart, idx) ? <Loader2 className="w-4 h-4 animate-spin inline" /> : <RefreshCw className="w-4 h-4 inline" />}
+                        {regeneratingDay === dateStr ? <Loader2 className="w-4 h-4 animate-spin inline" /> : <RefreshCw className="w-4 h-4 inline" />}
                       </button>
                       {showTooltip === day && (
                         <div className="absolute z-50 left-1/2 top-full mt-2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-200 p-2 w-48 text-xs text-gray-700 animate-fade-in-up">
@@ -154,12 +156,14 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
               <tr key={type}>
                 <td className="p-3 border-b text-base font-semibold text-gray-700 capitalize">{type}</td>
                 {daysOfWeek.map((day, idx) => {
-                  const dateObj = new Date(weekStart);
-                  dateObj.setDate(dateObj.getDate() + idx);
-                  const dateStr = dateObj.toISOString().slice(0, 10);
+                  const dateStr = (() => {
+                    const d = new Date(weekStart);
+                    d.setDate(new Date(weekStart).getDate() + idx);
+                    return d.toISOString().slice(0, 10);
+                  })();
                   const meal = weekMeals[dateStr]?.[type];
-                  const todayObj = new Date();
-                  const isToday = dateStr === todayObj.toISOString().slice(0, 10);
+                  const todayStr = new Date().toISOString().slice(0, 10);
+                  const isToday = dateStr === todayStr;
                   return (
                     <td
                       key={day}
