@@ -64,6 +64,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(500).json({ error: error.message });
       return;
     }
+    // Also insert into user_recipes if not already present
+    const { data: existingRecipe } = await supabase
+      .from('user_recipes')
+      .select('id')
+      .eq('user_id', user_id)
+      .eq('name', description)
+      .maybeSingle();
+    if (!existingRecipe) {
+      await supabase.from('user_recipes').insert({
+        user_id,
+        name: description,
+        ingredients,
+        recipe,
+        serving_size,
+        calories,
+        protein,
+        carbs,
+        fat,
+        source: 'logged',
+      });
+    }
     res.status(201).json({ meal: data });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'A server error has occurred' });

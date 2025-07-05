@@ -84,12 +84,8 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   };
 
   return (
-    <div className="w-full bg-gradient-to-br from-green-50 via-white to-emerald-50 rounded-2xl shadow-2xl border border-white/50 p-6 flex flex-col items-start justify-center">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full mb-4 gap-3">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-6 h-6 text-green-600" />
-          <h2 className="text-2xl font-bold text-gray-800">AI Meal Plan Calendar</h2>
-        </div>
+    <div className="w-full flex flex-col items-center justify-center">
+      <div className="w-full flex flex-row justify-end mb-2">
         <div className="relative">
           <button
             className="flex items-center gap-2 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white font-semibold px-4 py-2 rounded-lg shadow transition-all text-sm"
@@ -132,7 +128,6 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                     <span className="inline-block ml-2 relative">
                       <button
                         className="text-green-600 hover:text-green-900"
-                        title="Regenerate meals for this day"
                         onClick={() => handleRegenerateDay(dateStr)}
                         disabled={regeneratingDay === dateStr}
                         onMouseEnter={() => setShowTooltip(day)}
@@ -170,6 +165,38 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                       className={`p-3 border-b text-center text-base relative group min-w-[160px] ${isToday ? 'bg-green-50' : ''}`}
                       onMouseEnter={() => meal && setHoveredMeal({ day: dateStr, type })}
                       onMouseLeave={() => setHoveredMeal(null)}
+                      onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-green-400'); }}
+                      onDragLeave={e => { e.currentTarget.classList.remove('ring-2', 'ring-green-400'); }}
+                      onDrop={async e => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove('ring-2', 'ring-green-400');
+                        let recipe;
+                        try { recipe = JSON.parse(e.dataTransfer.getData('application/json')); } catch { return; }
+                        // Delete existing meal in this slot
+                        const { error: delErr } = await supabase
+                          .from('user_meals')
+                          .delete()
+                          .eq('user_id', userId)
+                          .eq('date_only', dateStr)
+                          .eq('meal_type', type);
+                        // Insert new meal using recipe data
+                        await supabase.from('user_meals').insert({
+                          user_id: userId,
+                          date: dateStr,
+                          date_only: dateStr,
+                          meal_type: type,
+                          description: recipe.name || recipe.meal_name || recipe.description,
+                          calories: recipe.calories,
+                          protein: recipe.protein,
+                          carbs: recipe.carbs,
+                          fat: recipe.fat,
+                          serving_size: recipe.serving_size,
+                          recipe: recipe.recipe,
+                          ingredients: recipe.ingredients,
+                          source: recipe.recipeType === 'logged' ? 'user' : 'find_recipe',
+                        });
+                        await fetchWeekMeals();
+                      }}
                     >
                       {meal ? (
                         <span className="font-medium text-gray-900 text-base cursor-pointer">

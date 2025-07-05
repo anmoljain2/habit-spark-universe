@@ -732,6 +732,7 @@ export type Database = {
           carbs: number;
           fat: number;
           created_at: string;
+          source: string | null;
         };
         Insert: {
           id?: string;
@@ -745,6 +746,7 @@ export type Database = {
           carbs: number;
           fat: number;
           created_at?: string;
+          source?: string | null;
         };
         Update: {
           id?: string;
@@ -758,6 +760,7 @@ export type Database = {
           carbs?: number;
           fat?: number;
           created_at?: string;
+          source?: string | null;
         };
         Relationships: [
           {

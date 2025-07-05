@@ -163,33 +163,47 @@ const GroceryList: React.FC<GroceryListProps> = ({ userId, weekStart }) => {
                 </div>
                 <ul className="divide-y divide-gray-200 w-full">
                   {(groceryCondensed ? groceryList.slice(0, 5) : groceryList).map((item, idx) => (
-                    <li key={idx} className="flex items-center gap-3 py-2">
+                    <li key={idx} className="flex items-center py-2">
                       <input
                         type="checkbox"
                         checked={!!checklist[idx]}
                         onChange={() => handleToggleItem(idx)}
                         className="form-checkbox h-5 w-5 text-green-600 rounded focus:ring-green-500 border-gray-300"
                       />
+                      <div className="flex-1 flex items-center min-w-0">
+                        {editingIdx === idx ? (
+                          <>
+                            <input
+                              type="text"
+                              value={editingValue}
+                              onChange={e => setEditingValue(e.target.value)}
+                              className="flex-1 border border-gray-300 rounded-lg px-2 py-1 text-base focus:ring-green-500 focus:border-green-500"
+                              onKeyDown={e => { if (e.key === 'Enter') handleEditItem(idx); if (e.key === 'Escape') setEditingIdx(null); }}
+                            />
+                          </>
+                        ) : (
+                          <span className={`truncate text-gray-800 text-base ${checklist[idx] ? 'line-through text-gray-400' : ''}`}>
+                            {typeof item === 'object' && 'name' in item ? String(item.name) : String(item)}
+                            {(typeof item === 'object' && ('quantity' in item || 'unit' in item)) && (
+                              <span className="text-xs text-gray-500 ml-1"> -
+                                {item.quantity ? ` x${item.quantity}` : ''}
+                                {item.unit ? ` ${item.unit}` : ''}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </div>
                       {editingIdx === idx ? (
                         <>
-                          <input
-                            type="text"
-                            value={editingValue}
-                            onChange={e => setEditingValue(e.target.value)}
-                            className="flex-1 border border-gray-300 rounded-lg px-2 py-1 text-base focus:ring-green-500 focus:border-green-500"
-                            onKeyDown={e => { if (e.key === 'Enter') handleEditItem(idx); if (e.key === 'Escape') setEditingIdx(null); }}
-                          />
-                          <button className="text-green-600 hover:text-green-800" onClick={() => handleEditItem(idx)}><Check className="w-4 h-4" /></button>
-                          <button className="text-gray-400 hover:text-red-500" onClick={() => setEditingIdx(null)}><X className="w-4 h-4" /></button>
+                          <button className="ml-2 text-green-600 hover:text-green-800" onClick={() => handleEditItem(idx)}><Check className="w-4 h-4" /></button>
+                          <button className="ml-1 text-gray-400 hover:text-red-500" onClick={() => setEditingIdx(null)}><X className="w-4 h-4" /></button>
                         </>
                       ) : (
-                        <span className={`flex-1 text-gray-800 text-base ${checklist[idx] ? 'line-through text-gray-400' : ''}`}>{typeof item === 'object' && 'name' in item ? String(item.name) : String(item)}
-                          <button className="ml-2 text-gray-400 hover:text-green-600" title="Edit" onClick={() => { setEditingIdx(idx); setEditingValue(typeof item === 'object' && 'name' in item ? String(item.name) : String(item)); }}><Pencil className="w-4 h-4 inline" /></button>
+                        <div className="flex items-center ml-2">
+                          <button className="text-gray-400 hover:text-green-600" title="Edit" onClick={() => { setEditingIdx(idx); setEditingValue(typeof item === 'object' && 'name' in item ? String(item.name) : String(item)); }}><Pencil className="w-4 h-4 inline" /></button>
                           <button className="ml-1 text-gray-400 hover:text-red-600" title="Delete" onClick={() => handleDeleteItem(idx)}><Trash2 className="w-4 h-4 inline" /></button>
-                        </span>
+                        </div>
                       )}
-                      {typeof item === 'object' && 'quantity' in item && <span className="text-xs text-gray-500 ml-2">x{String(item.quantity)}</span>}
-                      {typeof item === 'object' && 'unit' in item && <span className="text-xs text-gray-400 ml-1">{String(item.unit)}</span>}
                     </li>
                   ))}
                 </ul>

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ChefHat, Loader2 } from 'lucide-react';
+import { ChefHat, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,13 +34,13 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
 
   const fetchUserLoggedMeals = async () => {
     const { data, error } = await supabase
-      .from('user_meals')
+      .from('user_recipes')
       .select('*')
       .eq('user_id', userId)
-      .eq('date_only', todayStr)
+      .eq('source', 'logged')
       .order('created_at', { ascending: false });
     if (!error && data) {
-      setUserLoggedMeals(data.filter((m: any) => m.source === 'user'));
+      setUserLoggedMeals(data);
     }
   };
 
@@ -114,6 +114,12 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
       setLogMealError(err.message || 'Failed to log meal');
     }
     setLogMealLoading(false);
+  };
+
+  // Delete a logged meal
+  const handleDeleteLoggedMeal = async (mealId: string) => {
+    await supabase.from('user_recipes').delete().eq('id', mealId);
+    setUserLoggedMeals(userLoggedMeals.filter(m => m.id !== mealId));
   };
 
   return (
@@ -201,10 +207,10 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
             <h3 className="text-base font-semibold text-gray-700 mb-2">Your Logged Meals</h3>
             <ul className="space-y-2">
               {userLoggedMeals.map((meal, idx) => (
-                <li key={meal.id} className="relative">
+                <li key={meal.id} className="relative group flex items-center w-full" draggable onDragStart={e => { e.dataTransfer.setData('application/json', JSON.stringify({ ...meal, recipeType: 'logged' })); }}>
                   <button
                     type="button"
-                    className="w-full text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all"
+                    className="flex-1 text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all w-full"
                     onMouseEnter={e => {
                       if (userMealTooltipTimeout.current) clearTimeout(userMealTooltipTimeout.current);
                       setHoveredUserMeal(meal);
@@ -215,7 +221,15 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
                       userMealTooltipTimeout.current = setTimeout(() => setHoveredUserMeal(null), 200);
                     }}
                   >
-                    {meal.description}
+                    {meal.name}
+                  </button>
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-red-100 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Delete meal"
+                    onClick={() => handleDeleteLoggedMeal(meal.id)}
+                  >
+                    <X className="w-4 h-4" />
                   </button>
                 </li>
               ))}
@@ -227,7 +241,7 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
                 onMouseEnter={() => { if (userMealTooltipTimeout.current) clearTimeout(userMealTooltipTimeout.current); }}
                 onMouseLeave={() => { setHoveredUserMeal(null); }}
               >
-                <div className="font-bold text-lg mb-1">{hoveredUserMeal.description}</div>
+                <div className="font-bold text-lg mb-1">{hoveredUserMeal.name}</div>
                 <div className="flex flex-wrap gap-2 mb-2">
                   <span className="text-orange-500 font-semibold">⚡ {hoveredUserMeal.calories} cal</span>
                   <span className="text-red-500 font-semibold">❤️ {hoveredUserMeal.protein} protein</span>

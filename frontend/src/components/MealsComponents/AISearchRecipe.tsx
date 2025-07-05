@@ -132,10 +132,10 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
             <h3 className="text-base font-semibold text-gray-700 mb-2">Your Saved Recipes</h3>
             <ul className="space-y-2">
               {savedRecipes.map((rec, idx) => (
-                <li key={rec.id || idx} className="relative flex items-center">
+                <li key={rec.id || idx} className="relative group flex items-center w-full" draggable onDragStart={e => { e.dataTransfer.setData('application/json', JSON.stringify({ ...rec, recipeType: 'searched' })); }}>
                   <button
                     type="button"
-                    className="flex-1 text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all"
+                    className="flex-1 text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all w-full"
                     onMouseEnter={e => {
                       if (savedRecipeTooltipTimeout.current) clearTimeout(savedRecipeTooltipTimeout.current);
                       setHoveredSavedRecipe(rec);
@@ -150,7 +150,7 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
                   </button>
                   <button
                     type="button"
-                    className="ml-2 p-1 rounded hover:bg-red-100 text-red-600"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-red-100 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Delete recipe"
                     onClick={() => handleDeleteRecipe(rec.id)}
                   >
