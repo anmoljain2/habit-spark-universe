@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { X, Pencil, Plus } from 'lucide-react';
+import { X, Pencil, Plus, Check, Loader2 } from 'lucide-react';
 
 const EditProfile = () => {
   const { user } = useAuth();
@@ -133,6 +133,9 @@ const EditProfile = () => {
     { value: 'bi_weekly', label: 'Bi-weekly' },
   ];
 
+  const [savingContextIdx, setSavingContextIdx] = useState<number | null>(null);
+  const [dirtyContexts, setDirtyContexts] = useState<Record<number, boolean>>({});
+
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
@@ -189,6 +192,7 @@ const EditProfile = () => {
             .map((c: any) => (typeof c === 'string' ? c : (c !== null && c !== undefined ? String(c) : '')))
             .filter((c: string) => typeof c === 'string' && c.trim() !== '')
         : []);
+      setDirtyContexts({});
       // Fetch fitness goals
       const { data: fitnessData } = await supabase
         .from('user_fitness_goals')
@@ -547,9 +551,33 @@ const EditProfile = () => {
     setJournalQuestions(selectedJournalQuestions);
   };
 
-  const handleAddContext = () => setContexts(prev => [...prev, '']);
-  const handleRemoveContext = (i: number) => setContexts(prev => prev.filter((_, idx) => idx !== i));
-  const handleContextChange = (i: number, value: string) => setContexts(prev => prev.map((c, idx) => idx === i ? value : c));
+  const handleAddContext = async () => {
+    if (!user) return;
+    // Prevent adding if last context is empty
+    if (contexts.length > 0 && !contexts[contexts.length - 1].trim()) return;
+    const newContexts = [...contexts, ''];
+    setContexts(newContexts);
+    await supabase.from('user_nutrition_preferences').update({ contexts: newContexts }).eq('user_id', user.id);
+  };
+  const handleRemoveContext = async (i: number) => {
+    if (!user) return;
+    const newContexts = contexts.filter((_, idx) => idx !== i);
+    setContexts(newContexts);
+    // Update in Supabase
+    await supabase.from('user_nutrition_preferences').update({ contexts: newContexts }).eq('user_id', user.id);
+  };
+  const handleContextChange = (i: number, value: string) => {
+    setContexts(prev => prev.map((c, idx) => idx === i ? value : c));
+    setDirtyContexts(prev => ({ ...prev, [i]: true }));
+  };
+  const handleSaveContextAtIdx = async (i: number) => {
+    if (!user) return;
+    setSavingContextIdx(i);
+    const newContexts = contexts.map((c, idx) => idx === i ? c : c);
+    await supabase.from('user_nutrition_preferences').update({ contexts: newContexts }).eq('user_id', user.id);
+    setDirtyContexts(prev => ({ ...prev, [i]: false }));
+    setSavingContextIdx(null);
+  };
 
   if (loading) {
     return (
@@ -833,12 +861,17 @@ const EditProfile = () => {
                       onChange={e => handleContextChange(i, e.target.value)}
                     />
                     <Button size="icon" variant="ghost" onClick={() => handleRemoveContext(i)} disabled={contexts.length === 1}><X className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => handleSaveContextAtIdx(i)} disabled={!dirtyContexts[i] || !context.trim()}>
+                      {savingContextIdx === i ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 text-green-600" />}
+                    </Button>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-6 text-gray-500">No saved contexts yet.</div>
               )}
-              <Button variant="outline" size="sm" onClick={handleAddContext}>Add Context</Button>
+              <Button variant="outline" size="sm" onClick={handleAddContext} disabled={contexts.length > 0 && !contexts[contexts.length - 1].trim()}>
+                Add Context
+              </Button>
             </div>
           </CardContent>
         </Card>

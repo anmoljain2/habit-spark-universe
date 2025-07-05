@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, RefreshCw, Calendar, Info } from 'lucide-react';
+import { Loader2, RefreshCw, Calendar, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AICalendarMealPlannerProps {
@@ -19,7 +19,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   const [hoveredMeal, setHoveredMeal] = useState<{ day: string; type: string } | null>(null);
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
   const [showRegenModal, setShowRegenModal] = useState(false);
-  const [regenMode, setRegenMode] = useState<'week' | 'day' | null>(null);
+  const [regenMode, setRegenMode] = useState<'week' | 'day' | 'meal' | null>(null);
   const [regenDay, setRegenDay] = useState<string | null>(null);
   const [regenFeedback, setRegenFeedback] = useState('');
   const regenInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -27,12 +27,18 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   const [savingContext, setSavingContext] = useState(false);
   const [contextSaved, setContextSaved] = useState(false);
   const [regenDayIdx, setRegenDayIdx] = useState<number | null>(null);
+  const [expandedRecipes, setExpandedRecipes] = useState<Record<string, boolean>>({});
+  const [regenMealType, setRegenMealType] = useState<string | null>(null);
+  const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>([...mealTypes]);
+  const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayIdx = (() => {
     const d = new Date(todayStr);
     return d.getDay();
   })();
+
+  const savedContexts = Array.isArray(nutritionPrefs?.contexts) ? nutritionPrefs.contexts : [];
 
   const fetchWeekMeals = async () => {
     setLoading(true);
@@ -63,6 +69,8 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   const handleRegenerateDay = (dateStr: string) => {
     setRegenMode('day');
     setRegenDay(dateStr);
+    setSelectedMealTypes([...mealTypes]);
+    setSelectedContexts([]);
     setShowRegenModal(true);
     setRegenFeedback('');
     setTimeout(() => regenInputRef.current?.focus(), 100);
@@ -70,6 +78,16 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
 
   const handleRegenerateWeek = () => {
     setRegenMode('week');
+    setShowRegenModal(true);
+    setSelectedContexts([]);
+    setRegenFeedback('');
+    setTimeout(() => regenInputRef.current?.focus(), 100);
+  };
+
+  const handleRegenerateMeal = (dateStr: string, mealType: string) => {
+    setRegenMode('meal');
+    setRegenDay(dateStr);
+    setRegenMealType(mealType);
     setShowRegenModal(true);
     setRegenFeedback('');
     setTimeout(() => regenInputRef.current?.focus(), 100);
@@ -82,7 +100,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
         await fetch('/api/generate-meal-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId, weekStart: weekStart, nutritionPrefs, force_regen_week: true, regenerate_feedback: regenFeedback, mode: 'week' }),
+          body: JSON.stringify({ user_id: userId, weekStart: weekStart, nutritionPrefs, force_regen_week: true, regenerate_feedback: regenFeedback, mode: 'week', applied_contexts: selectedContexts }),
         });
         await fetchWeekMeals();
       } catch (err) {}
@@ -93,7 +111,18 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
         await fetch('/api/generate-meal-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId, weekStart: weekStart, nutritionPrefs, force_regen_day: regenDay, regenerate_feedback: regenFeedback, mode: 'day' }),
+          body: JSON.stringify({ user_id: userId, weekStart: weekStart, nutritionPrefs, force_regen_day: regenDay, meal_types: selectedMealTypes, regenerate_feedback: regenFeedback, mode: 'day', applied_contexts: selectedContexts }),
+        });
+        await fetchWeekMeals();
+      } catch (err) {}
+      setRegeneratingDay(null);
+    } else if (regenMode === 'meal' && regenDay && regenMealType) {
+      setRegeneratingDay(regenDay + '_' + regenMealType);
+      try {
+        await fetch('/api/generate-meal-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, weekStart: weekStart, nutritionPrefs, force_regen_day: regenDay, meal_type: regenMealType, regenerate_feedback: regenFeedback, mode: 'meal', applied_contexts: selectedContexts }),
         });
         await fetchWeekMeals();
       } catch (err) {}
@@ -103,7 +132,9 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
     setRegenMode(null);
     setRegenDay(null);
     setRegenDayIdx(null);
+    setRegenMealType(null);
     setRegenFeedback('');
+    setSelectedContexts([]);
   };
 
   const getDateForDay = (start: string, dayIdx: number) => {
@@ -151,6 +182,9 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
     }
     setSavingContext(false);
   };
+
+  // Helper to get a unique key for a meal cell
+  const getMealKey = (dateStr: string, type: string) => `${dateStr}_${type}`;
 
   return (
     <div className="w-full flex flex-col items-center justify-center">
@@ -276,8 +310,16 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                         style={{ position: 'relative', zIndex: 1 }}
                       >
                         {meal ? (
-                          <span className="font-medium text-gray-900 text-base cursor-pointer">
+                          <span className="font-medium text-gray-900 text-base cursor-pointer flex items-center gap-1">
                             {meal.description}
+                            <button
+                              className="ml-1 text-green-500 hover:text-green-700"
+                              title="Regenerate this meal"
+                              onClick={e => { e.stopPropagation(); handleRegenerateMeal(dateStr, type); }}
+                              disabled={regeneratingDay === dateStr || !!showRegenModal}
+                            >
+                              <RefreshCw className="w-4 h-4 inline" />
+                            </button>
                           </span>
                         ) : (
                           <span className="text-gray-400">-</span>
@@ -310,28 +352,29 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                               <b>Recipe:</b>{' '}
                               {(() => {
                                 let steps = meal.recipe;
+                                let stepArr: string[] = [];
                                 if (Array.isArray(steps)) {
+                                  stepArr = steps;
+                                } else if (typeof steps === 'string') {
+                                  // Try to parse as JSON array if stringified
+                                  try {
+                                    const parsed = JSON.parse(steps);
+                                    if (Array.isArray(parsed)) stepArr = parsed;
+                                  } catch {
+                                    // Not JSON, split by step numbers or newlines
+                                    stepArr = steps.match(/(Step \d+: [^\n]+|[^\n]+(?=Step \d+:|$))/g)?.filter(s => s.trim()) || steps.split(/\n|\r/).filter(s => s.trim());
+                                  }
+                                }
+                                if (stepArr.length > 0) {
                                   return (
                                     <ol className="list-decimal ml-5 mt-1">
-                                      {steps.map((step: string, i: number) => (
-                                        <li key={i} className="mb-1">{step}</li>
+                                      {stepArr.map((step, i) => (
+                                        <li key={i} className="mb-1">{step.replace(/^Step \d+:\s*/, '')}</li>
                                       ))}
                                     </ol>
                                   );
                                 } else if (typeof steps === 'string') {
-                                  // Try to split by step numbers or newlines
-                                  const splitSteps = steps.match(/(Step \d+: [^\n]+|[^\n]+(?=Step \d+:|$))/g)?.filter(s => s.trim()) || steps.split(/\n|\r/).filter(s => s.trim());
-                                  if (splitSteps.length > 1) {
-                                    return (
-                                      <ol className="list-decimal ml-5 mt-1">
-                                        {splitSteps.map((step: string, i: number) => (
-                                          <li key={i} className="mb-1">{step.replace(/^Step \d+:\s*/, '')}</li>
-                                        ))}
-                                      </ol>
-                                    );
-                                  } else {
-                                    return <div className="mt-1">{steps}</div>;
-                                  }
+                                  return <div className="mt-1">{steps}</div>;
                                 } else {
                                   return null;
                                 }
@@ -360,7 +403,9 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                 ? 'Regenerate Week Meal Plan'
                 : regenMode === 'day' && regenDay
                   ? `Regenerate ${(() => { const [y, m, d] = regenDay.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long' }); })()} Meal Plan`
-                  : 'Regenerate Day Meal Plan'}
+                  : regenMode === 'meal' && regenDay && regenMealType
+                    ? `Regenerate ${regenMealType.charAt(0).toUpperCase() + regenMealType.slice(1)} for ${(() => { const [y, m, d] = regenDay.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long' }); })()}`
+                    : 'Regenerate Day Meal Plan'}
             </h3>
             <label className="text-sm text-gray-700 mb-1">Why are you regenerating? (Dislikes, changes, or feedback for the AI)</label>
             <textarea
@@ -389,6 +434,86 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                 </div>
               )}
             </div>
+            {regenMode === 'day' && (
+              <div className="flex flex-col gap-1 mb-2">
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1 text-sm font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={selectedMealTypes.length === mealTypes.length}
+                      ref={el => {
+                        if (el) el.indeterminate = selectedMealTypes.length > 0 && selectedMealTypes.length < mealTypes.length;
+                      }}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setSelectedMealTypes([...mealTypes]);
+                        } else {
+                          setSelectedMealTypes([]);
+                        }
+                      }}
+                    />
+                    Select All Meals
+                  </label>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {mealTypes.map(type => (
+                    <label key={type} className="flex items-center gap-1 text-sm font-medium">
+                      <input
+                        type="checkbox"
+                        checked={selectedMealTypes.includes(type)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setSelectedMealTypes(prev => [...prev, type]);
+                          } else {
+                            setSelectedMealTypes(prev => prev.filter(t => t !== type));
+                          }
+                        }}
+                      />
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            {savedContexts.length > 0 && (
+              <div className="flex flex-col gap-1 mb-2">
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1 text-xs font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={selectedContexts.length === savedContexts.length}
+                      ref={el => {
+                        if (el) el.indeterminate = selectedContexts.length > 0 && selectedContexts.length < savedContexts.length;
+                      }}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setSelectedContexts([...savedContexts]);
+                        } else {
+                          setSelectedContexts([]);
+                        }
+                      }}
+                    />
+                    Select All Contexts
+                  </label>
+                </div>
+                {savedContexts.map((ctx, i) => (
+                  <label key={i} className="flex items-center gap-2 text-xs font-medium">
+                    <input
+                      type="checkbox"
+                      checked={selectedContexts.includes(ctx)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setSelectedContexts(prev => [...prev, ctx]);
+                        } else {
+                          setSelectedContexts(prev => prev.filter(c => c !== ctx));
+                        }
+                      }}
+                    />
+                    <span className="truncate max-w-xs">{ctx}</span>
+                  </label>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2 justify-end mt-2">
               <button className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={() => setShowRegenModal(false)}>Cancel</button>
               <button

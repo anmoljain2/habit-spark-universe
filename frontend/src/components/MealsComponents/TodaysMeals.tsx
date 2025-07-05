@@ -139,7 +139,53 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
                         <span className="text-yellow-700 font-bold flex items-center gap-1">{macroIcons.fat} {meal.fat} <span className="text-xs font-normal">fat</span></span>
                       </div>
                       {meal.serving_size && <div className="text-gray-500 text-sm mb-1">Serving size: {meal.serving_size}</div>}
-                      {meal.recipe && <div className="text-gray-700 text-sm mb-2"><b>Recipe:</b> {meal.recipe}</div>}
+                      {meal.recipe && (
+                        <div className="text-gray-700 text-sm mb-2">
+                          <b>Recipe:</b>
+                          {(() => {
+                            let steps = meal.recipe;
+                            let stepArr: string[] = [];
+                            if (Array.isArray(steps)) {
+                              stepArr = steps;
+                            } else if (typeof steps === 'string') {
+                              // Try to parse as JSON array if stringified
+                              try {
+                                const parsed = JSON.parse(steps);
+                                if (Array.isArray(parsed)) stepArr = parsed;
+                              } catch {
+                                // Not JSON, split by step numbers or newlines
+                                stepArr = steps.match(/(Step \d+: [^\n]+|[^\n]+(?=Step \d+:|$))/g)?.filter(s => s.trim()) || steps.split(/\n|\r/).filter(s => s.trim());
+                              }
+                            }
+                            if (stepArr.length > 0) {
+                              return (
+                                <ol className="list-decimal ml-5 mt-1">
+                                  {stepArr.map((step, i) => (
+                                    <li key={i} className="mb-1">{step.replace(/^Step \d+:\s*/, '')}</li>
+                                  ))}
+                                </ol>
+                              );
+                            } else if (typeof steps === 'string') {
+                              return <div className="mt-1">{steps}</div>;
+                            } else {
+                              return null;
+                            }
+                          })()}
+                        </div>
+                      )}
+                      {meal.ingredients && (
+                        <div className="text-gray-600 text-xs mb-2">
+                          <b>Ingredients:</b> {Array.isArray(meal.ingredients)
+                            ? meal.ingredients.map((ing: any) => {
+                                if (typeof ing === 'string') return ing;
+                                if (ing && typeof ing === 'object') return ing.name + (ing.quantity ? ` (${ing.quantity})` : '');
+                                return '';
+                              }).join(', ')
+                            : typeof meal.ingredients === 'string'
+                              ? meal.ingredients
+                              : ''}
+                        </div>
+                      )}
                       {meal.notes && <div className="mt-1 text-xs text-gray-500 italic">{meal.notes}</div>}
                     </>
                   ) : (

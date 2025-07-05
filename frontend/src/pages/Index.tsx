@@ -5,13 +5,15 @@ import HabitsList from '../components/HabitsList';
 import AchievementsSection from '../components/AchievementBadge';
 import { useState, useEffect } from 'react';
 import { Newspaper, Utensils, Dumbbell, ArrowRight, Sparkles, Target, TrendingUp } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [xpRefresh, setXPRefresh] = useState(0);
   const [stats, setStats] = useState({ progress: null, streak: null, xp: null, loading: true });
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   
   console.log('Index page rendering for user:', user?.email);
   
@@ -51,7 +53,25 @@ const Index = () => {
     if (user) fetchStats();
   }, [user, xpRefresh]);
 
-  if (!user) {
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      if (!user) return;
+      // Check if user_profiles row exists
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single();
+      if (!data) {
+        navigate('/onboarding', { replace: true });
+      } else {
+        setCheckingOnboarding(false);
+      }
+    };
+    if (user) checkOnboarding();
+  }, [user, navigate]);
+
+  if (!user || checkingOnboarding) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 flex items-center justify-center">
         <div className="text-center">

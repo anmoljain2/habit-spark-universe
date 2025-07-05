@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Utensils, Loader2, X } from 'lucide-react';
+import { Utensils, Loader2, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -37,6 +37,7 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
   setRecipeResults,
 }) => {
   const [popup, setPopup] = useState<string | null>(null);
+  const [showAllSavedRecipes, setShowAllSavedRecipes] = useState(false);
 
   // Wrap the search handler to add validation and error popup
   const wrappedHandleRecipeSearch = async (e: React.FormEvent) => {
@@ -131,7 +132,7 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
           <div className="mt-6 w-full">
             <h3 className="text-base font-semibold text-gray-700 mb-2">Your Saved Recipes</h3>
             <ul className="space-y-2">
-              {savedRecipes.map((rec, idx) => (
+              {(showAllSavedRecipes ? savedRecipes : savedRecipes.slice(0, 5)).map((rec, idx) => (
                 <li key={rec.id || idx} className="relative group flex items-center w-full" draggable onDragStart={e => { e.dataTransfer.setData('application/json', JSON.stringify({ ...rec, recipeType: 'searched' })); }}>
                   <button
                     type="button"
@@ -159,6 +160,15 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
                 </li>
               ))}
             </ul>
+            {savedRecipes.length > 5 && (
+              <button
+                className="flex items-center gap-1 text-green-600 hover:text-green-800 text-sm font-semibold mt-2 mx-auto"
+                onClick={() => setShowAllSavedRecipes(v => !v)}
+              >
+                {showAllSavedRecipes ? 'Show less' : 'Show more'}
+                {showAllSavedRecipes ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            )}
             {hoveredSavedRecipe && savedRecipeTooltipPos && (
               <div
                 style={{ position: 'absolute', left: savedRecipeTooltipPos.x, top: savedRecipeTooltipPos.y + 8, zIndex: 50 }}

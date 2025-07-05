@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ChefHat, Loader2, X } from 'lucide-react';
+import { ChefHat, Loader2, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,6 +31,7 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
   const userMealTooltipTimeout = useRef<NodeJS.Timeout | null>(null);
   const [hoveredUserMeal, setHoveredUserMeal] = useState<any | null>(null);
   const [userMealTooltipPos, setUserMealTooltipPos] = useState<{x: number, y: number} | null>(null);
+  const [showAllLoggedMeals, setShowAllLoggedMeals] = useState(false);
 
   const fetchUserLoggedMeals = async () => {
     const { data, error } = await supabase
@@ -203,10 +204,10 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
           </form>
         )}
         {userLoggedMeals.length > 0 && (
-          <div className="mt-2 w-full">
+          <div className="mt-6 w-full">
             <h3 className="text-base font-semibold text-gray-700 mb-2">Your Logged Meals</h3>
             <ul className="space-y-2">
-              {userLoggedMeals.map((meal, idx) => (
+              {(showAllLoggedMeals ? userLoggedMeals : userLoggedMeals.slice(0, 5)).map((meal, idx) => (
                 <li key={meal.id} className="relative group flex items-center w-full" draggable onDragStart={e => { e.dataTransfer.setData('application/json', JSON.stringify({ ...meal, recipeType: 'logged' })); }}>
                   <button
                     type="button"
@@ -234,6 +235,15 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
                 </li>
               ))}
             </ul>
+            {userLoggedMeals.length > 5 && (
+              <button
+                className="flex items-center gap-1 text-green-600 hover:text-green-800 text-sm font-semibold mt-2 mx-auto"
+                onClick={() => setShowAllLoggedMeals(v => !v)}
+              >
+                {showAllLoggedMeals ? 'Show less' : 'Show more'}
+                {showAllLoggedMeals ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            )}
             {hoveredUserMeal && userMealTooltipPos && (
               <div
                 style={{ position: 'absolute', left: userMealTooltipPos.x, top: userMealTooltipPos.y + 8, zIndex: 50 }}

@@ -60,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
           const extractPrompt = `Extract a detailed, structured list of ingredients (with amounts if possible) from the following recipe. Return ONLY a JSON array of objects with fields: name (string), quantity (string, optional), unit (string, optional), brand (string, optional), notes (string, optional).\n\nRecipe:\n${meal.recipe}`;
           const extractCompletion = await openai.chat.completions.create({
-            model: process.env.OPENAI_MODEL || 'gpt-4o',
+            model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
             messages: [{ role: 'user', content: extractPrompt }],
           });
           let extractContent = extractCompletion.choices[0].message.content;
@@ -111,7 +111,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let completion;
     try {
       completion = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4o',
+        model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
         messages: [{ role: 'user', content: prompt }],
       });
     } catch (e) {

@@ -72,7 +72,7 @@ If a day is a rest day, set workout_type to 'Rest' and exercises to an empty arr
 
     // 4. Call OpenAI
     const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
       messages: [{ role: 'user', content: prompt }],
     });
     let plan;
