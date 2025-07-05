@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import TodaysMeals from '@/components/MealsComponents/TodaysMeals';
 import AICalendarMealPlanner from '@/components/MealsComponents/AICalendarMealPlanner';
-import GroceryList from '@/components/MealsComponents/GroceryList';
+import GroceryList, { GroceryProvider } from '@/components/MealsComponents/GroceryList';
 import LogMeal from '@/components/MealsComponents/LogMeal';
 import AISearchRecipe from '@/components/MealsComponents/AISearchRecipe';
 import EdamamRecipeSearchTester from '@/components/MealsComponents/EdamamRecipeSearchTester';
@@ -161,7 +161,9 @@ const Meals: React.FC = () => {
           </p>
           {/* Grocery List, Log a Meal, AI Recipe Search */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
-            <GroceryList userId={userId} weekStart={weekStart} />
+            <GroceryProvider userId={userId} weekStart={weekStart}>
+              <GroceryList userId={userId} weekStart={weekStart} />
+            </GroceryProvider>
             <LogMeal userId={userId} todayStr={todayStr} />
             <AISearchRecipe
               recipeQuery={recipeQuery}

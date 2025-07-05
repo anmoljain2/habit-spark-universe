@@ -26,6 +26,7 @@ import PublicNavbar from './components/PublicNavbar';
 import AddReview from './pages/AddReview';
 import { ProfileProvider } from './components/ProfileContext';
 import Relationship from './pages/Relationship';
+import { JournalProvider } from './pages/Journal';
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,16 @@ const HomeRouter = () => {
   return <PublicLayout><Landing /></PublicLayout>;
 };
 
+const JournalRouteWrapper = () => {
+  const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <JournalProvider userId={user.id}>
+      <Journal />
+    </JournalProvider>
+  );
+};
+
 const App = () => (
   <ProfileProvider>
     <QueryClientProvider client={queryClient}>
@@ -76,7 +87,7 @@ const App = () => (
               <Route path="/news" element={<PrivateLayout><ProtectedRoute><News /></ProtectedRoute></PrivateLayout>} />
               <Route path="/meals" element={<PrivateLayout><ProtectedRoute><Meals /></ProtectedRoute></PrivateLayout>} />
               <Route path="/fitness" element={<PrivateLayout><ProtectedRoute><Fitness /></ProtectedRoute></PrivateLayout>} />
-              <Route path="/journal" element={<PrivateLayout><ProtectedRoute><Journal /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/journal" element={<PrivateLayout><ProtectedRoute><JournalRouteWrapper /></ProtectedRoute></PrivateLayout>} />
               <Route path="/finances" element={<PrivateLayout><ProtectedRoute><Finances /></ProtectedRoute></PrivateLayout>} />
               <Route path="/add-review" element={<PrivateLayout><ProtectedRoute><AddReview /></ProtectedRoute></PrivateLayout>} />
               <Route path="/relationship" element={<PrivateLayout><ProtectedRoute><Relationship /></ProtectedRoute></PrivateLayout>} />

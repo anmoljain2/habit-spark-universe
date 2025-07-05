@@ -271,4 +271,14 @@ const Social = () => {
   );
 };
 
-export default Social;
+const SocialRouteWrapper = () => {
+  const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <SocialProvider userId={user.id}>
+      <Social />
+    </SocialProvider>
+  );
+};
+
+export default SocialRouteWrapper;
