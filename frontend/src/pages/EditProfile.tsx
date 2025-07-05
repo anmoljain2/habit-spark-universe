@@ -10,13 +10,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { X, Pencil, Plus, Check, Loader2 } from 'lucide-react';
+import { useProfile } from '@/components/ProfileContext';
 
 const EditProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { profile, habits: contextHabits, newsPreferences, nutritionPreferences, fitnessGoals, financialProfile, loading: profileLoading, refreshProfile } = useProfile();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -24,23 +25,6 @@ const EditProfile = () => {
   const [bio, setBio] = useState('');
   const [visibility, setVisibility] = useState('public');
   // State for all sections
-  const [habits, setHabits] = useState<any[]>([]);
-  const [newsPreferences, setNewsPreferences] = useState<any>(null);
-  const [nutritionPreferences, setNutritionPreferences] = useState<any>(null);
-  const [fitnessGoals, setFitnessGoals] = useState<any>(null);
-  const [financialProfile, setFinancialProfile] = useState<any>(null);
-  const [journalQuestions, setJournalQuestions] = useState<string[]>([]);
-  // Habits form state
-  const [habitForm, setHabitForm] = useState({
-    id: '',
-    name: '',
-    type: 'positive',
-    frequency: 'daily',
-    difficulty: 'easy',
-  });
-  const [editingHabitIndex, setEditingHabitIndex] = useState<number | null>(null);
-  const [showHabitForm, setShowHabitForm] = useState(false);
-  // News Preferences form state
   const [newsInterests, setNewsInterests] = useState<string[]>([]);
   const [newsFrequency, setNewsFrequency] = useState('daily');
   const [newsPreferredTime, setNewsPreferredTime] = useState('');
@@ -136,145 +120,78 @@ const EditProfile = () => {
   const [savingContextIdx, setSavingContextIdx] = useState<number | null>(null);
   const [dirtyContexts, setDirtyContexts] = useState<Record<number, boolean>>({});
 
+  // Add missing state for habit form
+  const [habitForm, setHabitForm] = useState({ id: '', name: '', type: 'positive', frequency: 'daily', difficulty: 'easy' });
+  const [editingHabitIndex, setEditingHabitIndex] = useState<number | null>(null);
+  const [showHabitForm, setShowHabitForm] = useState(false);
+  const [habits, setHabits] = useState<any[]>([]);
+
+  // Initialize form state from context data (profile, habits, etc.)
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
-      setLoading(true);
-      // Fetch user profile
-      const { data: profileData } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      setProfile(profileData);
-      setDisplayName(profileData?.display_name || '');
-      setUsername(profileData?.username || '');
-      setEmail(user.email || '');
-      setAvatarUrl('');
-      setBio(profileData?.bio || '');
-      setVisibility(profileData?.profile_visibility || 'public');
-      // Fetch habits
-      const { data: habitsData } = await supabase
-        .from('user_habits')
-        .select('*')
-        .eq('user_id', user.id);
-      setHabits(habitsData || []);
-      // Fetch news preferences
-      const { data: newsData } = await supabase
-        .from('user_news_preferences')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      setNewsPreferences(newsData);
-      setNewsInterests(newsData?.interests || []);
-      setNewsFrequency(newsData?.frequency || 'daily');
-      setNewsPreferredTime(newsData?.preferred_time || '');
-      setNewsFormat(newsData?.format || 'headlines');
-      // Fetch nutrition preferences
-      const { data: nutritionData } = await supabase
-        .from('user_nutrition_preferences')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      setNutritionPreferences(nutritionData);
-      setCalories(nutritionData?.calories_target?.toString() || '');
-      setProtein(nutritionData?.protein_target?.toString() || '');
-      setCarbs(nutritionData?.carbs_target?.toString() || '');
-      setFat(nutritionData?.fat_target?.toString() || '');
-      setFiber(nutritionData?.fiber_target?.toString() || '');
-      setSodium(nutritionData?.sodium_limit?.toString() || '');
-      setSugar(nutritionData?.sugar_limit?.toString() || '');
-      setDietary(nutritionData?.dietary_restrictions || []);
-      setAllergies((nutritionData?.allergies || []).join(', '));
-      setNutritionNotes(nutritionData?.notes || '');
-      setContexts(Array.isArray(nutritionData?.contexts)
-        ? nutritionData.contexts
-            .map((c: any) => (typeof c === 'string' ? c : (c !== null && c !== undefined ? String(c) : '')))
-            .filter((c: string) => typeof c === 'string' && c.trim() !== '')
-        : []);
-      setDirtyContexts({});
-      // Fetch fitness goals
-      const { data: fitnessData } = await supabase
-        .from('user_fitness_goals')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      setFitnessGoals(fitnessData);
-      setFitnessGoalType(fitnessData?.goal_type || '');
-      setFitnessTargetWeight(fitnessData?.target_weight?.toString() || '');
-      setFitnessCurrentWeight(fitnessData?.current_weight?.toString() || '');
-      setFitnessNotes(fitnessData?.notes || '');
-      setFitnessHeight(fitnessData?.height?.toString() || '');
-      setFitnessStartDate(fitnessData?.start_date || '');
-      setFitnessEndDate(fitnessData?.end_date || '');
-      setFitnessDaysPerWeek(fitnessData?.days_per_week?.toString() || '');
-      setFitnessMinutesPerSession(fitnessData?.minutes_per_session?.toString() || '');
-      setFitnessIntensity(fitnessData?.intensity || 'moderate');
-      setFitnessCardioPreferences(fitnessData?.cardio_preferences || []);
-      setFitnessMuscleFocus(fitnessData?.muscle_focus || []);
-      setFitnessEquipmentAvailable(fitnessData?.equipment_available || []);
-      setFitnessInjuryLimitations(fitnessData?.injury_limitations || '');
-      setFitnessPreferredTimeOfDay(fitnessData?.preferred_time_of_day || 'any');
-      // Fetch financial profile
-      const { data: financialData } = await supabase
-        .from('financial_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      setFinancialProfile(financialData);
-      setNetWorth(financialData?.net_worth?.toString() || '');
-      setTotalAssets(financialData?.total_assets?.toString() || '');
-      setTotalLiabilities(financialData?.total_liabilities?.toString() || '');
-      setSavingsBalance(financialData?.savings_balance?.toString() || '');
-      setInvestmentValue(financialData?.investment_value?.toString() || '');
-      setMonthlyIncome(financialData?.monthly_income?.toString() || '');
-      setMonthlyExpenses(financialData?.monthly_expenses?.toString() || '');
-      let categories = [{ category: '', percent: '' }];
-      if (financialData?.spending_habits) {
-        let parsed: any = financialData.spending_habits;
-        if (typeof parsed === 'string') {
-          try {
-            parsed = JSON.parse(parsed);
-          } catch {}
-        }
-        if (parsed && typeof parsed === 'object' && Array.isArray(parsed.categories)) {
-          categories = parsed.categories.filter((c: any) => typeof c === 'object' && 'category' in c && 'percent' in c);
-        }
-      }
-      setSpendingCategories(categories);
-      let goals = [{ goal: '', target: '', by: '' }];
-      if (Array.isArray(financialData?.financial_goals)) {
-        const arr = (financialData.financial_goals as any[]).filter(
-          (g): g is { goal: string; target: string; by: string } =>
-            typeof g === 'object' &&
-            g !== null &&
-            typeof g.goal === 'string' &&
-            typeof g.target === 'string' &&
-            typeof g.by === 'string'
-        );
-        if (arr.length > 0) goals = arr;
-      }
-      setFinancialGoals(goals);
-      setRiskTolerance(financialData?.risk_tolerance || '');
-      setEmergencyFundStatus(financialData?.emergency_fund_status || '');
-      setFinanceNotes(financialData?.notes || '');
-      // Fetch journal questions
-      const { data: journalConfig } = await supabase
-        .from('journal_config')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      if (journalConfig) {
-        const selected: string[] = [];
-        QUESTION_KEYS.forEach((key, i) => {
-          if (journalConfig[key]) selected.push(COMMON_JOURNAL_QUESTIONS[i]);
-        });
-        setSelectedJournalQuestions(selected);
-      }
-      setLoading(false);
-    };
-    fetchData();
-  }, [user]);
+    if (profile) {
+      setDisplayName(profile.display_name || '');
+      setUsername(profile.username || '');
+      setEmail(user?.email || '');
+      setAvatarUrl(profile.avatar_url || '');
+      setBio(profile.bio || '');
+      setVisibility(profile.profile_visibility || 'public');
+    }
+    setNewsInterests(newsPreferences?.interests || []);
+    setNewsFrequency(newsPreferences?.frequency || 'daily');
+    setNewsPreferredTime(newsPreferences?.preferred_time || '');
+    setNewsFormat(newsPreferences?.format || 'headlines');
+    setCalories(nutritionPreferences?.calories_target?.toString() || '');
+    setProtein(nutritionPreferences?.protein_target?.toString() || '');
+    setCarbs(nutritionPreferences?.carbs_target?.toString() || '');
+    setFat(nutritionPreferences?.fat_target?.toString() || '');
+    setFiber(nutritionPreferences?.fiber_target?.toString() || '');
+    setSodium(nutritionPreferences?.sodium_limit?.toString() || '');
+    setSugar(nutritionPreferences?.sugar_limit?.toString() || '');
+    setDietary(nutritionPreferences?.dietary_restrictions || []);
+    setAllergies((nutritionPreferences?.allergies || []).join(', '));
+    setNutritionNotes(nutritionPreferences?.notes || '');
+    setContexts(Array.isArray(nutritionPreferences?.contexts)
+      ? nutritionPreferences.contexts.map((c: any) => (typeof c === 'string' ? c : (c !== null && c !== undefined ? String(c) : ''))).filter((c: string) => typeof c === 'string' && c.trim() !== '')
+      : []);
+    setDirtyContexts({});
+    setFitnessGoalType(fitnessGoals?.goal_type || '');
+    setFitnessTargetWeight(fitnessGoals?.target_weight?.toString() || '');
+    setFitnessCurrentWeight(fitnessGoals?.current_weight?.toString() || '');
+    setFitnessNotes(fitnessGoals?.notes || '');
+    setFitnessHeight(fitnessGoals?.height?.toString() || '');
+    setFitnessStartDate(fitnessGoals?.start_date || '');
+    setFitnessEndDate(fitnessGoals?.end_date || '');
+    setFitnessDaysPerWeek(fitnessGoals?.days_per_week?.toString() || '');
+    setFitnessMinutesPerSession(fitnessGoals?.minutes_per_session?.toString() || '');
+    setFitnessIntensity(fitnessGoals?.intensity || 'moderate');
+    setFitnessCardioPreferences(fitnessGoals?.cardio_preferences || []);
+    setFitnessMuscleFocus(fitnessGoals?.muscle_focus || []);
+    setFitnessEquipmentAvailable(fitnessGoals?.equipment_available || []);
+    setFitnessInjuryLimitations(fitnessGoals?.injury_limitations || '');
+    setFitnessPreferredTimeOfDay(fitnessGoals?.preferred_time_of_day || 'any');
+    setNetWorth(financialProfile?.net_worth?.toString() || '');
+    setTotalAssets(financialProfile?.total_assets?.toString() || '');
+    setTotalLiabilities(financialProfile?.total_liabilities?.toString() || '');
+    setSavingsBalance(financialProfile?.savings_balance?.toString() || '');
+    setInvestmentValue(financialProfile?.investment_value?.toString() || '');
+    setMonthlyIncome(financialProfile?.monthly_income?.toString() || '');
+    setMonthlyExpenses(financialProfile?.monthly_expenses?.toString() || '');
+    setSpendingCategories(financialProfile?.spending_habits?.categories || [{ category: '', percent: '' }]);
+    setBudgetingMethod(financialProfile?.preferred_budgeting || '');
+    setFinancialGoals(financialProfile?.financial_goals || [{ goal: '', target: '', by: '' }]);
+    setRiskTolerance(financialProfile?.risk_tolerance || '');
+    setEmergencyFundStatus(financialProfile?.emergency_fund_status || '');
+    setFinanceNotes(financialProfile?.notes || '');
+    if (fitnessGoals) {
+      setSelectedJournalQuestions(fitnessGoals.notes ? COMMON_JOURNAL_QUESTIONS.filter(q => fitnessGoals.notes.includes(q)) : []);
+    }
+    setLoading(false);
+  }, [profile, newsPreferences, nutritionPreferences, fitnessGoals, financialProfile, user]);
+
+  // Sync local habits state with contextHabits
+  useEffect(() => {
+    setHabits(contextHabits || []);
+  }, [contextHabits]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -352,6 +269,7 @@ const EditProfile = () => {
         })(),
       ]);
       setSaving(false);
+      await refreshProfile();
       navigate('/profile');
     } catch (err) {
       setSaving(false);
@@ -433,7 +351,6 @@ const EditProfile = () => {
       preferred_time: newsPreferredTime,
       format: newsFormat,
     });
-    setNewsPreferences({ interests: newsInterests, frequency: newsFrequency, preferred_time: newsPreferredTime, format: newsFormat });
   };
 
   const handleDietaryToggle = (option: string) => {
@@ -454,18 +371,6 @@ const EditProfile = () => {
       allergies: allergies ? allergies.split(',').map(a => a.trim()) : [],
       notes: nutritionNotes,
     });
-    setNutritionPreferences({
-      calories_target: calories,
-      protein_target: protein,
-      carbs_target: carbs,
-      fat_target: fat,
-      fiber_target: fiber,
-      sodium_limit: sodium,
-      sugar_limit: sugar,
-      dietary_restrictions: dietary,
-      allergies: allergies ? allergies.split(',').map(a => a.trim()) : [],
-      notes: nutritionNotes,
-    });
   };
 
   const handleFitnessGoalsSave = async () => {
@@ -478,15 +383,6 @@ const EditProfile = () => {
       height: fitnessHeight ? parseFloat(fitnessHeight) : null,
       start_date: fitnessStartDate || null,
       end_date: fitnessEndDate || null,
-      notes: fitnessNotes,
-    });
-    setFitnessGoals({
-      goal_type: fitnessGoalType,
-      target_weight: fitnessTargetWeight,
-      current_weight: fitnessCurrentWeight,
-      height: fitnessHeight,
-      start_date: fitnessStartDate,
-      end_date: fitnessEndDate,
       notes: fitnessNotes,
     });
   };
@@ -521,21 +417,6 @@ const EditProfile = () => {
       emergency_fund_status: emergencyFundStatus,
       notes: financeNotes,
     });
-    setFinancialProfile({
-      net_worth: netWorth,
-      total_assets: totalAssets,
-      total_liabilities: totalLiabilities,
-      savings_balance: savingsBalance,
-      investment_value: investmentValue,
-      monthly_income: monthlyIncome,
-      monthly_expenses: monthlyExpenses,
-      spending_habits: { categories: spendingCategories },
-      preferred_budgeting: budgetingMethod,
-      financial_goals: financialGoals,
-      risk_tolerance: riskTolerance,
-      emergency_fund_status: emergencyFundStatus,
-      notes: financeNotes,
-    });
   };
 
   const handleJournalQuestionToggle = (question: string) => {
@@ -548,7 +429,6 @@ const EditProfile = () => {
       row[key] = selectedJournalQuestions.includes(COMMON_JOURNAL_QUESTIONS[i]);
     });
     await supabase.from('journal_config').upsert(row);
-    setJournalQuestions(selectedJournalQuestions);
   };
 
   const handleAddContext = async () => {

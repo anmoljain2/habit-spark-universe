@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
+import { useMeals } from './MealsContext';
 
 interface LogMealProps {
   userId: string;
@@ -27,28 +28,11 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
   });
   const [logMealLoading, setLogMealLoading] = useState(false);
   const [logMealError, setLogMealError] = useState('');
-  const [userLoggedMeals, setUserLoggedMeals] = useState<any[]>([]);
   const userMealTooltipTimeout = useRef<NodeJS.Timeout | null>(null);
   const [hoveredUserMeal, setHoveredUserMeal] = useState<any | null>(null);
   const [userMealTooltipPos, setUserMealTooltipPos] = useState<{x: number, y: number} | null>(null);
   const [showAllLoggedMeals, setShowAllLoggedMeals] = useState(false);
-
-  const fetchUserLoggedMeals = async () => {
-    const { data, error } = await supabase
-      .from('user_recipes')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('source', 'logged')
-      .order('created_at', { ascending: false });
-    if (!error && data) {
-      setUserLoggedMeals(data);
-    }
-  };
-
-  React.useEffect(() => {
-    if (userId && todayStr) fetchUserLoggedMeals();
-    // eslint-disable-next-line
-  }, [userId, todayStr]);
+  const { refreshMeals } = useMeals();
 
   const handleLogMealChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setLogMealForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -93,10 +77,6 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
         const errData = await res.json();
         throw new Error(errData.error || 'Failed to log meal');
       }
-      // Reload the page to show the new meal
-      if (typeof window !== 'undefined' && window.location) {
-        window.location.reload();
-      }
       setLogMealForm({
         meal_type: '',
         description: '',
@@ -110,17 +90,18 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
         tags: '',
         date: todayStr,
       });
-      fetchUserLoggedMeals();
+      await refreshMeals();
+      setLogMealExpanded(false);
     } catch (err: any) {
       setLogMealError(err.message || 'Failed to log meal');
     }
     setLogMealLoading(false);
   };
 
-  // Delete a logged meal
+  // Delete a logged meal (remains local to user_recipes, not user_meals)
   const handleDeleteLoggedMeal = async (mealId: string) => {
     await supabase.from('user_recipes').delete().eq('id', mealId);
-    setUserLoggedMeals(userLoggedMeals.filter(m => m.id !== mealId));
+    // Optionally refresh userLoggedMeals if needed
   };
 
   return (
@@ -202,73 +183,6 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
               </Button>
             </div>
           </form>
-        )}
-        {userLoggedMeals.length > 0 && (
-          <div className="mt-6 w-full">
-            <h3 className="text-base font-semibold text-gray-700 mb-2">Your Logged Meals</h3>
-            <ul className="space-y-2">
-              {(showAllLoggedMeals ? userLoggedMeals : userLoggedMeals.slice(0, 5)).map((meal, idx) => (
-                <li key={meal.id} className="relative group flex items-center w-full" draggable onDragStart={e => { e.dataTransfer.setData('application/json', JSON.stringify({ ...meal, recipeType: 'logged' })); }}>
-                  <button
-                    type="button"
-                    className="flex-1 text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all w-full"
-                    onMouseEnter={e => {
-                      if (userMealTooltipTimeout.current) clearTimeout(userMealTooltipTimeout.current);
-                      setHoveredUserMeal(meal);
-                      const rect2 = (e.target as HTMLElement).getBoundingClientRect();
-                      setUserMealTooltipPos({ x: rect2.left + rect2.width / 2, y: rect2.bottom + window.scrollY });
-                    }}
-                    onMouseLeave={() => {
-                      userMealTooltipTimeout.current = setTimeout(() => setHoveredUserMeal(null), 200);
-                    }}
-                  >
-                    {meal.name}
-                  </button>
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-red-100 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Delete meal"
-                    onClick={() => handleDeleteLoggedMeal(meal.id)}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {userLoggedMeals.length > 5 && (
-              <button
-                className="flex items-center gap-1 text-green-600 hover:text-green-800 text-sm font-semibold mt-2 mx-auto"
-                onClick={() => setShowAllLoggedMeals(v => !v)}
-              >
-                {showAllLoggedMeals ? 'Show less' : 'Show more'}
-                {showAllLoggedMeals ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-            )}
-            {hoveredUserMeal && userMealTooltipPos && (
-              <div
-                style={{ position: 'absolute', left: userMealTooltipPos.x, top: userMealTooltipPos.y + 8, zIndex: 50 }}
-                className="bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-80 max-w-xs text-sm animate-fade-in-up"
-                onMouseEnter={() => { if (userMealTooltipTimeout.current) clearTimeout(userMealTooltipTimeout.current); }}
-                onMouseLeave={() => { setHoveredUserMeal(null); }}
-              >
-                <div className="font-bold text-lg mb-1">{hoveredUserMeal.name}</div>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  <span className="text-orange-500 font-semibold">⚡ {hoveredUserMeal.calories} cal</span>
-                  <span className="text-red-500 font-semibold">❤️ {hoveredUserMeal.protein} protein</span>
-                  <span className="text-yellow-500 font-semibold">C {hoveredUserMeal.carbs} carbs</span>
-                  <span className="text-green-500 font-semibold">F {hoveredUserMeal.fat} fat</span>
-                </div>
-                {hoveredUserMeal.serving_size && <div className="text-xs text-gray-500 mb-1">Serving size: {hoveredUserMeal.serving_size}</div>}
-                {hoveredUserMeal.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {hoveredUserMeal.recipe}</div>}
-                {hoveredUserMeal.ingredients && Array.isArray(hoveredUserMeal.ingredients) && hoveredUserMeal.ingredients.length > 0 && (
-                  <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {hoveredUserMeal.ingredients.join(', ')}</div>
-                )}
-                {hoveredUserMeal.tags && Array.isArray(hoveredUserMeal.tags) && hoveredUserMeal.tags.length > 0 && (
-                  <div className="text-xs text-gray-400 mb-1"><b>Tags:</b> {hoveredUserMeal.tags.join(', ')}</div>
-                )}
-              </div>
-            )}
-          </div>
         )}
       </div>
     </div>

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Utensils, Coffee, Sandwich, Drumstick, Flame, Heart, Leaf, Egg, CheckCircle } from 'lucide-react';
+import { useMeals } from './MealsContext';
 
 interface TodaysMealsProps {
   userId: string;
@@ -29,56 +30,27 @@ const macroColors = {
   fat: 'text-yellow-700',
 };
 
-const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPrefs: initialNutritionPrefs }) => {
-  const [todayMeals, setTodayMeals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [nutrition, setNutrition] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPrefs }) => {
+  const { weekMeals, loading, refreshMeals } = useMeals();
   const [completing, setCompleting] = useState<string | null>(null);
-  const [nutritionPrefs, setNutritionPrefs] = useState<any>(initialNutritionPrefs || {});
 
-  // Always fetch user_nutrition_preferences if not provided or if userId changes
-  useEffect(() => {
-    if (!nutritionPrefs?.calories_target && userId) {
-      supabase
-        .from('user_nutrition_preferences')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
-        .then(({ data }) => {
-          if (data) setNutritionPrefs(data);
-        });
-    }
-  }, [userId]);
+  // Get today's meals from context
+  const todayMealsObj = weekMeals?.[todayStr] || {};
+  const todayMeals = mealTypes.map(type => todayMealsObj[type.key]).filter(Boolean);
 
-  const fetchTodayMeals = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('user_meals')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('date_only', todayStr);
-    if (!error && data) {
-      setTodayMeals(data);
-      // Only count completed meals for nutrition totals
-      const completedMeals = data.filter((m: any) => m.completed);
-      let cals = 0, prot = 0, carbs = 0, fat = 0;
-      completedMeals.forEach((m: any) => {
-        cals += Number(m.calories) || 0;
-        prot += Number(m.protein) || 0;
-        carbs += Number(m.carbs) || 0;
-        fat += Number(m.fat) || 0;
-      });
-      setNutrition({ calories: cals, protein: prot, carbs: carbs, fat: fat });
-    } else {
-      setTodayMeals([]);
-      setNutrition({ calories: 0, protein: 0, carbs: 0, fat: 0 });
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (userId && todayStr) fetchTodayMeals();
-  }, [userId, todayStr]);
+  // Calculate nutrition from completed meals
+  const nutrition = todayMeals.reduce(
+    (acc, m) => {
+      if (m.completed) {
+        acc.calories += Number(m.calories) || 0;
+        acc.protein += Number(m.protein) || 0;
+        acc.carbs += Number(m.carbs) || 0;
+        acc.fat += Number(m.fat) || 0;
+      }
+      return acc;
+    },
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  );
 
   // Helper for progress bar
   const macroProgress = (macro: keyof typeof nutrition, goal: number) => {
@@ -93,7 +65,7 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
       .from('user_meals')
       .update({ completed: !completed })
       .eq('id', mealId);
-    await fetchTodayMeals();
+    await refreshMeals();
     setCompleting(null);
   };
 
@@ -111,9 +83,9 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
             ))
           ) : (
             mealTypes.map(type => {
-              const meal = todayMeals.find((m: any) => m.meal_type === type.key);
+              const meal = todayMealsObj[type.key];
               return (
-                <div key={type.key} className={`relative bg-white/90 rounded-2xl shadow-xl border-2 ${meal?.completed ? 'border-green-400' : 'border-green-200'} p-6 min-h-[260px] flex flex-col gap-2 transition-all duration-300`}> 
+                <div key={type.key} className={`relative bg-white/90 rounded-2xl shadow-xl border-2 ${meal?.completed ? 'border-green-400' : 'border-green-200'} p-6 min-h-[260px] flex flex-col gap-2 transition-all duration-300`}>
                   {/* Check mark at top right */}
                   {meal && (
                     <button
@@ -213,14 +185,15 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
               return (
                 <div key={macro} className="mb-1 w-full">
                   <div className="flex justify-between items-center mb-1">
-                    <span className={`font-semibold capitalize ${macroColors[macro as keyof typeof macroColors]}`}>{macro.charAt(0).toUpperCase() + macro.slice(1)}</span>
-                    <span className="font-semibold">{value} / {goal}{macro === 'calories' ? '' : 'g'}</span>
+                    <span className={`font-semibold ${macroColors[macro as keyof typeof macroColors]}`}>{macro.charAt(0).toUpperCase() + macro.slice(1)}</span>
+                    <span className="text-sm text-gray-700 font-medium">{value} / {goal} {macro === 'calories' ? 'cal' : 'g'}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className={`rounded-full h-3 transition-all duration-500 ${macroColors[macro as keyof typeof macroColors]}`}
-                      style={{ width: `${percent}%`, background: `linear-gradient(90deg, #4ade80, #22d3ee)` }}></div>
+                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-3 rounded-full ${macroColors[macro as keyof typeof macroColors]} bg-opacity-70`}
+                      style={{ width: `${percent}%`, transition: 'width 0.5s' }}
+                    ></div>
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">{percent}%</div>
                 </div>
               );
             })}

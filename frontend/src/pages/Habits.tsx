@@ -4,13 +4,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { X, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useProfile } from '@/components/ProfileContext';
 
 const DIFFICULTY_XP = { easy: 30, medium: 50, hard: 70 };
 
 const Habits = () => {
   const { user } = useAuth();
-  const [habits, setHabits] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { habits, loading: profileLoading, refreshProfile } = useProfile();
   const [showSlideout, setShowSlideout] = useState(false);
   const [editingHabit, setEditingHabit] = useState<any>(null);
   const [form, setForm] = useState({
@@ -19,27 +19,6 @@ const Habits = () => {
     difficulty: 'easy',
     type: 'positive',
   });
-
-  const fetchHabits = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data } = await supabase
-      .from('user_habits')
-      .select('*')
-      .eq('user_id', user.id);
-    setHabits(data || []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchHabits();
-    // eslint-disable-next-line
-  }, [user]);
-
-  useEffect(() => {
-    if (showSlideout === false) fetchHabits();
-    // eslint-disable-next-line
-  }, [showSlideout]);
 
   const openAdd = () => {
     setEditingHabit(null);
@@ -62,7 +41,7 @@ const Habits = () => {
     const confirmed = window.confirm('Are you sure you want to delete this habit?');
     if (!confirmed) return;
     await supabase.from('user_habits').delete().eq('id', id);
-    setHabits(habits.filter(h => h.id !== id));
+    await refreshProfile();
   };
 
   const handleSave = async () => {
@@ -95,13 +74,14 @@ const Habits = () => {
       return;
     }
     setShowSlideout(false);
+    await refreshProfile();
   };
 
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold mb-8 text-indigo-800">Manage Your Habits</h1>
-        {loading ? (
+        {profileLoading ? (
           <div className="text-center text-gray-500 py-8">Loading habits...</div>
         ) : habits.length === 0 ? (
           <div className="text-center text-gray-500 py-8">No habits yet. Click the + to add one!</div>

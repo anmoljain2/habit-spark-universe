@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, RefreshCw, Calendar, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useMeals } from './MealsContext';
 
 interface AICalendarMealPlannerProps {
   userId: string;
@@ -12,8 +13,7 @@ const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'];
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, weekStart, nutritionPrefs }) => {
-  const [weekMeals, setWeekMeals] = useState<any>({});
-  const [loading, setLoading] = useState(true);
+  const { weekMeals, loading, refreshMeals } = useMeals();
   const [regeneratingDay, setRegeneratingDay] = useState<string | null>(null);
   const [regeneratingWeek, setRegeneratingWeek] = useState(false);
   const [hoveredMeal, setHoveredMeal] = useState<{ day: string; type: string } | null>(null);
@@ -39,32 +39,6 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   })();
 
   const savedContexts = Array.isArray(nutritionPrefs?.contexts) ? nutritionPrefs.contexts : [];
-
-  const fetchWeekMeals = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('user_meals')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('date_only', weekStart)
-      .lte('date_only', new Date(new Date(weekStart).getTime() + 6 * 86400000).toISOString().slice(0, 10));
-    if (!error && data) {
-      const mealsByDay: any = {};
-      data.forEach((meal: any) => {
-        if (!mealsByDay[meal.date_only]) mealsByDay[meal.date_only] = {};
-        mealsByDay[meal.date_only][meal.meal_type] = meal;
-      });
-      setWeekMeals(mealsByDay);
-    } else {
-      setWeekMeals({});
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (userId && weekStart) fetchWeekMeals();
-    // eslint-disable-next-line
-  }, [userId, weekStart]);
 
   const handleRegenerateDay = (dateStr: string) => {
     setRegenMode('day');
@@ -102,7 +76,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: userId, weekStart: weekStart, nutritionPrefs, force_regen_week: true, regenerate_feedback: regenFeedback, mode: 'week', applied_contexts: selectedContexts }),
         });
-        await fetchWeekMeals();
+        await refreshMeals();
       } catch (err) {}
       setRegeneratingWeek(false);
     } else if (regenMode === 'day' && regenDay) {
@@ -113,7 +87,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: userId, weekStart: weekStart, nutritionPrefs, force_regen_day: regenDay, meal_types: selectedMealTypes, regenerate_feedback: regenFeedback, mode: 'day', applied_contexts: selectedContexts }),
         });
-        await fetchWeekMeals();
+        await refreshMeals();
       } catch (err) {}
       setRegeneratingDay(null);
     } else if (regenMode === 'meal' && regenDay && regenMealType) {
@@ -124,7 +98,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: userId, weekStart: weekStart, nutritionPrefs, force_regen_day: regenDay, meal_type: regenMealType, regenerate_feedback: regenFeedback, mode: 'meal', applied_contexts: selectedContexts }),
         });
-        await fetchWeekMeals();
+        await refreshMeals();
       } catch (err) {}
       setRegeneratingDay(null);
     }
@@ -297,11 +271,11 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                           ingredients: recipe.ingredients,
                           source: recipe.recipeType === 'logged' ? 'user' : 'find_recipe',
                         });
-                        await fetchWeekMeals();
+                        await refreshMeals();
                       }}
                     >
                       <div
-                        className={`transition-all duration-200 rounded-xl border shadow-sm px-2 py-3 h-full min-h-[60px] flex items-center justify-center cursor-pointer
+                        className={`transition-colors transition-shadow duration-200 rounded-xl border shadow-sm px-2 py-3 h-full min-h-[60px] flex items-center justify-center cursor-pointer
                           ${dragOverCell && dragOverCell.day === dateStr && dragOverCell.type === type
                             ? 'bg-green-100 border-green-400'
                             : 'bg-white/80 border-gray-200'}

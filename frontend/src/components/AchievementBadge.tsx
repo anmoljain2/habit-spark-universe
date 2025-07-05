@@ -1,45 +1,9 @@
-
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useProfile } from '@/components/ProfileContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Award, Star, Target } from 'lucide-react';
 
 const AchievementsBadgesRow = () => {
-  const { user } = useAuth();
-  const [achievements, setAchievements] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAchievements = async () => {
-      if (!user) return;
-      
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('achievements')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('unlocked', true)
-          .order('unlocked_at', { ascending: false })
-          .limit(6);
-
-        if (error) {
-          console.error('Error fetching achievements:', error);
-          setAchievements([]);
-        } else {
-          setAchievements(data || []);
-        }
-      } catch (error) {
-        console.error('Error in fetchAchievements:', error);
-        setAchievements([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAchievements();
-  }, [user]);
+  const { achievements, loading } = useProfile();
 
   // Mock achievements if none exist
   const mockAchievements = [

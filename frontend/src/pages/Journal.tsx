@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import React from 'react';
+import { useEffect, useState, createContext, useContext, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import JournalConfig from './JournalConfig';
@@ -40,14 +41,96 @@ interface JournalEntry {
   created_at: string;
 }
 
+// --- JournalContext ---
+interface JournalContextType {
+  entries: JournalEntry[];
+  config: any;
+  loading: boolean;
+  saving: boolean;
+  refreshJournal: () => Promise<void>;
+  addEntry: (answers: { [q: string]: string }) => Promise<void>;
+  updateConfig: (config: any) => Promise<void>;
+}
+
+const JournalContext = createContext<JournalContextType | undefined>(undefined);
+
+export const JournalProvider: React.FC<{ userId: string; children: React.ReactNode }> = ({ userId, children }) => {
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [config, setConfig] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchJournal = useCallback(async () => {
+    setLoading(true);
+    const { data: configData } = await supabase
+      .from('journal_config')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    setConfig(configData);
+    const { data: entriesData } = await supabase
+      .from('journal_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    const typedEntries = (entriesData || []).map(entry => ({
+      ...entry,
+      answers: entry.answers as { [q: string]: string }
+    }));
+    setEntries(typedEntries);
+    setLoading(false);
+  }, [userId]);
+
+  const refreshJournal = useCallback(async () => {
+    await fetchJournal();
+  }, [fetchJournal]);
+
+  const addEntry = async (answers: { [q: string]: string }) => {
+    setSaving(true);
+    const { data, error } = await supabase.from('journal_entries').insert({
+      user_id: userId,
+      answers,
+    }).select().single();
+    setSaving(false);
+    if (!error && data) {
+      const typedEntry = {
+        ...data,
+        answers: data.answers as { [q: string]: string }
+      };
+      setEntries(prev => [typedEntry, ...prev]);
+    }
+  };
+
+  const updateConfig = async (newConfig: any) => {
+    setLoading(true);
+    await supabase
+      .from('journal_config')
+      .upsert({ ...newConfig, user_id: userId });
+    await fetchJournal();
+    setLoading(false);
+  };
+
+  React.useEffect(() => {
+    if (userId) fetchJournal();
+  }, [userId, fetchJournal]);
+
+  return (
+    <JournalContext.Provider value={{ entries, config, loading, saving, refreshJournal, addEntry, updateConfig }}>
+      {children}
+    </JournalContext.Provider>
+  );
+};
+
+export const useJournal = () => {
+  const ctx = useContext(JournalContext);
+  if (!ctx) throw new Error('useJournal must be used within a JournalProvider');
+  return ctx;
+};
+
 const Journal = () => {
   const { user } = useAuth();
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { entries, config, loading, saving, refreshJournal, addEntry, updateConfig } = useJournal();
   const [answers, setAnswers] = useState<{ [q: string]: string }>({});
-  const [saving, setSaving] = useState(false);
-  const [config, setConfig] = useState<any>(null);
-  const [configLoading, setConfigLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Get the list of enabled questions for this user
@@ -59,39 +142,6 @@ const Journal = () => {
   const todayStr = new Date().toDateString();
   const hasEntryToday = entries.some(entry => new Date(entry.created_at).toDateString() === todayStr);
 
-  useEffect(() => {
-    if (!user) return;
-    setConfigLoading(true);
-    supabase
-      .from('journal_config')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => {
-        setConfig(data);
-        setConfigLoading(false);
-      });
-  }, [user]);
-
-  useEffect(() => {
-    if (!user || !config) return;
-    setLoading(true);
-    supabase
-      .from('journal_entries')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        // Type assertion to handle the Json type from Supabase
-        const typedEntries = (data || []).map(entry => ({
-          ...entry,
-          answers: entry.answers as { [q: string]: string }
-        }));
-        setEntries(typedEntries);
-        setLoading(false);
-      });
-  }, [user, config]);
-
   const handleAnswerChange = (q: string, value: string) => {
     setAnswers(prev => ({ ...prev, [q]: value }));
   };
@@ -99,20 +149,7 @@ const Journal = () => {
   const handleAddEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    setSaving(true);
-    const { data, error } = await supabase.from('journal_entries').insert({
-      user_id: user.id,
-      answers,
-    }).select().single();
-    setSaving(false);
-    if (!error && data) {
-      const typedEntry = {
-        ...data,
-        answers: data.answers as { [q: string]: string }
-      };
-      setEntries([typedEntry, ...entries]);
-      setAnswers({});
-    }
+    await addEntry(answers);
   };
 
   const handleCalendarChange = (value: Date | Date[] | null) => {
@@ -125,7 +162,7 @@ const Journal = () => {
     }
   };
 
-  if (configLoading) return (
+  if (loading) return (
     <div className="min-h-screen">
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600"></div>
@@ -137,16 +174,7 @@ const Journal = () => {
     return (
       <QuestionnaireWrapper>
         <JournalConfig onComplete={() => {
-          setConfigLoading(true);
-          supabase
-            .from('journal_config')
-            .select('*')
-            .eq('user_id', user.id)
-            .single()
-            .then(({ data }) => {
-              setConfig(data);
-              setConfigLoading(false);
-            });
+          updateConfig(answers);
         }} />
       </QuestionnaireWrapper>
     );
@@ -206,17 +234,7 @@ const Journal = () => {
               ) : (
                 enabledQuestions.length === 0 ? (
                   <JournalConfig onComplete={() => {
-                    // Refetch config after saving
-                    setConfigLoading(true);
-                    supabase
-                      .from('journal_config')
-                      .select('*')
-                      .eq('user_id', user.id)
-                      .single()
-                      .then(({ data }) => {
-                        setConfig(data);
-                        setConfigLoading(false);
-                      });
+                    updateConfig(answers);
                   }} />
                 ) : (
                   <form onSubmit={handleAddEntry} className="space-y-6">
@@ -275,7 +293,7 @@ const Journal = () => {
                 className="w-full"
                 tileClassName={({ date }: { date: Date }) =>
                   entryDates.has(date.toDateString())
-                    ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-bold rounded-lg' 
+                    ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-bold rounded-lg transition-colors'
                     : undefined
                 }
               />

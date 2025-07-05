@@ -1,31 +1,15 @@
 import { User, Trophy, Settings, Menu, LogOut, Sparkles } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/components/ProfileContext';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
-  const [level, setLevel] = useState<number | null>(null);
-  const [levelLoading, setLevelLoading] = useState(true);
+  const { level, loading: profileLoading } = useProfile();
   const location = useLocation();
-
-  useEffect(() => {
-    const fetchLevel = async () => {
-      if (!user) return;
-      setLevelLoading(true);
-      const { data } = await supabase
-        .from('profiles')
-        .select('level')
-        .eq('id', user.id)
-        .single();
-      setLevel(data?.level || 1);
-      setLevelLoading(false);
-    };
-    fetchLevel();
-  }, [user]);
 
   const navItems = [
     { path: '/', label: 'Dashboard' },
@@ -60,7 +44,7 @@ const Navbar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors transition-shadow duration-200 ${
                     isActive(item.path)
                       ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm'
                       : 'hover:bg-white/10 hover:text-white/90'
@@ -73,15 +57,15 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 px-4 py-2 rounded-full border border-yellow-400/30 backdrop-blur-sm">
+            <div className="flex items-center space-x-2 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 px-4 py-2 rounded-full border border-yellow-400/30 backdrop-blur-sm flex-nowrap whitespace-nowrap">
               <Trophy className="w-4 h-4 text-yellow-300" />
-              <span className="text-sm font-semibold">
-                {levelLoading ? '...' : `Level ${level}`}
+              <span className="text-sm font-semibold whitespace-nowrap">
+                {profileLoading ? '...' : `Level ${level}`}
               </span>
             </div>
             <Link 
               to="/profile" 
-              className="flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full p-2.5 transition-all duration-200 backdrop-blur-sm border border-white/20"
+              className="flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full p-2.5 transition-colors duration-200 backdrop-blur-sm border border-white/20"
             >
               <User className="w-5 h-5 text-white" />
             </Link>
@@ -91,7 +75,7 @@ const Navbar = () => {
                 onClick={signOut}
                 variant="ghost"
                 size="sm"
-                className="text-white hover:bg-white/10 h-8 w-8 p-0 rounded-full"
+                className="text-white hover:bg-white/10 transition-colors h-8 w-8 p-0 rounded-full"
               >
                 <LogOut className="w-4 h-4" />
               </Button>
@@ -129,7 +113,7 @@ const Navbar = () => {
               <div className="border-t border-white/20 pt-4 mt-4">
                 <Link 
                   to="/profile" 
-                  className="flex items-center space-x-2 px-3 py-2 hover:bg-white/10 rounded-md text-base font-medium"
+                  className="flex items-center space-x-2 px-3 py-2 hover:bg-white/10 rounded-md text-base font-medium transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <User className="w-5 h-5 text-white" />
@@ -141,7 +125,7 @@ const Navbar = () => {
                     onClick={signOut}
                     variant="ghost"
                     size="sm"
-                    className="text-white hover:bg-white/10"
+                    className="text-white hover:bg-white/10 transition-colors"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out

@@ -7,11 +7,11 @@ import axios from 'axios';
 import { formatISO, startOfWeek, endOfWeek } from 'date-fns';
 import { toast } from 'sonner';
 import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
+import { useProfile } from '@/components/ProfileContext';
 
 const Fitness = () => {
   const { user } = useAuth();
-  const [fitnessGoals, setFitnessGoals] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { fitnessGoals, loading: profileLoading, refreshProfile } = useProfile();
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<any[]>([]);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -55,16 +55,6 @@ const Fitness = () => {
 
   useEffect(() => {
     if (!user) return;
-    setLoading(true);
-    supabase
-      .from('user_fitness_goals')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => {
-        setFitnessGoals(data);
-        setLoading(false);
-      });
     fetchWorkouts();
     // eslint-disable-next-line
   }, [user]);
@@ -263,7 +253,7 @@ const Fitness = () => {
     // eslint-disable-next-line
   }, [timerActive, timerPaused, timerSeconds]);
 
-  if (loading) {
+  if (profileLoading) {
     return (
       <div className="min-h-screen">
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -273,10 +263,10 @@ const Fitness = () => {
     );
   }
 
-  if (!loading && !fitnessGoals) {
+  if (!profileLoading && !fitnessGoals) {
     return (
       <QuestionnaireWrapper>
-        <FitnessQuestionnaire userId={user.id} onComplete={setFitnessGoals} />
+        <FitnessQuestionnaire userId={user.id} onComplete={refreshProfile} />
       </QuestionnaireWrapper>
     );
   }

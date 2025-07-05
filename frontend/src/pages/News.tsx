@@ -4,26 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import NewsQuestionnaire from '../components/NewsQuestionnaire';
 import { Newspaper, BookOpen, TrendingUp, Clock, ExternalLink } from 'lucide-react';
 import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
+import { useProfile } from '@/components/ProfileContext';
 
 const News = () => {
   const { user } = useAuth();
-  const [newsPrefs, setNewsPrefs] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { newsPreferences, loading: profileLoading, refreshProfile } = useProfile();
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('user_news_preferences')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => {
-        setNewsPrefs(data);
-        setLoading(false);
-      });
-  }, [user]);
-
-  if (loading) {
+  if (profileLoading) {
     return (
       <div className="min-h-screen">
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -33,10 +20,10 @@ const News = () => {
     );
   }
 
-  if (!loading && !newsPrefs) {
+  if (!profileLoading && !newsPreferences) {
     return (
       <QuestionnaireWrapper>
-        <NewsQuestionnaire userId={user.id} onComplete={setNewsPrefs} />
+        <NewsQuestionnaire userId={user.id} onComplete={refreshProfile} />
       </QuestionnaireWrapper>
     );
   }

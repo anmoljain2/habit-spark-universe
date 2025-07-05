@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { Settings, CheckCircle, Circle, Sparkles, BookOpen } from 'lucide-react';
+import { useJournal } from './Journal';
 
 const QUESTION_KEYS = [
   'q_grateful',
@@ -30,16 +30,16 @@ const COMMON_JOURNAL_QUESTIONS = [
 ];
 
 const QUESTION_CATEGORIES = [
-  { icon: '🙏', color: 'from-amber-400 to-orange-500' },
-  { icon: '✨', color: 'from-purple-400 to-pink-500' },
-  { icon: '💪', color: 'from-red-400 to-rose-500' },
-  { icon: '🧘', color: 'from-green-400 to-emerald-500' },
-  { icon: '🎓', color: 'from-blue-400 to-indigo-500' },
-  { icon: '🎯', color: 'from-indigo-400 to-purple-500' },
-  { icon: '💭', color: 'from-pink-400 to-rose-500' },
-  { icon: '🕊️', color: 'from-cyan-400 to-blue-500' },
-  { icon: '😊', color: 'from-yellow-400 to-amber-500' },
-  { icon: '📈', color: 'from-emerald-400 to-teal-500' },
+  { icon: '\ud83d\ude4f', color: 'from-amber-400 to-orange-500' },
+  { icon: '\u2728', color: 'from-purple-400 to-pink-500' },
+  { icon: '\ud83d\udcaa', color: 'from-red-400 to-rose-500' },
+  { icon: '\ud83e\uddd8', color: 'from-green-400 to-emerald-500' },
+  { icon: '\ud83c\udf93', color: 'from-blue-400 to-indigo-500' },
+  { icon: '\ud83c\udfaf', color: 'from-indigo-400 to-purple-500' },
+  { icon: '\ud83d\udcad', color: 'from-pink-400 to-rose-500' },
+  { icon: '\ud83d\udd4a\ufe0f', color: 'from-cyan-400 to-blue-500' },
+  { icon: '\ud83d\ude0a', color: 'from-yellow-400 to-amber-500' },
+  { icon: '\ud83d\udcc8', color: 'from-emerald-400 to-teal-500' },
 ];
 
 interface JournalConfigProps {
@@ -48,30 +48,18 @@ interface JournalConfigProps {
 
 const JournalConfig = ({ onComplete }: JournalConfigProps) => {
   const { user } = useAuth();
+  const { config, loading, saving, updateConfig } = useJournal();
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
-    setLoading(true);
-    supabase
-      .from('journal_config')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          // Populate selectedQuestions from boolean columns
-          const selected: string[] = [];
-          QUESTION_KEYS.forEach((key, i) => {
-            if (data[key]) selected.push(COMMON_JOURNAL_QUESTIONS[i]);
-          });
-          setSelectedQuestions(selected);
-        }
-        setLoading(false);
-      });
-  }, [user]);
+    if (!user || !config) return;
+    // Populate selectedQuestions from boolean columns in config
+    const selected: string[] = [];
+    QUESTION_KEYS.forEach((key, i) => {
+      if (config[key]) selected.push(COMMON_JOURNAL_QUESTIONS[i]);
+    });
+    setSelectedQuestions(selected);
+  }, [user, config]);
 
   const handleChange = (question: string) => {
     setSelectedQuestions(prev =>
@@ -84,15 +72,13 @@ const JournalConfig = ({ onComplete }: JournalConfigProps) => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    setSaving(true);
     // Build row with booleans for each question
     const row: any = { user_id: user.id };
     QUESTION_KEYS.forEach((key, i) => {
       row[key] = selectedQuestions.includes(COMMON_JOURNAL_QUESTIONS[i]);
     });
-    const { error } = await supabase.from('journal_config').upsert(row);
-    setSaving(false);
-    if (!error && onComplete) onComplete();
+    await updateConfig(row);
+    if (onComplete) onComplete();
   };
 
   if (loading) {

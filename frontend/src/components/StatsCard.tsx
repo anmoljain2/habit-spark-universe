@@ -1,7 +1,4 @@
-
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useProfile } from '@/components/ProfileContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, Target, TrendingUp, Calendar } from 'lucide-react';
 
@@ -10,55 +7,8 @@ interface StatsOverviewProps {
 }
 
 const StatsOverview = ({ xpRefresh }: StatsOverviewProps) => {
-  const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalXP: 0,
-    habitsCompleted: 0,
-    currentStreak: 0,
-    weeklyProgress: 0
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (!user) return;
-      
-      setLoading(true);
-      try {
-        // Get profile data
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('total_xp, streak, habits_completed_percent')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        // Get today's completed habits
-        const today = new Date().toISOString().split('T')[0];
-        const { data: completedHabits, error: habitsError } = await supabase
-          .from('user_habits')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('completed_today', true);
-
-        if (habitsError) {
-          console.error('Error fetching habits:', habitsError);
-        }
-
-        setStats({
-          totalXP: profile?.total_xp || 0,
-          habitsCompleted: completedHabits?.length || 0,
-          currentStreak: profile?.streak || 0,
-          weeklyProgress: profile?.habits_completed_percent || 0
-        });
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, [user, xpRefresh]);
+  const { mainStats, habits, loading } = useProfile();
+  const habitsCompleted = habits.filter(h => h.completed_today).length;
 
   if (loading) {
     return (
@@ -80,28 +30,28 @@ const StatsOverview = ({ xpRefresh }: StatsOverviewProps) => {
   const statsData = [
     {
       title: 'Total XP',
-      value: stats.totalXP.toLocaleString(),
+      value: (mainStats?.total_xp || 0).toLocaleString(),
       icon: Activity,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100'
     },
     {
       title: 'Habits Today',
-      value: stats.habitsCompleted.toString(),
+      value: habitsCompleted.toString(),
       icon: Target,
       color: 'text-green-600',
       bgColor: 'bg-green-100'
     },
     {
       title: 'Current Streak',
-      value: `${stats.currentStreak} days`,
+      value: `${mainStats?.streak || 0} days`,
       icon: TrendingUp,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100'
     },
     {
       title: 'Weekly Progress',
-      value: `${stats.weeklyProgress}%`,
+      value: `${mainStats?.habits_completed_percent || 0}%`,
       icon: Calendar,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100'

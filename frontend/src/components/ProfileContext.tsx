@@ -8,7 +8,12 @@ interface ProfileContextType {
   newsPreferences: any;
   nutritionPreferences: any;
   fitnessGoals: any;
+  financialProfile: any;
   friends: any[];
+  level: number;
+  totalXP: number;
+  mainStats: any;
+  achievements: any[];
   loading: boolean;
   refreshProfile: () => Promise<void>;
 }
@@ -22,7 +27,12 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [newsPreferences, setNewsPreferences] = useState<any>(null);
   const [nutritionPreferences, setNutritionPreferences] = useState<any>(null);
   const [fitnessGoals, setFitnessGoals] = useState<any>(null);
+  const [financialProfile, setFinancialProfile] = useState<any>(null);
   const [friends, setFriends] = useState<any[]>([]);
+  const [level, setLevel] = useState<number>(1);
+  const [totalXP, setTotalXP] = useState<number>(0);
+  const [mainStats, setMainStats] = useState<any>(null);
+  const [achievements, setAchievements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProfileData = useCallback(async () => {
@@ -62,6 +72,13 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       .eq('user_id', user.id)
       .single();
     setFitnessGoals(fitnessData);
+    // Fetch financial profile
+    const { data: financialData } = await supabase
+      .from('financial_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+    setFinancialProfile(financialData);
     // Fetch friends (accepted only)
     const { data: friendsData } = await supabase
       .from('friend_requests')
@@ -78,6 +95,24 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       friendProfiles = profilesData || [];
     }
     setFriends(friendProfiles);
+    // Fetch main stats (level, XP, streak, etc.)
+    const { data: statsData } = await supabase
+      .from('profiles')
+      .select('level, total_xp, streak, habits_completed_percent')
+      .eq('id', user.id)
+      .single();
+    setLevel(statsData?.level || 1);
+    setTotalXP(statsData?.total_xp || 0);
+    setMainStats(statsData);
+    // Fetch achievements
+    const { data: achievementsData } = await supabase
+      .from('achievements')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('unlocked', true)
+      .order('unlocked_at', { ascending: false })
+      .limit(6);
+    setAchievements(achievementsData || []);
     setLoading(false);
   }, [user]);
 
@@ -86,7 +121,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [user, fetchProfileData]);
 
   return (
-    <ProfileContext.Provider value={{ profile, habits, newsPreferences, nutritionPreferences, fitnessGoals, friends, loading, refreshProfile: fetchProfileData }}>
+    <ProfileContext.Provider value={{ profile, habits, newsPreferences, nutritionPreferences, fitnessGoals, financialProfile, friends, level, totalXP, mainStats, achievements, loading, refreshProfile: fetchProfileData }}>
       {children}
     </ProfileContext.Provider>
   );

@@ -136,7 +136,7 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
                 <li key={rec.id || idx} className="relative group flex items-center w-full" draggable onDragStart={e => { e.dataTransfer.setData('application/json', JSON.stringify({ ...rec, recipeType: 'searched' })); }}>
                   <button
                     type="button"
-                    className="flex-1 text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all w-full"
+                    className="flex-1 text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-colors w-full"
                     onMouseEnter={e => {
                       if (savedRecipeTooltipTimeout.current) clearTimeout(savedRecipeTooltipTimeout.current);
                       setHoveredSavedRecipe(rec);

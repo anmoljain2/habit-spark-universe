@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useProfile } from '@/components/ProfileContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, Star } from 'lucide-react';
@@ -10,10 +8,7 @@ interface LevelCardProps {
 }
 
 const LevelCard = ({ xpRefresh }: LevelCardProps) => {
-  const { user } = useAuth();
-  const [level, setLevel] = useState(1);
-  const [totalXP, setTotalXP] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const { level, totalXP, loading } = useProfile();
 
   // Calculate XP needed for current level and next level
   const getXPForLevel = (level: number) => Math.pow(level, 2) * 100;
@@ -25,61 +20,6 @@ const LevelCard = ({ xpRefresh }: LevelCardProps) => {
 
   const PROGRESS_COLOR = 'bg-gradient-to-r from-blue-500 to-cyan-400';
   const PROGRESS_BG = 'bg-blue-100';
-
-  useEffect(() => {
-    const fetchLevelData = async () => {
-      if (!user) return;
-      setLoading(true);
-      try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('level, total_xp')
-          .eq('id', user.id)
-          .maybeSingle();
-        let newLevel = 1;
-        let newXP = 0;
-        if (error) {
-          setLevel(1);
-          setTotalXP(0);
-        } else if (profile) {
-          // --- Level recalculation logic ---
-          let calculatedLevel = 1;
-          let xp = profile.total_xp || 0;
-          while (xp >= Math.pow(calculatedLevel, 2) * 100) {
-            calculatedLevel++;
-          }
-          calculatedLevel = Math.max(1, calculatedLevel - 1);
-          setLevel(calculatedLevel);
-          setTotalXP(xp);
-          // If level in DB is wrong, update it
-          if (profile.level !== calculatedLevel) {
-            await supabase.from('profiles').update({ level: calculatedLevel }).eq('id', user.id);
-          }
-        } else {
-          // No profile found, create one
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              level: 1,
-              total_xp: 0,
-              username: user.email?.split('@')[0] || 'User'
-            });
-          if (insertError) {
-            console.error('Error creating profile:', insertError);
-          }
-          setLevel(1);
-          setTotalXP(0);
-        }
-      } catch (error) {
-        setLevel(1);
-        setTotalXP(0);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLevelData();
-  }, [user, xpRefresh]);
 
   if (loading) {
     return (

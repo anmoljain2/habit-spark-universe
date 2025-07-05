@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import React from 'react';
+import { useEffect, useState, createContext, useContext, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,68 +9,104 @@ import { Button } from '@/components/ui/button';
 import { UserPlus, Users, Check, PlusCircle, Sparkles, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const Social = () => {
-  const { user } = useAuth();
+// --- SocialContext ---
+interface SocialContextType {
+  potentialFriends: any[];
+  friends: any[];
+  groups: any[];
+  loading: boolean;
+  addingFriend: string | null;
+  joiningGroup: string | null;
+  joinedGroups: string[];
+  refreshSocial: () => Promise<void>;
+  addFriend: (friendId: string) => Promise<void>;
+  joinGroup: (groupId: string) => Promise<void>;
+}
+
+const SocialContext = createContext<SocialContextType | undefined>(undefined);
+
+export const SocialProvider: React.FC<{ userId: string; children: React.ReactNode }> = ({ userId, children }) => {
   const [potentialFriends, setPotentialFriends] = useState<any[]>([]);
-  const [groups, setGroups] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingFriend, setAddingFriend] = useState<string | null>(null);
   const [joiningGroup, setJoiningGroup] = useState<string | null>(null);
   const [joinedGroups, setJoinedGroups] = useState<string[]>([]);
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchSocialData = async () => {
-      if (!user) return;
-      setLoading(true);
-      // Fetch all users except current user
-      const { data: allUsers } = await supabase
-        .from('user_profiles')
-        .select('user_id,username,display_name,bio,profile_visibility')
-        .neq('user_id', user.id)
-        .eq('profile_visibility', 'public');
-      // Fetch current friends
-      const { data: friendsData } = await supabase
-        .from('friend_requests')
-        .select('sender_id,receiver_id,status')
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .eq('status', 'accepted');
-      const friendIds = (friendsData || []).map((f: any) => f.sender_id === user.id ? f.receiver_id : f.sender_id);
-      setFriends(friendIds);
-      // Filter out users who are already friends
-      const potentials = (allUsers || []).filter((u: any) => !friendIds.includes(u.user_id));
-      setPotentialFriends(potentials);
-      // Demo groups (static)
-      let groupList = [
-        { id: '1', name: 'Morning Warriors', description: 'Early risers and morning routine lovers', members: 24, icon: '🌅', color: 'from-amber-400 to-orange-500' },
-        { id: '2', name: 'Fitness Fanatics', description: 'Share workouts and motivate each other', members: 31, icon: '💪', color: 'from-red-400 to-pink-500' },
-        { id: '3', name: 'Book Club', description: 'Read and discuss a new book every month', members: 17, icon: '📚', color: 'from-blue-400 to-indigo-500' },
-        { id: '4', name: 'Mindfulness Circle', description: 'Meditation, journaling, and self-care', members: 12, icon: '🧘', color: 'from-green-400 to-emerald-500' },
-        { id: '5', name: 'Productivity Hub', description: 'Tips and tricks for maximum efficiency', members: 28, icon: '⚡', color: 'from-purple-400 to-violet-500' },
-        { id: '6', name: 'Nutrition Nerds', description: 'Healthy eating and meal planning', members: 19, icon: '🥗', color: 'from-lime-400 to-green-500' },
-      ];
-      setGroups(groupList);
-      setJoinedGroups([]);
-      setLoading(false);
-    };
-    fetchSocialData();
-  }, [user]);
+  const fetchSocial = useCallback(async () => {
+    setLoading(true);
+    // Fetch all users except current user
+    const { data: allUsers } = await supabase
+      .from('user_profiles')
+      .select('user_id,username,display_name,bio,profile_visibility')
+      .neq('user_id', userId)
+      .eq('profile_visibility', 'public');
+    // Fetch current friends
+    const { data: friendsData } = await supabase
+      .from('friend_requests')
+      .select('sender_id,receiver_id,status')
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+      .eq('status', 'accepted');
+    const friendIds = (friendsData || []).map((f: any) => f.sender_id === userId ? f.receiver_id : f.sender_id);
+    setFriends(friendIds);
+    // Filter out users who are already friends
+    const potentials = (allUsers || []).filter((u: any) => !friendIds.includes(u.user_id));
+    setPotentialFriends(potentials);
+    // Demo groups (static)
+    let groupList = [
+      { id: '1', name: 'Morning Warriors', description: 'Early risers and morning routine lovers', members: 24, icon: '🌅', color: 'from-amber-400 to-orange-500' },
+      { id: '2', name: 'Fitness Fanatics', description: 'Share workouts and motivate each other', members: 31, icon: '💪', color: 'from-red-400 to-pink-500' },
+      { id: '3', name: 'Book Club', description: 'Read and discuss a new book every month', members: 17, icon: '📚', color: 'from-blue-400 to-indigo-500' },
+      { id: '4', name: 'Mindfulness Circle', description: 'Meditation, journaling, and self-care', members: 12, icon: '🧘', color: 'from-green-400 to-emerald-500' },
+      { id: '5', name: 'Productivity Hub', description: 'Tips and tricks for maximum efficiency', members: 28, icon: '⚡', color: 'from-purple-400 to-violet-500' },
+      { id: '6', name: 'Nutrition Nerds', description: 'Healthy eating and meal planning', members: 19, icon: '🥗', color: 'from-lime-400 to-green-500' },
+    ];
+    setGroups(groupList);
+    setJoinedGroups([]);
+    setLoading(false);
+  }, [userId]);
 
-  const handleAddFriend = async (friendId: string) => {
+  const refreshSocial = useCallback(async () => {
+    await fetchSocial();
+  }, [fetchSocial]);
+
+  const addFriend = async (friendId: string) => {
     setAddingFriend(friendId);
-    await supabase.from('friend_requests').insert({ sender_id: user.id, receiver_id: friendId, status: 'pending' });
-    setPotentialFriends(potentialFriends.filter(f => f.user_id !== friendId));
+    await supabase.from('friend_requests').insert({ sender_id: userId, receiver_id: friendId, status: 'pending' });
+    setPotentialFriends(prev => prev.filter(f => f.user_id !== friendId));
     setAddingFriend(null);
   };
 
-  const handleJoinGroup = async (groupId: string) => {
+  const joinGroup = async (groupId: string) => {
     setJoiningGroup(groupId);
     setTimeout(() => {
       setJoinedGroups((prev) => [...prev, groupId]);
       setJoiningGroup(null);
     }, 600);
   };
+
+  React.useEffect(() => {
+    if (userId) fetchSocial();
+  }, [userId, fetchSocial]);
+
+  return (
+    <SocialContext.Provider value={{ potentialFriends, friends, groups, loading, addingFriend, joiningGroup, joinedGroups, refreshSocial, addFriend, joinGroup }}>
+      {children}
+    </SocialContext.Provider>
+  );
+};
+
+export const useSocial = () => {
+  const ctx = useContext(SocialContext);
+  if (!ctx) throw new Error('useSocial must be used within a SocialProvider');
+  return ctx;
+};
+
+const Social = () => {
+  const { user } = useAuth();
+  const { potentialFriends, friends, groups, loading, addingFriend, joiningGroup, joinedGroups, refreshSocial, addFriend, joinGroup } = useSocial();
+  const navigate = useNavigate();
 
   if (!user) return null;
   
@@ -124,7 +161,7 @@ const Social = () => {
                 {potentialFriends.map((friend) => (
                   <div
                     key={friend.user_id}
-                    className="p-4 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer transform hover:-translate-y-1"
+                    className="p-4 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow duration-200 cursor-pointer transform hover:-translate-y-1"
                     onClick={() => navigate(`/user/${friend.username}`)}
                   >
                     <div className="flex items-center gap-4">
@@ -143,9 +180,9 @@ const Social = () => {
                         )}
                       </div>
                       <Button
-                        onClick={(e) => { e.stopPropagation(); handleAddFriend(friend.user_id); }}
+                        onClick={(e) => { e.stopPropagation(); addFriend(friend.user_id); }}
                         disabled={addingFriend === friend.user_id}
-                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
+                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-shadow transition-transform duration-200"
                       >
                         {addingFriend === friend.user_id ? (
                           <>
@@ -182,7 +219,7 @@ const Social = () => {
               {groups.map((group) => (
                 <div
                   key={group.id}
-                  className="p-6 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-200"
+                  className="p-6 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow duration-200"
                 >
                   <div className="flex items-start gap-4">
                     <div className={`p-3 rounded-xl bg-gradient-to-r ${group.color} shadow-md`}>
@@ -197,13 +234,13 @@ const Social = () => {
                       </div>
                       <p className="text-gray-600 text-sm mb-4">{group.description}</p>
                       <Button
-                        onClick={() => handleJoinGroup(group.id)}
+                        onClick={() => joinGroup(group.id)}
                         disabled={joiningGroup === group.id || joinedGroups.includes(group.id)}
                         className={`${
                           joinedGroups.includes(group.id)
                             ? 'bg-green-100 text-green-700 hover:bg-green-100'
                             : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white'
-                        } shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all`}
+                        } shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-shadow transition-transform duration-200`}
                       >
                         {joinedGroups.includes(group.id) ? (
                           <>
