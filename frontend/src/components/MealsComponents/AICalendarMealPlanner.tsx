@@ -81,7 +81,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
         await fetch('/api/generate-meal-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId, week_start: weekStart, nutritionPrefs, force_regen_week: true, regenerate_feedback: regenFeedback }),
+          body: JSON.stringify({ user_id: userId, week_start: weekStart, nutritionPrefs, force_regen_week: true, regenerate_feedback: regenFeedback, mode: 'week' }),
         });
         await fetchWeekMeals();
       } catch (err) {}
@@ -92,7 +92,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
         await fetch('/api/generate-meal-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId, week_start: weekStart, nutritionPrefs, force_regen_day: regenDay, regenerate_feedback: regenFeedback }),
+          body: JSON.stringify({ user_id: userId, week_start: weekStart, nutritionPrefs, force_regen_day: regenDay, regenerate_feedback: regenFeedback, mode: 'day' }),
         });
         await fetchWeekMeals();
       } catch (err) {}
@@ -175,12 +175,10 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
             <tr>
               <th className="p-3 border-b text-left text-base font-semibold text-gray-700">Meal Type</th>
               {daysOfWeek.map((day, idx) => {
-                const dateStr = (() => {
-                  const d = new Date(weekStart);
-                  d.setDate(new Date(weekStart).getDate() + idx);
-                  return d.toISOString().slice(0, 10);
-                })();
-                const isToday = idx === todayIdx;
+                const d = new Date(weekStart);
+                d.setDate(new Date(weekStart).getDate() + idx);
+                const dateStr = d.toISOString().slice(0, 10);
+                const isToday = dateStr === todayStr;
                 return (
                   <th key={day} className={`p-3 border-b text-center text-base font-semibold text-gray-700 relative ${isToday ? 'bg-green-100 text-green-900' : ''}`}>
                     <span>{day}</span>
@@ -210,13 +208,11 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
               <tr key={type}>
                 <td className="p-3 border-b text-base font-semibold text-gray-700 capitalize">{type}</td>
                 {daysOfWeek.map((day, idx) => {
-                  const dateStr = (() => {
-                    const d = new Date(weekStart);
-                    d.setDate(new Date(weekStart).getDate() + idx);
-                    return d.toISOString().slice(0, 10);
-                  })();
+                  const d = new Date(weekStart);
+                  d.setDate(new Date(weekStart).getDate() + idx);
+                  const dateStr = d.toISOString().slice(0, 10);
                   const meal = weekMeals[dateStr]?.[type];
-                  const isToday = idx === todayIdx;
+                  const isToday = dateStr === todayStr;
                   return (
                     <td
                       key={day}

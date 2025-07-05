@@ -143,7 +143,11 @@ const Meals: React.FC = () => {
         </div>
         {/* AI Meal Plan Calendar */}
         <div className="w-full">
-          <div className="flex flex-col w-full mb-0">
+          <div className="w-full flex flex-row justify-end mb-2">
+            {/* Regenerate Week button is rendered inside AICalendarMealPlanner */}
+          </div>
+          {/* Move title and description directly above the calendar */}
+          <div className="flex flex-col w-full mb-2">
             <div className="flex items-center gap-2 mb-0">
               <Calendar className="w-7 h-7 text-green-600" />
               <h2 className="text-2xl font-bold text-blue-900">Personalized Meal Plan Calendar</h2>
