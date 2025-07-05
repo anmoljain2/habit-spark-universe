@@ -61,36 +61,37 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
     }
     setLogMealLoading(true);
     try {
-      // Delete any existing meal for this user, date, and meal_type
-      await supabase
-        .from('user_meals')
-        .delete()
-        .eq('user_id', userId)
-        .eq('date_only', todayStr)
-        .eq('meal_type', logMealForm.meal_type);
-      // Insert the new meal
-      const mealToInsert = {
-        ...logMealForm,
-        user_id: userId,
-        calories: logMealForm.calories ? Number(logMealForm.calories) : undefined,
-        protein: logMealForm.protein ? Number(logMealForm.protein) : undefined,
-        carbs: logMealForm.carbs ? Number(logMealForm.carbs) : undefined,
-        fat: logMealForm.fat ? Number(logMealForm.fat) : undefined,
-        ingredients: Array.isArray(logMealForm.ingredients)
-          ? logMealForm.ingredients
-          : typeof logMealForm.ingredients === 'string' && logMealForm.ingredients.trim() !== ''
-            ? logMealForm.ingredients.split(',').map(s => s.trim())
-            : [],
-        tags: Array.isArray(logMealForm.tags)
-          ? logMealForm.tags
-          : typeof logMealForm.tags === 'string' && logMealForm.tags.trim() !== ''
-            ? logMealForm.tags.split(',').map(s => s.trim())
-            : [],
-      };
-      const { error } = await supabase
-        .from('user_meals')
-        .insert([mealToInsert]);
-      if (error) throw new Error(error.message);
+      // Call the /api/log-meal endpoint instead of direct Supabase
+      const res = await fetch('/api/log-meal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          date: logMealForm.date || todayStr,
+          meal_type: logMealForm.meal_type,
+          description: logMealForm.description,
+          calories: logMealForm.calories !== '' ? Number(logMealForm.calories) : null,
+          protein: logMealForm.protein !== '' ? Number(logMealForm.protein) : null,
+          carbs: logMealForm.carbs !== '' ? Number(logMealForm.carbs) : null,
+          fat: logMealForm.fat !== '' ? Number(logMealForm.fat) : null,
+          serving_size: logMealForm.serving_size || '',
+          recipe: logMealForm.recipe || '',
+          ingredients: Array.isArray(logMealForm.ingredients)
+            ? logMealForm.ingredients
+            : typeof logMealForm.ingredients === 'string' && logMealForm.ingredients.trim() !== ''
+              ? logMealForm.ingredients.split(',').map(s => s.trim())
+              : [],
+          tags: Array.isArray(logMealForm.tags)
+            ? logMealForm.tags
+            : typeof logMealForm.tags === 'string' && logMealForm.tags.trim() !== ''
+              ? logMealForm.tags.split(',').map(s => s.trim())
+              : [],
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to log meal');
+      }
       setLogMealForm({
         meal_type: '',
         description: '',
@@ -105,8 +106,6 @@ const LogMeal: React.FC<LogMealProps> = ({ userId, todayStr }) => {
         date: todayStr,
       });
       fetchUserLoggedMeals();
-      // Optionally, reload the page or trigger a refresh in parent components if needed
-      // window.location.reload(); // Uncomment if you want a full reload
     } catch (err: any) {
       setLogMealError(err.message || 'Failed to log meal');
     }

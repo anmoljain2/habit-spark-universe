@@ -58,7 +58,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const protein = nb.protein !== undefined ? parseMacro(nb.protein) : null;
     const carbs = nb.carbs !== undefined ? parseMacro(nb.carbs) : null;
     const fat = nb.fat !== undefined ? parseMacro(nb.fat) : null;
-    const { data, error } = await supabase.from('user_meals').insert({
+    // Insert into user_meals (for today)
+    const { data: mealData, error: mealError } = await supabase.from('user_meals').insert({
       user_id,
       date,
       date_only: date,
@@ -73,10 +74,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ingredients: meal.ingredients,
       source: 'find_recipe',
     }).select().single();
-    if (error) {
-      return res.status(500).json({ error: error.message });
+    if (mealError) {
+      return res.status(500).json({ error: mealError.message });
     }
-    res.status(201).json({ meal: data });
+    // Insert into user_recipes (for persistent storage)
+    const { data: recipeData, error: recipeError } = await supabase.from('user_recipes').insert({
+      user_id,
+      name: meal.meal_name,
+      ingredients: meal.ingredients,
+      recipe: meal.recipe,
+      serving_size: meal.serving_size,
+      calories,
+      protein,
+      carbs,
+      fat,
+    }).select().single();
+    if (recipeError) {
+      return res.status(500).json({ error: recipeError.message });
+    }
+    res.status(201).json({ meal: mealData, recipe: recipeData });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'A server error has occurred' });
   }

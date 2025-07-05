@@ -51,6 +51,20 @@ const Meals: React.FC = () => {
     fetchPrefs();
   }, [userId]);
 
+  // Fetch saved recipes from Supabase on mount
+  useEffect(() => {
+    const fetchSavedRecipes = async () => {
+      if (!userId) return;
+      const { data, error } = await supabase
+        .from('user_recipes')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (!error && data) setSavedRecipes(data);
+    };
+    fetchSavedRecipes();
+  }, [userId]);
+
   // AI Recipe Search handlers
   const handleRecipeSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,18 +75,51 @@ const Meals: React.FC = () => {
       const res = await fetch('/api/find-recipe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: recipeQuery, user_id: userId }),
+        body: JSON.stringify({ query: recipeQuery, user_id: userId, date: todayStr }),
       });
       if (!res.ok) throw new Error('Failed to search recipes');
       const data = await res.json();
-      setRecipeResults(Array.isArray(data) ? data : []);
+      // If the API returns a recipe, add it to saved recipes and results
+      if (data && data.recipe) {
+        setRecipeResults([data.recipe]);
+        setSavedRecipes(prev => [data.recipe, ...prev]);
+      } else if (data && data.meal) {
+        setRecipeResults([data.meal]);
+      } else {
+        setRecipeResults(Array.isArray(data) ? data : []);
+      }
     } catch (err: any) {
       setRecipeError(err.message || 'Error searching recipes');
     }
     setRecipeLoading(false);
   };
-  const handleSaveRecipe = (recipe: any) => {
-    setSavedRecipes(prev => [...prev, recipe]);
+  // Save recipe to Supabase
+  const handleSaveRecipe = async (recipe: any) => {
+    if (!userId) return;
+    try {
+      const res = await fetch('/api/save-recipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          name: recipe.meal_name || recipe.name || recipe.description,
+          ingredients: recipe.ingredients,
+          recipe: recipe.recipe,
+          serving_size: recipe.serving_size,
+          calories: recipe.calories,
+          protein: recipe.protein,
+          carbs: recipe.carbs,
+          fat: recipe.fat,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to save recipe');
+      const data = await res.json();
+      if (data && data.recipe) {
+        setSavedRecipes(prev => [data.recipe, ...prev]);
+      }
+    } catch (err: any) {
+      setRecipeError(err.message || 'Error saving recipe');
+    }
   };
 
   if (!userId) {

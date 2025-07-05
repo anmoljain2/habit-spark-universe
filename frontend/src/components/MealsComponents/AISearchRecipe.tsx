@@ -79,7 +79,7 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
             <ul className="divide-y divide-gray-200">
               {recipeResults.map((r, idx) => (
                 <li key={idx} className="py-2">
-                  <div className="font-semibold text-gray-900 text-lg mb-1">{r.description || r.name}</div>
+                  <div className="font-semibold text-gray-900 text-lg mb-1">{r.name || r.meal_name || r.description}</div>
                   <div className="flex gap-3 text-xs text-gray-500 mb-2">
                     <span>⚡ {r.calories} cal</span>
                     <span>❤️ {r.protein}g protein</span>
@@ -105,7 +105,7 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
             <h3 className="text-base font-semibold text-gray-700 mb-2">Your Saved Recipes</h3>
             <ul className="space-y-2">
               {savedRecipes.map((rec, idx) => (
-                <li key={rec.id} className="relative">
+                <li key={rec.id || idx} className="relative">
                   <button
                     type="button"
                     className="w-full text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all"
@@ -119,7 +119,7 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
                       savedRecipeTooltipTimeout.current = setTimeout(() => setHoveredSavedRecipe(null), 200);
                     }}
                   >
-                    {rec.name}
+                    {rec.name || rec.meal_name || rec.description}
                   </button>
                 </li>
               ))}
