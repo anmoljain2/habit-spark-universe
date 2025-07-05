@@ -14,6 +14,7 @@ const GroceryList: React.FC<GroceryListProps> = ({ userId, weekStart }) => {
   const [groceryCondensed, setGroceryCondensed] = useState(true);
   const [popup, setPopup] = useState<string | null>(null);
 
+  // Always fetch the grocery list for the current user and week start
   const fetchGroceryList = async () => {
     setGroceryLoading(true);
     const { data, error } = await supabase
@@ -47,6 +48,7 @@ const GroceryList: React.FC<GroceryListProps> = ({ userId, weekStart }) => {
     });
   };
 
+  // On regenerate, call backend and then refetch from Supabase
   const handleGenerateGroceryList = async () => {
     if (!userId || !weekStart) {
       let missing = [];
@@ -58,23 +60,13 @@ const GroceryList: React.FC<GroceryListProps> = ({ userId, weekStart }) => {
     }
     setGroceryLoading(true);
     try {
-      const res = await fetch('/api/generate-grocery-list', {
+      await fetch('/api/generate-grocery-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId, weekStart }),
       });
-      if (!res.ok) throw new Error('Failed to generate grocery list');
-      const data = await res.json();
-      const items = Array.isArray(data.items) ? data.items : data;
-      await supabase
-        .from('grocery_lists')
-        .delete()
-        .eq('user_id', userId)
-        .eq('week_start', weekStart);
-      await supabase
-        .from('grocery_lists')
-        .insert([{ user_id: userId, week_start: weekStart, items }]);
-      fetchGroceryList();
+      // Always refetch from Supabase after generation
+      await fetchGroceryList();
     } catch (err) {
       // Optionally show error
     }

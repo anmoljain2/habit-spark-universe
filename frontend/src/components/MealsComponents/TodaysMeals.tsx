@@ -29,11 +29,26 @@ const macroColors = {
   fat: 'text-yellow-700',
 };
 
-const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPrefs }) => {
+const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPrefs: initialNutritionPrefs }) => {
   const [todayMeals, setTodayMeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [nutrition, setNutrition] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
   const [completing, setCompleting] = useState<string | null>(null);
+  const [nutritionPrefs, setNutritionPrefs] = useState<any>(initialNutritionPrefs || {});
+
+  // Always fetch user_nutrition_preferences if not provided or if userId changes
+  useEffect(() => {
+    if (!nutritionPrefs?.calories_target && userId) {
+      supabase
+        .from('user_nutrition_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+        .then(({ data }) => {
+          if (data) setNutritionPrefs(data);
+        });
+    }
+  }, [userId]);
 
   const fetchTodayMeals = async () => {
     setLoading(true);
@@ -70,11 +85,11 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
     return Math.min(100, Math.round((value / goal) * 100));
   };
 
-  const handleMarkComplete = async (mealId: string) => {
+  const handleToggleComplete = async (mealId: string, completed: boolean) => {
     setCompleting(mealId);
     await supabase
       .from('user_meals')
-      .update({ completed: true })
+      .update({ completed: !completed })
       .eq('id', mealId);
     await fetchTodayMeals();
     setCompleting(null);
@@ -87,7 +102,7 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-6 min-h-[260px] animate-pulse flex flex-col justify-center items-center">
+              <div key={i} className="bg-white/90 rounded-2xl shadow-xl border border-green-200 p-6 min-h-[260px] animate-pulse flex flex-col justify-center items-center">
                 <Loader2 className="w-8 h-8 text-green-400 animate-spin mb-2" />
                 <span className="text-green-600 font-semibold">Loading...</span>
               </div>
@@ -96,7 +111,18 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
             mealTypes.map(type => {
               const meal = todayMeals.find((m: any) => m.meal_type === type.key);
               return (
-                <div key={type.key} className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-6 min-h-[260px] flex flex-col gap-2">
+                <div key={type.key} className={`relative bg-white/90 rounded-2xl shadow-xl border-2 ${meal?.completed ? 'border-green-400' : 'border-green-200'} p-6 min-h-[260px] flex flex-col gap-2 transition-all duration-300`}> 
+                  {/* Check mark at top right */}
+                  {meal && (
+                    <button
+                      className={`absolute top-3 right-3 rounded-full p-1 border-2 ${meal.completed ? 'bg-green-400 border-green-500 text-white' : 'bg-white border-green-200 text-green-400 hover:bg-green-100'} shadow transition-all`}
+                      title={meal.completed ? 'Unmark as complete' : 'Mark as complete'}
+                      onClick={() => handleToggleComplete(meal.id, meal.completed)}
+                      disabled={completing === meal.id}
+                    >
+                      {completing === meal.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className={`w-5 h-5 ${meal.completed ? '' : 'opacity-60'}`} />}
+                    </button>
+                  )}
                   <div className="flex items-center gap-2 mb-2">
                     {type.icon}
                     <span className="text-lg font-bold text-gray-800">{type.label}</span>
@@ -113,19 +139,6 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
                       {meal.serving_size && <div className="text-gray-500 text-sm mb-1">Serving size: {meal.serving_size}</div>}
                       {meal.recipe && <div className="text-gray-700 text-sm mb-2"><b>Recipe:</b> {meal.recipe}</div>}
                       {meal.notes && <div className="mt-1 text-xs text-gray-500 italic">{meal.notes}</div>}
-                      {meal.completed ? (
-                        <button className="mt-auto bg-green-200 text-green-700 font-semibold py-2 px-4 rounded-lg shadow flex items-center gap-2 cursor-default" disabled>
-                          <CheckCircle className="w-5 h-5" /> Completed
-                        </button>
-                      ) : (
-                        <button
-                          className="mt-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow transition-all flex items-center gap-2"
-                          onClick={() => handleMarkComplete(meal.id)}
-                          disabled={completing === meal.id}
-                        >
-                          {completing === meal.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />} Mark as Complete
-                        </button>
-                      )}
                     </>
                   ) : (
                     <div className="text-gray-400 italic">No {type.label.toLowerCase()} logged yet.</div>
@@ -138,11 +151,15 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
       </div>
       {/* Nutrition Card */}
       <div className="w-full lg:w-[320px] flex-shrink-0 flex items-center justify-center" style={{ minHeight: '100%' }}>
-        <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-6 w-full max-w-xs flex flex-col items-center">
+        <div className="bg-white/90 rounded-2xl shadow-xl border-2 border-green-200 p-6 w-full max-w-xs flex flex-col items-center">
           <div className="text-lg font-bold text-green-700 mb-2">Today's Nutrition</div>
           <div className="flex flex-col gap-3 w-full">
             {['calories', 'protein', 'carbs', 'fat'].map((macro) => {
-              const goal = nutritionPrefs?.[macro] || 0;
+              let goal = 0;
+              if (macro === 'calories') goal = nutritionPrefs?.calories_target || 0;
+              if (macro === 'protein') goal = nutritionPrefs?.protein_target || 0;
+              if (macro === 'carbs') goal = nutritionPrefs?.carbs_target || 0;
+              if (macro === 'fat') goal = nutritionPrefs?.fat_target || 0;
               const value = nutrition[macro as keyof typeof nutrition];
               const percent = macroProgress(macro as keyof typeof nutrition, goal);
               return (
