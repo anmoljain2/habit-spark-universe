@@ -26,6 +26,10 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   const [dragOverCell, setDragOverCell] = useState<{ day: string; type: string } | null>(null);
 
   const todayStr = new Date().toISOString().slice(0, 10);
+  const todayIdx = (() => {
+    const d = new Date(todayStr);
+    return d.getDay();
+  })();
 
   const fetchWeekMeals = async () => {
     setLoading(true);
@@ -111,11 +115,11 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
           <button
             className="flex items-center gap-2 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white font-semibold px-4 py-2 rounded-lg shadow transition-all text-sm"
             onClick={handleRegenerateWeek}
-            disabled={regeneratingWeek}
+            disabled={!!regeneratingWeek || !!showRegenModal}
             onMouseEnter={() => setShowTooltip('week')}
             onMouseLeave={() => setShowTooltip(null)}
           >
-            {regeneratingWeek ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+            <RefreshCw className="w-5 h-5" />
             Regenerate Week
           </button>
           {showTooltip === 'week' && (
@@ -141,8 +145,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                   d.setDate(new Date(weekStart).getDate() + idx);
                   return d.toISOString().slice(0, 10);
                 })();
-                const todayStr = new Date().toISOString().slice(0, 10);
-                const isToday = dateStr === todayStr;
+                const isToday = idx === todayIdx;
                 return (
                   <th key={day} className={`p-3 border-b text-center text-base font-semibold text-gray-700 relative ${isToday ? 'bg-green-100 text-green-900' : ''}`}>
                     <span>{day}</span>
@@ -150,11 +153,11 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                       <button
                         className="text-green-600 hover:text-green-900"
                         onClick={() => handleRegenerateDay(dateStr)}
-                        disabled={regeneratingDay === dateStr}
+                        disabled={regeneratingDay === dateStr || !!showRegenModal}
                         onMouseEnter={() => setShowTooltip(day)}
                         onMouseLeave={() => setShowTooltip(null)}
                       >
-                        {regeneratingDay === dateStr ? <Loader2 className="w-4 h-4 animate-spin inline" /> : <RefreshCw className="w-4 h-4 inline" />}
+                        <RefreshCw className="w-4 h-4 inline" />
                       </button>
                       {showTooltip === day && (
                         <div className="absolute z-50 left-1/2 top-full mt-2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-200 p-2 w-48 text-xs text-gray-700 animate-fade-in-up">
@@ -178,12 +181,11 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                     return d.toISOString().slice(0, 10);
                   })();
                   const meal = weekMeals[dateStr]?.[type];
-                  const todayStr = new Date().toISOString().slice(0, 10);
-                  const isToday = dateStr === todayStr;
+                  const isToday = idx === todayIdx;
                   return (
                     <td
                       key={day}
-                      className={`p-3 border-b text-center text-base relative group min-w-[160px] bg-transparent`}
+                      className={`p-3 border-b text-center text-base relative group min-w-[160px] bg-transparent ${isToday ? 'bg-green-100' : ''}`}
                       onMouseEnter={() => meal && setHoveredMeal({ day: dateStr, type })}
                       onMouseLeave={() => setHoveredMeal(null)}
                       onDragOver={e => {
@@ -287,7 +289,14 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
             />
             <div className="flex gap-2 justify-end mt-2">
               <button className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={() => setShowRegenModal(false)}>Cancel</button>
-              <button className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700" onClick={submitRegenerate}>Regenerate</button>
+              <button
+                className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 flex items-center gap-2"
+                onClick={submitRegenerate}
+                disabled={Boolean(regeneratingWeek) || Boolean(regeneratingDay)}
+              >
+                {(regeneratingWeek || regeneratingDay) ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                Regenerate
+              </button>
             </div>
           </div>
         </div>

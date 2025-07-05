@@ -84,7 +84,7 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
       <div className="bg-white/90 rounded-2xl shadow-xl border border-white/50 p-4 flex flex-col items-start justify-center">
         <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
           <Utensils className="w-5 h-5 text-green-600" />
-          AI Search a Recipe
+          Search a Recipe
         </h2>
         <form className="w-full flex gap-2 mb-4" onSubmit={wrappedHandleRecipeSearch}>
           <Input
@@ -177,7 +177,39 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
                 {hoveredSavedRecipe.ingredients && Array.isArray(hoveredSavedRecipe.ingredients) && hoveredSavedRecipe.ingredients.length > 0 && (
                   <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {hoveredSavedRecipe.ingredients.map((ing: any) => ing.name + (ing.quantity ? ` (${ing.quantity})` : '')).join(', ')}</div>
                 )}
-                {hoveredSavedRecipe.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {hoveredSavedRecipe.recipe}</div>}
+                {hoveredSavedRecipe.recipe && (
+                  <div className="text-xs text-gray-600 mb-1">
+                    <b>Steps:</b>
+                    {(() => {
+                      let steps = hoveredSavedRecipe.recipe;
+                      if (Array.isArray(steps)) {
+                        return (
+                          <ol className="list-decimal ml-5 mt-1">
+                            {steps.map((step: string, i: number) => (
+                              <li key={i} className="mb-1">{step}</li>
+                            ))}
+                          </ol>
+                        );
+                      } else if (typeof steps === 'string') {
+                        // Try to split by step numbers or newlines
+                        const splitSteps = steps.match(/(Step \d+: [^\n]+|[^\n]+(?=Step \d+:|$))/g)?.filter(s => s.trim()) || steps.split(/\n|\r/).filter(s => s.trim());
+                        if (splitSteps.length > 1) {
+                          return (
+                            <ol className="list-decimal ml-5 mt-1">
+                              {splitSteps.map((step: string, i: number) => (
+                                <li key={i} className="mb-1">{step.replace(/^Step \d+:\s*/, '')}</li>
+                              ))}
+                            </ol>
+                          );
+                        } else {
+                          return <div className="mt-1">{steps}</div>;
+                        }
+                      } else {
+                        return null;
+                      }
+                    })()}
+                  </div>
+                )}
               </div>
             )}
           </div>

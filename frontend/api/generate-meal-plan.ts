@@ -45,12 +45,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         d.setDate(start.getDate() + i);
         targetDates.push(d.toISOString().slice(0, 10));
       }
-      prompt = `Generate a personalized meal plan for a user with the following daily nutrition goals:\n- Calories: ${preferences.calories_target || 'N/A'} kcal\n- Protein: ${preferences.protein_target || 'N/A'}g\n- Carbs: ${preferences.carbs_target || 'N/A'}g\n- Fat: ${preferences.fat_target || 'N/A'}g\n\nRequirements:\n- Return a JSON object with 7 keys, one for each day (YYYY-MM-DD), each containing an array of 4 meals: one breakfast, one lunch, one snack, one dinner.\n- Each meal must have a field \\\"meal_type\\\" with one of: \\\"breakfast\\\", \\\"lunch\\\", \\\"snack\\\", \\\"dinner\\\".\n- The sum of calories, protein, carbs, and fat across all 4 meals for each day should add up to the user's daily goals as closely as possible.\n- For each meal, provide:\n  - meal_type\n  - meal_name\n  - serving_size\n  - recipe (instructions)\n  - nutrition_breakdown (calories, protein, carbs, fat)\n  - ingredients (with amounts)\n  - tags (e.g., vegetarian, gluten-free)\n- IMPORTANT: Maximize variety across the week. Do NOT repeat the same meal more than once or twice in the week. Each day should have different meals.\n\n${regenerate_feedback ? `User feedback for this regeneration: ${regenerate_feedback}\n` : ''}Return ONLY a JSON object as described, with no extra text.`;
+      prompt = `Generate a personalized meal plan for a user with the following daily nutrition goals:\n- Calories: ${preferences.calories_target || 'N/A'} kcal\n- Protein: ${preferences.protein_target || 'N/A'}g\n- Carbs: ${preferences.carbs_target || 'N/A'}g\n- Fat: ${preferences.fat_target || 'N/A'}g\n\nRequirements:\n- Return a JSON object with 7 keys, one for each day (YYYY-MM-DD), each containing an array of 4 meals: one breakfast, one lunch, one snack, one dinner.\n- Each meal must have a field \\\"meal_type\\\" with one of: \\\"breakfast\\\", \\\"lunch\\\", \\\"snack\\\", \\\"dinner\\\".\n- The sum of calories, protein, carbs, and fat across all 4 meals for each day should add up to the user's daily goals as closely as possible.\n- For each meal, provide:\n  - meal_type\n  - meal_name\n  - serving_size\n  - recipe (as a JSON array of clear, step-by-step instructions, not a single string)\n  - nutrition_breakdown (calories, protein, carbs, fat)\n  - ingredients (as a JSON array of objects, each with at least name and quantity, and optionally unit, brand, notes)\n  - tags (e.g., vegetarian, gluten-free)\n- IMPORTANT: Maximize variety across the week. Do NOT repeat the same meal more than once or twice in the week. Each day should have different meals.\n\n${regenerate_feedback ? `User feedback for this regeneration: ${regenerate_feedback}\n` : ''}Return ONLY a JSON object as described, with no extra text.`;
     } else {
       // Default to daily
       const targetDate = date || new Date().toISOString().slice(0, 10);
       targetDates = [targetDate];
-      prompt = `Generate a personalized meal plan for a user with the following daily nutrition goals:\n- Calories: ${preferences.calories_target || 'N/A'} kcal\n- Protein: ${preferences.protein_target || 'N/A'}g\n- Carbs: ${preferences.carbs_target || 'N/A'}g\n- Fat: ${preferences.fat_target || 'N/A'}g\n\nRequirements:\n- Return exactly 4 meals: one breakfast, one lunch, one snack, one dinner.\n- Each meal must have a field \\\"meal_type\\\" with one of: \\\"breakfast\\\", \\\"lunch\\\", \\\"snack\\\", \\\"dinner\\\".\n- The sum of calories, protein, carbs, and fat across all 4 meals should add up to the user's daily goals as closely as possible.\n- For each meal, provide:\n  - meal_type\n  - meal_name\n  - serving_size\n  - recipe (instructions)\n  - nutrition_breakdown (calories, protein, carbs, fat)\n  - ingredients (with amounts)\n  - tags (e.g., vegetarian, gluten-free)\n- IMPORTANT: Check the other meals in the current week and limit repetition. There can be some overlap, but do not repeat the same meal more than once or twice in the week.\n\n${regenerate_feedback ? `User feedback for this regeneration: ${regenerate_feedback}\n` : ''}Return ONLY a JSON array of 4 objects, one for each meal type, with no extra text.`;
+      prompt = `Generate a personalized meal plan for a user with the following daily nutrition goals:\n- Calories: ${preferences.calories_target || 'N/A'} kcal\n- Protein: ${preferences.protein_target || 'N/A'}g\n- Carbs: ${preferences.carbs_target || 'N/A'}g\n- Fat: ${preferences.fat_target || 'N/A'}g\n\nRequirements:\n- Return exactly 4 meals: one breakfast, one lunch, one snack, one dinner.\n- Each meal must have a field \\\"meal_type\\\" with one of: \\\"breakfast\\\", \\\"lunch\\\", \\\"snack\\\", \\\"dinner\\\".\n- The sum of calories, protein, carbs, and fat across all 4 meals should add up to the user's daily goals as closely as possible.\n- For each meal, provide:\n  - meal_type\n  - meal_name\n  - serving_size\n  - recipe (as a JSON array of clear, step-by-step instructions, not a single string)\n  - nutrition_breakdown (calories, protein, carbs, fat)\n  - ingredients (as a JSON array of objects, each with at least name and quantity, and optionally unit, brand, notes)\n  - tags (e.g., vegetarian, gluten-free)\n- IMPORTANT: Check the other meals in the current week and limit repetition. There can be some overlap, but do not repeat the same meal more than once or twice in the week.\n\n${regenerate_feedback ? `User feedback for this regeneration: ${regenerate_feedback}\n` : ''}Return ONLY a JSON array of 4 objects, one for each meal type, with no extra text.`;
     }
 
     const completion = await openai.chat.completions.create({
@@ -150,7 +150,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const protein = nb.protein !== undefined ? parseMacro(nb.protein) : meal.protein;
           const carbs = nb.carbs !== undefined ? parseMacro(nb.carbs) : meal.carbs;
           const fat = nb.fat !== undefined ? parseMacro(nb.fat) : meal.fat;
-          const recipe = meal.recipe || meal.recipe_instructions || meal.full_recipe || '';
+          const recipe = parseRecipe(meal.recipe || meal.recipe_instructions || meal.full_recipe || '');
           await supabase.from('user_meals').insert({
             user_id,
             date: day,
@@ -163,7 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             fat,
             serving_size: meal.serving_size,
             recipe,
-            ingredients: meal.ingredients,
+            ingredients: parseIngredients(meal.ingredients),
             tags: meal.tags,
             source: 'ai',
           });
@@ -182,7 +182,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const protein = nb.protein !== undefined ? parseMacro(nb.protein) : meal.protein;
         const carbs = nb.carbs !== undefined ? parseMacro(nb.carbs) : meal.carbs;
         const fat = nb.fat !== undefined ? parseMacro(nb.fat) : meal.fat;
-        const recipe = meal.recipe || meal.recipe_instructions || meal.full_recipe || '';
+        const recipe = parseRecipe(meal.recipe || meal.recipe_instructions || meal.full_recipe || '');
         await supabase.from('user_meals').insert({
           user_id,
           date: day,
@@ -195,7 +195,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           fat,
           serving_size: meal.serving_size,
           recipe,
-          ingredients: meal.ingredients,
+          ingredients: parseIngredients(meal.ingredients),
           tags: meal.tags,
           source: 'ai',
         });
@@ -207,3 +207,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: err.message || 'A server error has occurred' });
   }
 }
+
+const parseRecipe = (recipe: any) => {
+  if (Array.isArray(recipe)) return recipe;
+  if (typeof recipe === 'string') {
+    try {
+      const parsed = JSON.parse(recipe);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+    // Try to split by step numbers or newlines
+    const splitSteps = recipe.match(/(Step \d+: [^\n]+|[^\n]+(?=Step \d+:|$))/g)?.filter(s => s.trim()) || recipe.split(/\n|\r/).filter(s => s.trim());
+    if (splitSteps.length > 1) return splitSteps;
+    return [recipe];
+  }
+  return [];
+};
+
+const parseIngredients = (ingredients: any) => {
+  if (Array.isArray(ingredients) && ingredients.length > 0 && typeof ingredients[0] === 'object') return ingredients;
+  if (typeof ingredients === 'string') {
+    try {
+      const parsed = JSON.parse(ingredients);
+      if (Array.isArray(parsed) && typeof parsed[0] === 'object') return parsed;
+    } catch {}
+  }
+  // fallback: try to split by comma and treat as name only
+  if (Array.isArray(ingredients)) {
+    return ingredients.map((name: string) => ({ name }));
+  }
+  return [];
+};
