@@ -111,7 +111,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let mealsByDay = {};
       if (typeof meals === 'object' && !Array.isArray(meals)) {
         const aiKeys = Object.keys(meals);
-        console.log('AI meal plan keys:', aiKeys);
         // Use only the first 7 keys (days)
         const usedKeys = aiKeys.slice(0, 7);
         for (let i = 0; i < targetDates.length; i++) {
@@ -139,6 +138,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (totalMeals > 28) {
         console.warn('More than 28 meals generated, truncating to 28.');
       }
+      // Delete all existing meals for this user and all 7 dates before inserting new ones
+      await supabase
+        .from('user_meals')
+        .delete()
+        .eq('user_id', user_id)
+        .in('date_only', days);
       // Insert meals for each day
       for (const day of days) {
         const dayMeals = mealsByDay[day] || [];
@@ -174,6 +179,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     } else {
       const day = targetDates[0];
+      // Delete all existing meals for this user and this date before inserting new ones
+      await supabase
+        .from('user_meals')
+        .delete()
+        .eq('user_id', user_id)
+        .eq('date_only', day);
       for (const meal of meals) {
         let meal_type = (meal.meal_type || meal.meal || (meal.meal_name ? meal.meal_name.split(/[:\-]/)[0].trim().toLowerCase() : undefined) || '').toLowerCase();
         const nb = meal.nutrition_breakdown || {};

@@ -553,6 +553,7 @@ export type Database = {
           sodium_limit: number | null
           sugar_limit: number | null
           user_id: string | null
+          contexts: Json | null
         }
         Insert: {
           allergies?: string[] | null
@@ -568,6 +569,7 @@ export type Database = {
           sodium_limit?: number | null
           sugar_limit?: number | null
           user_id?: string | null
+          contexts?: Json | null
         }
         Update: {
           allergies?: string[] | null
@@ -583,6 +585,7 @@ export type Database = {
           sodium_limit?: number | null
           sugar_limit?: number | null
           user_id?: string | null
+          contexts?: Json | null
         }
         Relationships: [
           {

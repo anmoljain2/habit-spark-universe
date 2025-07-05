@@ -24,6 +24,8 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   const [regenFeedback, setRegenFeedback] = useState('');
   const regenInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [dragOverCell, setDragOverCell] = useState<{ day: string; type: string } | null>(null);
+  const [savingContext, setSavingContext] = useState(false);
+  const [contextSaved, setContextSaved] = useState(false);
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayIdx = (() => {
@@ -106,6 +108,39 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
     const d = new Date(start);
     d.setDate(d.getDate() + dayIdx);
     return d.toISOString().slice(0, 10);
+  };
+
+  // Save Context handler
+  const handleSaveContext = async () => {
+    if (!userId || !regenFeedback.trim()) return;
+    setSavingContext(true);
+    try {
+      // Fetch current contexts
+      const { data, error } = await supabase
+        .from('user_nutrition_preferences')
+        .select('contexts')
+        .eq('user_id', userId)
+        .single();
+      let contexts: any[] = [];
+      if (!error && data && Array.isArray((data as any).contexts)) {
+        contexts = (data as any).contexts;
+      } else if (!error && data && (data as any).contexts && typeof (data as any).contexts === 'object') {
+        // Defensive: handle object case
+        contexts = Array.isArray((data as any).contexts) ? (data as any).contexts : [];
+      }
+      // Append new context
+      const newContexts = [...contexts, regenFeedback.trim()];
+      // Update in Supabase
+      await supabase
+        .from('user_nutrition_preferences')
+        .update({ ...( { contexts: newContexts } as any ) })
+        .eq('user_id', userId);
+      setContextSaved(true);
+      setTimeout(() => setContextSaved(false), 2000);
+    } catch (err) {
+      // Optionally show error
+    }
+    setSavingContext(false);
   };
 
   return (
@@ -256,9 +291,47 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                               )}
                             </span>
                           </div>
-                          {meal.recipe && <div className="text-xs text-gray-600 mb-1"><b>Recipe:</b> {meal.recipe}</div>}
                           {meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0 && (
-                            <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {meal.ingredients.join(', ')}</div>
+                            <div className="text-xs text-gray-600 mb-1">
+                              <b>Ingredients:</b> {meal.ingredients.map((ing: any) => {
+                                if (typeof ing === 'string') return ing;
+                                if (ing && typeof ing === 'object') return ing.name + (ing.quantity ? ` (${ing.quantity})` : '');
+                                return '';
+                              }).join(', ')}
+                            </div>
+                          )}
+                          {meal.recipe && (
+                            <div className="text-xs text-gray-600 mb-1">
+                              <b>Recipe:</b>{' '}
+                              {(() => {
+                                let steps = meal.recipe;
+                                if (Array.isArray(steps)) {
+                                  return (
+                                    <ol className="list-decimal ml-5 mt-1">
+                                      {steps.map((step: string, i: number) => (
+                                        <li key={i} className="mb-1">{step}</li>
+                                      ))}
+                                    </ol>
+                                  );
+                                } else if (typeof steps === 'string') {
+                                  // Try to split by step numbers or newlines
+                                  const splitSteps = steps.match(/(Step \d+: [^\n]+|[^\n]+(?=Step \d+:|$))/g)?.filter(s => s.trim()) || steps.split(/\n|\r/).filter(s => s.trim());
+                                  if (splitSteps.length > 1) {
+                                    return (
+                                      <ol className="list-decimal ml-5 mt-1">
+                                        {splitSteps.map((step: string, i: number) => (
+                                          <li key={i} className="mb-1">{step.replace(/^Step \d+:\s*/, '')}</li>
+                                        ))}
+                                      </ol>
+                                    );
+                                  } else {
+                                    return <div className="mt-1">{steps}</div>;
+                                  }
+                                } else {
+                                  return null;
+                                }
+                              })()}
+                            </div>
                           )}
                           {meal.tags && Array.isArray(meal.tags) && meal.tags.length > 0 && (
                             <div className="text-xs text-gray-400 mb-1"><b>Tags:</b> {meal.tags.join(', ')}</div>
@@ -287,6 +360,24 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
               onChange={e => setRegenFeedback(e.target.value)}
               placeholder="E.g. I don't like tuna, want more vegetarian options, etc."
             />
+            {/* Save Context Button with Tooltip */}
+            <div className="flex items-center gap-2 mb-2 relative group self-end">
+              <button
+                type="button"
+                className={`px-3 py-1.5 rounded-lg font-semibold text-sm shadow border ${contextSaved ? 'bg-green-100 text-green-700 border-green-200' : 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200'} ${savingContext ? 'opacity-60 cursor-not-allowed' : ''}`}
+                onClick={handleSaveContext}
+                onMouseEnter={() => setShowTooltip('save-context')}
+                onMouseLeave={() => setShowTooltip(null)}
+                disabled={!regenFeedback.trim() || savingContext || contextSaved}
+              >
+                {contextSaved ? 'Saved!' : savingContext ? 'Saving...' : 'Save Context'}
+              </button>
+              {showTooltip === 'save-context' && (
+                <div className="absolute z-50 left-1/2 top-full mt-2 -translate-x-1/2 bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-72 text-xs text-gray-700 animate-fade-in-up">
+                  If this applies to future contexts, we will save it and automatically apply it when creating your meal plan.
+                </div>
+              )}
+            </div>
             <div className="flex gap-2 justify-end mt-2">
               <button className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={() => setShowRegenModal(false)}>Cancel</button>
               <button
