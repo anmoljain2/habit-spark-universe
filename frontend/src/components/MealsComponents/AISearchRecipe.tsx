@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Utensils, Loader2 } from 'lucide-react';
+import { Utensils, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -48,6 +48,25 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
       await handleRecipeSearch(e);
     } catch (err: any) {
       setPopup('Failed to search recipes. Please try again.');
+      setTimeout(() => setPopup(null), 3500);
+    }
+  };
+
+  // Handler to delete a saved recipe
+  const handleDeleteRecipe = async (recipeId: string) => {
+    try {
+      const res = await fetch(`/api/delete-recipe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: recipeId }),
+      });
+      if (!res.ok) throw new Error('Failed to delete recipe');
+      // Refetch saved recipes after deletion
+      if (typeof window !== 'undefined' && window.location) {
+        window.location.reload();
+      }
+    } catch (err: any) {
+      setPopup(err.message || 'Failed to delete recipe');
       setTimeout(() => setPopup(null), 3500);
     }
   };
@@ -105,10 +124,10 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
             <h3 className="text-base font-semibold text-gray-700 mb-2">Your Saved Recipes</h3>
             <ul className="space-y-2">
               {savedRecipes.map((rec, idx) => (
-                <li key={rec.id || idx} className="relative">
+                <li key={rec.id || idx} className="relative flex items-center">
                   <button
                     type="button"
-                    className="w-full text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all"
+                    className="flex-1 text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-green-50 border border-gray-200 font-medium text-gray-900 transition-all"
                     onMouseEnter={e => {
                       if (savedRecipeTooltipTimeout.current) clearTimeout(savedRecipeTooltipTimeout.current);
                       setHoveredSavedRecipe(rec);
@@ -120,6 +139,14 @@ const AISearchRecipe: React.FC<AISearchRecipeProps> = ({
                     }}
                   >
                     {rec.name || rec.meal_name || rec.description}
+                  </button>
+                  <button
+                    type="button"
+                    className="ml-2 p-1 rounded hover:bg-red-100 text-red-600"
+                    title="Delete recipe"
+                    onClick={() => handleDeleteRecipe(rec.id)}
+                  >
+                    <X className="w-4 h-4" />
                   </button>
                 </li>
               ))}

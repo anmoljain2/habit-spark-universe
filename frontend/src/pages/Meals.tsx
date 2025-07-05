@@ -11,17 +11,14 @@ import EdamamFoodDatabaseTester from '@/components/MealsComponents/EdamamFoodDat
 import EdamamWeeklyMealPlan from '@/components/MealsComponents/EdamamWeeklyMealPlan';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { startOfWeek, formatISO } from 'date-fns';
 
 const Meals: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id;
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
-  const weekStart = (() => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - d.getDay() + 1); // Monday as start
-    return d.toISOString().slice(0, 10);
-  })();
+  const weekStart = formatISO(startOfWeek(today, { weekStartsOn: 0 }), { representation: 'date' });
 
   const [nutritionPrefs, setNutritionPrefs] = useState<any>(null);
   const [prefsLoading, setPrefsLoading] = useState(true);
@@ -79,10 +76,9 @@ const Meals: React.FC = () => {
       });
       if (!res.ok) throw new Error('Failed to search recipes');
       const data = await res.json();
-      // If the API returns a recipe, add it to saved recipes and results
+      // Only update recipeResults, do not save to Supabase yet
       if (data && data.recipe) {
         setRecipeResults([data.recipe]);
-        setSavedRecipes(prev => [data.recipe, ...prev]);
       } else if (data && data.meal) {
         setRecipeResults([data.meal]);
       } else {

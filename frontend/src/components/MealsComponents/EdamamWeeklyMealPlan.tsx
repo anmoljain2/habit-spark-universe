@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, formatISO } from 'date-fns';
 import { Zap } from 'lucide-react';
 
 interface EdamamWeeklyMealPlanProps {
@@ -15,16 +15,15 @@ const EdamamWeeklyMealPlan: React.FC<EdamamWeeklyMealPlanProps> = ({ nutritionPr
   const [hoverPos, setHoverPos] = useState<{ x: number, y: number } | null>(null);
 
   const mealOrder = ["breakfast", "lunch", "snack", "dinner"];
-  const weekDates = [
-    "2024-06-10",
-    "2024-06-11",
-    "2024-06-12",
-    "2024-06-13",
-    "2024-06-14",
-    "2024-06-15",
-    "2024-06-16"
-  ];
-  const todayStr = weekDates[0];
+  // Calculate weekDates as Sunday-Saturday of the current week
+  const today = new Date();
+  const weekStart = formatISO(today.setDate(today.getDate() - today.getDay()), { representation: 'date' });
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+  const todayStr = today.toISOString().slice(0, 10);
   const weekLoading = false;
   const dayLoading = null;
 
@@ -168,6 +167,9 @@ const EdamamWeeklyMealPlan: React.FC<EdamamWeeklyMealPlanProps> = ({ nutritionPr
                               <img src={meal.image} alt={meal.label} className="w-16 h-16 object-cover rounded-lg border border-green-100 mb-1" />
                             )}
                             <div className="font-bold text-green-900 text-sm mb-1" style={{whiteSpace:'normal',wordBreak:'break-word'}}>{meal.label}</div>
+                            {Array.isArray(meal.ingredientLines) && meal.ingredientLines.length > 0 && (
+                              <div className="text-xs text-gray-600 mb-1"><b>Ingredients:</b> {meal.ingredientLines.join(', ')}</div>
+                            )}
                             <div className="flex flex-wrap gap-1 justify-center text-xs text-gray-600 mb-1">
                               {typeof meal.calories === 'number' && <span>⚡ {Math.round(meal.calories)} cal</span>}
                               {meal.totalNutrients?.PROCNT && <span>❤️ {Math.round(meal.totalNutrients.PROCNT.quantity)}g protein</span>}
