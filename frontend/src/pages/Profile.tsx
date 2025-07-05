@@ -48,7 +48,7 @@ const Profile = () => {
   );
 
   // Avatar fallback: first letter of display name or username
-  const avatarFallback = (profile?.display_name || profile?.username || profile.user.email)?.[0]?.toUpperCase() || 'U';
+  const avatarFallback = (profile?.display_name || profile?.username || profile?.user?.email || '')?.[0]?.toUpperCase() || 'U';
 
   return (
     <div className="min-h-screen">
@@ -74,21 +74,21 @@ const Profile = () => {
               {/* Avatar & Basic Info */}
               <div className="flex flex-col items-center lg:items-start">
                 <Avatar className="h-32 w-32 mb-6 shadow-2xl border-4 border-white/30 ring-4 ring-white/20">
-                  <AvatarImage src={profile?.avatar_url || ''} alt={profile?.display_name || profile?.username || profile.user.email} />
+                  <AvatarImage src={profile?.avatar_url || ''} alt={profile?.display_name || profile?.username || profile?.user?.email || ''} />
                   <AvatarFallback className="text-5xl font-bold bg-gradient-to-br from-white/20 to-white/10 text-white backdrop-blur-sm">{avatarFallback}</AvatarFallback>
                 </Avatar>
                 <div className="text-center lg:text-left">
                   <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 drop-shadow-lg">
-                    {profile?.display_name || profile?.username || profile.user.email}
+                    {profile?.display_name || profile?.username || profile?.user?.email || 'Unknown'}
                   </h1>
                   <div className="flex flex-wrap gap-3 justify-center lg:justify-start mb-4">
                     <Badge className="bg-white/20 text-white border-white/30 px-4 py-2 text-base font-semibold backdrop-blur-sm hover:bg-white/30 transition-colors">
                       <User className="w-4 h-4 mr-2" />
-                      @{profile?.username || profile.user.email?.split('@')[0]}
+                      @{profile?.username || (profile?.user?.email ? profile.user.email.split('@')[0] : 'unknown')}
                     </Badge>
                     <Badge className="bg-white/20 text-white border-white/30 px-4 py-2 text-base font-semibold backdrop-blur-sm hover:bg-white/30 transition-colors">
                       <Mail className="w-4 h-4 mr-2" />
-                      {profile.user.email}
+                      {profile?.user?.email || 'Unknown'}
                     </Badge>
                   </div>
                   <div className="flex flex-wrap gap-3 justify-center lg:justify-start mb-6">

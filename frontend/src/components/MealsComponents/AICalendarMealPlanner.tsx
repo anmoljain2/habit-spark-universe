@@ -26,6 +26,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   const [dragOverCell, setDragOverCell] = useState<{ day: string; type: string } | null>(null);
   const [savingContext, setSavingContext] = useState(false);
   const [contextSaved, setContextSaved] = useState(false);
+  const [regenDayIdx, setRegenDayIdx] = useState<number | null>(null);
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayIdx = (() => {
@@ -62,6 +63,8 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   const handleRegenerateDay = (dateStr: string) => {
     setRegenMode('day');
     setRegenDay(dateStr);
+    const d = new Date(dateStr);
+    setRegenDayIdx(d.getDay());
     setShowRegenModal(true);
     setRegenFeedback('');
     setTimeout(() => regenInputRef.current?.focus(), 100);
@@ -101,6 +104,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
     setShowRegenModal(false);
     setRegenMode(null);
     setRegenDay(null);
+    setRegenDayIdx(null);
     setRegenFeedback('');
   };
 
@@ -108,6 +112,13 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
     const d = new Date(start);
     d.setDate(d.getDate() + dayIdx);
     return d.toISOString().slice(0, 10);
+  };
+
+  // Helper to get local weekday name from yyyy-mm-dd string
+  const getWeekdayName = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
+    return d.toLocaleDateString(undefined, { weekday: 'long' });
   };
 
   // Save Context handler
@@ -349,8 +360,8 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
             <h3 className="text-lg font-bold text-green-700 mb-2">
               {regenMode === 'week'
                 ? 'Regenerate Week Meal Plan'
-                : regenMode === 'day' && regenDay
-                  ? `Regenerate ${new Date(regenDay).toLocaleDateString(undefined, { weekday: 'long' })} Meal Plan`
+                : regenMode === 'day' && regenDay && regenDayIdx !== null
+                  ? `Regenerate ${daysOfWeek[regenDayIdx]} Meal Plan`
                   : 'Regenerate Day Meal Plan'}
             </h3>
             <label className="text-sm text-gray-700 mb-1">Why are you regenerating? (Dislikes, changes, or feedback for the AI)</label>
