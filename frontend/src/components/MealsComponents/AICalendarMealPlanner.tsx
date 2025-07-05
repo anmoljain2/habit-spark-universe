@@ -63,8 +63,6 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   const handleRegenerateDay = (dateStr: string) => {
     setRegenMode('day');
     setRegenDay(dateStr);
-    const d = new Date(dateStr);
-    setRegenDayIdx(d.getDay());
     setShowRegenModal(true);
     setRegenFeedback('');
     setTimeout(() => regenInputRef.current?.focus(), 100);
@@ -360,8 +358,8 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
             <h3 className="text-lg font-bold text-green-700 mb-2">
               {regenMode === 'week'
                 ? 'Regenerate Week Meal Plan'
-                : regenMode === 'day' && regenDay && regenDayIdx !== null
-                  ? `Regenerate ${daysOfWeek[regenDayIdx]} Meal Plan`
+                : regenMode === 'day' && regenDay
+                  ? `Regenerate ${(() => { const [y, m, d] = regenDay.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long' }); })()} Meal Plan`
                   : 'Regenerate Day Meal Plan'}
             </h3>
             <label className="text-sm text-gray-700 mb-1">Why are you regenerating? (Dislikes, changes, or feedback for the AI)</label>
