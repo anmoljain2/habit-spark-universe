@@ -17,10 +17,10 @@ const LevelCard = ({ xpRefresh }: LevelCardProps) => {
 
   // Calculate XP needed for current level and next level
   const getXPForLevel = (level: number) => Math.pow(level, 2) * 100;
-  const currentLevelXP = getXPForLevel(level - 1);
-  const nextLevelXP = getXPForLevel(level);
-  const progressXP = totalXP - currentLevelXP;
-  const neededXP = nextLevelXP - currentLevelXP;
+  const currentLevelXP = getXPForLevel(level);
+  const prevLevelXP = getXPForLevel(level - 1);
+  const progressXP = totalXP - prevLevelXP;
+  const neededXP = currentLevelXP - prevLevelXP;
   const progressPercentage = Math.min((progressXP / neededXP) * 100, 100);
 
   const PROGRESS_COLOR = 'bg-gradient-to-r from-blue-500 to-cyan-400';

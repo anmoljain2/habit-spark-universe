@@ -1,8 +1,8 @@
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import './index.css'
-import News from './pages/News'
 import { AuthProvider } from './hooks/useAuth'
+import Relationship from './pages/Relationship'
 
 createRoot(document.getElementById("root")!).render(
   <AuthProvider>

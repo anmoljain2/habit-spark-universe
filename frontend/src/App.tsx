@@ -25,6 +25,7 @@ import Navbar from './components/Navbar';
 import PublicNavbar from './components/PublicNavbar';
 import AddReview from './pages/AddReview';
 import { ProfileProvider } from './components/ProfileContext';
+import Relationship from './pages/Relationship';
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ const App = () => (
               <Route path="/journal" element={<PrivateLayout><ProtectedRoute><Journal /></ProtectedRoute></PrivateLayout>} />
               <Route path="/finances" element={<PrivateLayout><ProtectedRoute><Finances /></ProtectedRoute></PrivateLayout>} />
               <Route path="/add-review" element={<PrivateLayout><ProtectedRoute><AddReview /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/relationship" element={<PrivateLayout><ProtectedRoute><Relationship /></ProtectedRoute></PrivateLayout>} />
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
