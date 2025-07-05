@@ -35,6 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let prompt = '';
     let targetDates: string[] = [];
+    const regenerate_feedback = req.body.regenerate_feedback;
     if (mode === 'week') {
       // Generate for the week starting from weekStart (YYYY-MM-DD)
       if (!weekStart) return res.status(400).json({ error: 'weekStart is required for weekly generation' });
@@ -44,24 +45,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         d.setDate(start.getDate() + i);
         targetDates.push(d.toISOString().slice(0, 10));
       }
-      prompt = `Generate a personalized meal plan for a user with the following daily nutrition goals:\n- Calories: ${preferences.calories_target || 'N/A'} kcal\n- Protein: ${preferences.protein_target || 'N/A'}g\n- Carbs: ${preferences.carbs_target || 'N/A'}g\n- Fat: ${preferences.fat_target || 'N/A'}g\n\nRequirements:\n- Return a JSON object with 7 keys, one for each day (YYYY-MM-DD), each containing an array of 4 meals: one breakfast, one lunch, one snack, one dinner.\n- Each meal must have a field \\\"meal_type\\\" with one of: \\\"breakfast\\\", \\\"lunch\\\", \\\"snack\\\", \\\"dinner\\\".\n- The sum of calories, protein, carbs, and fat across all 4 meals for each day should add up to the user's daily goals as closely as possible.\n- For each meal, provide:\n  - meal_type\n  - meal_name\n  - serving_size\n  - recipe (instructions)\n  - nutrition_breakdown (calories, protein, carbs, fat)\n  - ingredients (with amounts)\n  - tags (e.g., vegetarian, gluten-free)\n- IMPORTANT: Maximize variety across the week. Do NOT repeat the same meal more than once or twice in the week. Each day should have different meals.\n\nReturn ONLY a JSON object as described, with no extra text.`;
+      prompt = `Generate a personalized meal plan for a user with the following daily nutrition goals:\n- Calories: ${preferences.calories_target || 'N/A'} kcal\n- Protein: ${preferences.protein_target || 'N/A'}g\n- Carbs: ${preferences.carbs_target || 'N/A'}g\n- Fat: ${preferences.fat_target || 'N/A'}g\n\nRequirements:\n- Return a JSON object with 7 keys, one for each day (YYYY-MM-DD), each containing an array of 4 meals: one breakfast, one lunch, one snack, one dinner.\n- Each meal must have a field \\\"meal_type\\\" with one of: \\\"breakfast\\\", \\\"lunch\\\", \\\"snack\\\", \\\"dinner\\\".\n- The sum of calories, protein, carbs, and fat across all 4 meals for each day should add up to the user's daily goals as closely as possible.\n- For each meal, provide:\n  - meal_type\n  - meal_name\n  - serving_size\n  - recipe (instructions)\n  - nutrition_breakdown (calories, protein, carbs, fat)\n  - ingredients (with amounts)\n  - tags (e.g., vegetarian, gluten-free)\n- IMPORTANT: Maximize variety across the week. Do NOT repeat the same meal more than once or twice in the week. Each day should have different meals.\n\n${regenerate_feedback ? `User feedback for this regeneration: ${regenerate_feedback}\n` : ''}Return ONLY a JSON object as described, with no extra text.`;
     } else {
       // Default to daily
       const targetDate = date || new Date().toISOString().slice(0, 10);
       targetDates = [targetDate];
-      // Check if user already has 4 or more meals for this date
-      const { count, error: countError } = await supabase
-        .from('user_meals')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user_id)
-        .eq('date_only', targetDate);
-      if (typeof count !== 'number') {
-        return res.status(500).json({ error: "Could not determine meal count for this date" });
-      }
-      if (count >= 4) {
-        return res.status(400).json({ error: 'Daily meal limit of 4 has been reached.' });
-      }
-      prompt = `Generate a personalized meal plan for a user with the following daily nutrition goals:\n- Calories: ${preferences.calories_target || 'N/A'} kcal\n- Protein: ${preferences.protein_target || 'N/A'}g\n- Carbs: ${preferences.carbs_target || 'N/A'}g\n- Fat: ${preferences.fat_target || 'N/A'}g\n\nRequirements:\n- Return exactly 4 meals: one breakfast, one lunch, one snack, one dinner.\n- Each meal must have a field \\\"meal_type\\\" with one of: \\\"breakfast\\\", \\\"lunch\\\", \\\"snack\\\", \\\"dinner\\\".\n- The sum of calories, protein, carbs, and fat across all 4 meals should add up to the user's daily goals as closely as possible.\n- For each meal, provide:\n  - meal_type\n  - meal_name\n  - serving_size\n  - recipe (instructions)\n  - nutrition_breakdown (calories, protein, carbs, fat)\n  - ingredients (with amounts)\n  - tags (e.g., vegetarian, gluten-free)\n- IMPORTANT: Check the other meals in the current week and limit repetition. There can be some overlap, but do not repeat the same meal more than once or twice in the week.\n\nReturn ONLY a JSON array of 4 objects, one for each meal type, with no extra text.`;
+      prompt = `Generate a personalized meal plan for a user with the following daily nutrition goals:\n- Calories: ${preferences.calories_target || 'N/A'} kcal\n- Protein: ${preferences.protein_target || 'N/A'}g\n- Carbs: ${preferences.carbs_target || 'N/A'}g\n- Fat: ${preferences.fat_target || 'N/A'}g\n\nRequirements:\n- Return exactly 4 meals: one breakfast, one lunch, one snack, one dinner.\n- Each meal must have a field \\\"meal_type\\\" with one of: \\\"breakfast\\\", \\\"lunch\\\", \\\"snack\\\", \\\"dinner\\\".\n- The sum of calories, protein, carbs, and fat across all 4 meals should add up to the user's daily goals as closely as possible.\n- For each meal, provide:\n  - meal_type\n  - meal_name\n  - serving_size\n  - recipe (instructions)\n  - nutrition_breakdown (calories, protein, carbs, fat)\n  - ingredients (with amounts)\n  - tags (e.g., vegetarian, gluten-free)\n- IMPORTANT: Check the other meals in the current week and limit repetition. There can be some overlap, but do not repeat the same meal more than once or twice in the week.\n\n${regenerate_feedback ? `User feedback for this regeneration: ${regenerate_feedback}\n` : ''}Return ONLY a JSON array of 4 objects, one for each meal type, with no extra text.`;
     }
 
     const completion = await openai.chat.completions.create({
