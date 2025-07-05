@@ -24,6 +24,7 @@ import About from './pages/About';
 import Navbar from './components/Navbar';
 import PublicNavbar from './components/PublicNavbar';
 import AddReview from './pages/AddReview';
+import { ProfileProvider } from './components/ProfileContext';
 
 const queryClient = new QueryClient();
 
@@ -51,38 +52,40 @@ const HomeRouter = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<HomeRouter />} />
-            <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
-            <Route path="/auth" element={<PublicLayout><Auth /></PublicLayout>} />
+  <ProfileProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<HomeRouter />} />
+              <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
+              <Route path="/auth" element={<PublicLayout><Auth /></PublicLayout>} />
 
-            {/* Protected routes */}
-            <Route path="/onboarding" element={<PrivateLayout><ProtectedRoute><Onboarding /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/profile" element={<PrivateLayout><ProtectedRoute><Profile /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/profile/edit" element={<PrivateLayout><ProtectedRoute><EditProfile /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/social" element={<PrivateLayout><ProtectedRoute><Social /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/habits" element={<PrivateLayout><ProtectedRoute><Habits /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/user/:username" element={<PrivateLayout><ProtectedRoute><UserProfile /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/news" element={<PrivateLayout><ProtectedRoute><News /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/meals" element={<PrivateLayout><ProtectedRoute><Meals /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/fitness" element={<PrivateLayout><ProtectedRoute><Fitness /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/journal" element={<PrivateLayout><ProtectedRoute><Journal /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/finances" element={<PrivateLayout><ProtectedRoute><Finances /></ProtectedRoute></PrivateLayout>} />
-            <Route path="/add-review" element={<PrivateLayout><ProtectedRoute><AddReview /></ProtectedRoute></PrivateLayout>} />
-            {/* Catch-all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+              {/* Protected routes */}
+              <Route path="/onboarding" element={<PrivateLayout><ProtectedRoute><Onboarding /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/profile" element={<PrivateLayout><ProtectedRoute><Profile /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/profile/edit" element={<PrivateLayout><ProtectedRoute><EditProfile /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/social" element={<PrivateLayout><ProtectedRoute><Social /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/habits" element={<PrivateLayout><ProtectedRoute><Habits /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/user/:username" element={<PrivateLayout><ProtectedRoute><UserProfile /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/news" element={<PrivateLayout><ProtectedRoute><News /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/meals" element={<PrivateLayout><ProtectedRoute><Meals /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/fitness" element={<PrivateLayout><ProtectedRoute><Fitness /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/journal" element={<PrivateLayout><ProtectedRoute><Journal /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/finances" element={<PrivateLayout><ProtectedRoute><Finances /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/add-review" element={<PrivateLayout><ProtectedRoute><AddReview /></ProtectedRoute></PrivateLayout>} />
+              {/* Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ProfileProvider>
 );
 
 export default App;

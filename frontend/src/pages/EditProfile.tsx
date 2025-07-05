@@ -59,6 +59,7 @@ const EditProfile = () => {
   const [dietary, setDietary] = useState<string[]>([]);
   const [allergies, setAllergies] = useState('');
   const [nutritionNotes, setNutritionNotes] = useState('');
+  const [contexts, setContexts] = useState<string[]>([]);
   // Fitness Goals form state
   const [fitnessGoalType, setFitnessGoalType] = useState('');
   const [fitnessTargetWeight, setFitnessTargetWeight] = useState('');
@@ -183,6 +184,11 @@ const EditProfile = () => {
       setDietary(nutritionData?.dietary_restrictions || []);
       setAllergies((nutritionData?.allergies || []).join(', '));
       setNutritionNotes(nutritionData?.notes || '');
+      setContexts(Array.isArray(nutritionData?.contexts)
+        ? nutritionData.contexts
+            .map((c: any) => (typeof c === 'string' ? c : (c !== null && c !== undefined ? String(c) : '')))
+            .filter((c: string) => typeof c === 'string' && c.trim() !== '')
+        : []);
       // Fetch fitness goals
       const { data: fitnessData } = await supabase
         .from('user_fitness_goals')
@@ -297,6 +303,7 @@ const EditProfile = () => {
           dietary_restrictions: dietary,
           allergies: allergies ? allergies.split(',').map(a => a.trim()) : [],
           notes: nutritionNotes,
+          contexts: contexts.filter(c => c.trim() !== ''),
         }, { onConflict: 'user_id' }),
         supabase.from('user_fitness_goals').upsert({
           user_id: user.id,
@@ -539,6 +546,10 @@ const EditProfile = () => {
     await supabase.from('journal_config').upsert(row);
     setJournalQuestions(selectedJournalQuestions);
   };
+
+  const handleAddContext = () => setContexts(prev => [...prev, '']);
+  const handleRemoveContext = (i: number) => setContexts(prev => prev.filter((_, idx) => idx !== i));
+  const handleContextChange = (i: number, value: string) => setContexts(prev => prev.map((c, idx) => idx === i ? value : c));
 
   if (loading) {
     return (
@@ -800,6 +811,34 @@ const EditProfile = () => {
                 <Label>Notes</Label>
                 <Input value={nutritionNotes} onChange={e => setNutritionNotes(e.target.value)} />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Saved Meal Plan Contexts */}
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle>Saved Meal Plan Contexts</CardTitle>
+            <CardDescription>Feedback and preferences you've saved for meal planning</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {contexts.length > 0 ? (
+                contexts.map((context, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <Input
+                      className="flex-1"
+                      placeholder="Context (e.g. dislikes, feedback, etc.)"
+                      value={context}
+                      onChange={e => handleContextChange(i, e.target.value)}
+                    />
+                    <Button size="icon" variant="ghost" onClick={() => handleRemoveContext(i)} disabled={contexts.length === 1}><X className="w-4 h-4" /></Button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-gray-500">No saved contexts yet.</div>
+              )}
+              <Button variant="outline" size="sm" onClick={handleAddContext}>Add Context</Button>
             </div>
           </CardContent>
         </Card>

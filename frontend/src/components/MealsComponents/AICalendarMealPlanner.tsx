@@ -81,7 +81,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
         await fetch('/api/generate-meal-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId, week_start: weekStart, nutritionPrefs, force_regen_week: true, regenerate_feedback: regenFeedback, mode: 'week' }),
+          body: JSON.stringify({ user_id: userId, weekStart: weekStart, nutritionPrefs, force_regen_week: true, regenerate_feedback: regenFeedback, mode: 'week' }),
         });
         await fetchWeekMeals();
       } catch (err) {}
@@ -92,7 +92,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
         await fetch('/api/generate-meal-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId, week_start: weekStart, nutritionPrefs, force_regen_day: regenDay, regenerate_feedback: regenFeedback, mode: 'day' }),
+          body: JSON.stringify({ user_id: userId, weekStart: weekStart, nutritionPrefs, force_regen_day: regenDay, regenerate_feedback: regenFeedback, mode: 'day' }),
         });
         await fetchWeekMeals();
       } catch (err) {}
@@ -180,7 +180,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                 const dateStr = d.toISOString().slice(0, 10);
                 const isToday = dateStr === todayStr;
                 return (
-                  <th key={day} className={`p-3 border-b text-center text-base font-semibold text-gray-700 relative ${isToday ? 'bg-green-100 text-green-900' : ''}`}>
+                  <th key={day} className={`p-3 border-b text-center text-base font-semibold text-gray-700 relative ${isToday ? 'bg-green-100 text-green-900' : ''}`} data-today={isToday}>
                     <span>{day}</span>
                     <span className="inline-block ml-2 relative">
                       <button
@@ -216,7 +216,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                   return (
                     <td
                       key={day}
-                      className={`p-3 border-b text-center text-base relative group min-w-[160px] bg-transparent ${isToday ? 'bg-green-100' : ''}`}
+                      className={`p-3 border-b text-center text-base relative group min-w-[160px] ${isToday ? 'bg-green-100' : 'bg-transparent'}`}
                       onMouseEnter={() => meal && setHoveredMeal({ day: dateStr, type })}
                       onMouseLeave={() => setHoveredMeal(null)}
                       onDragOver={e => {
@@ -346,7 +346,13 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
       {showRegenModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md flex flex-col gap-4">
-            <h3 className="text-lg font-bold text-green-700 mb-2">Regenerate {regenMode === 'week' ? 'Week' : 'Day'} Meal Plan</h3>
+            <h3 className="text-lg font-bold text-green-700 mb-2">
+              {regenMode === 'week'
+                ? 'Regenerate Week Meal Plan'
+                : regenMode === 'day' && regenDay
+                  ? `Regenerate ${new Date(regenDay).toLocaleDateString(undefined, { weekday: 'long' })} Meal Plan`
+                  : 'Regenerate Day Meal Plan'}
+            </h3>
             <label className="text-sm text-gray-700 mb-1">Why are you regenerating? (Dislikes, changes, or feedback for the AI)</label>
             <textarea
               ref={regenInputRef}
