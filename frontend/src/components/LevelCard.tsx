@@ -8,15 +8,23 @@ interface LevelCardProps {
 }
 
 const LevelCard = ({ xpRefresh }: LevelCardProps) => {
-  const { level, totalXP, loading } = useProfile();
+  const { totalXP, loading } = useProfile();
 
-  // Calculate XP needed for current level and next level
+  // Calculate level and XP thresholds from totalXP
   const getXPForLevel = (level: number) => Math.pow(level, 2) * 100;
-  const currentLevelXP = getXPForLevel(level);
-  const prevLevelXP = getXPForLevel(level - 1);
+  // Find current level by checking which level's threshold totalXP is at
+  let level = 1;
+  while (getXPForLevel(level) <= totalXP) {
+    level++;
+  }
+  level = Math.max(1, level - 1);
+  const prevLevelXP = getXPForLevel(level);
+  const nextLevel = level + 1;
+  const nextLevelXP = getXPForLevel(nextLevel);
   const progressXP = totalXP - prevLevelXP;
-  const neededXP = currentLevelXP - prevLevelXP;
+  const neededXP = nextLevelXP - prevLevelXP;
   const progressPercentage = Math.min((progressXP / neededXP) * 100, 100);
+  const xpToNextLevel = Math.max(0, nextLevelXP - totalXP);
 
   const PROGRESS_COLOR = 'bg-gradient-to-r from-blue-500 to-cyan-400';
   const PROGRESS_BG = 'bg-blue-100';
@@ -61,7 +69,7 @@ const LevelCard = ({ xpRefresh }: LevelCardProps) => {
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-gray-600">
             <span>{progressXP.toLocaleString()} XP</span>
-            <span>{neededXP.toLocaleString()} XP to level {level + 1}</span>
+            <span>{xpToNextLevel.toLocaleString()} XP to level {nextLevel}</span>
           </div>
           <div className={`relative w-full h-3 rounded-full overflow-hidden ${PROGRESS_BG}`}>
             <div
@@ -70,7 +78,7 @@ const LevelCard = ({ xpRefresh }: LevelCardProps) => {
             />
           </div>
           <p className="text-xs text-gray-500 text-center">
-            {Math.max(0, neededXP - progressXP).toLocaleString()} XP needed for next level
+            {xpToNextLevel.toLocaleString()} XP needed for next level
           </p>
         </div>
       </CardContent>
