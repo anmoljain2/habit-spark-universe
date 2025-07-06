@@ -119,12 +119,12 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
     return d.toISOString().slice(0, 10);
   };
 
-  // Helper to get local weekday name from yyyy-mm-dd string
-  const getWeekdayName = (dateStr: string) => {
+  // Helper to get local weekday name from yyyy-mm-dd string and timezone
+  function getWeekdayName(dateStr: string, timezone: string) {
     const [year, month, day] = dateStr.split('-').map(Number);
-    const d = new Date(year, month - 1, day);
-    return d.toLocaleDateString(undefined, { weekday: 'long' });
-  };
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return date.toLocaleDateString(undefined, { weekday: 'long', timeZone: timezone });
+  }
 
   // Save Context handler
   const handleSaveContext = async () => {
@@ -374,9 +374,9 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
               {regenMode === 'week'
                 ? 'Regenerate Week Meal Plan'
                 : regenMode === 'day' && regenDay
-                  ? `Regenerate ${(() => { const [y, m, d] = regenDay.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long' }); })()} Meal Plan`
+                  ? `Regenerate ${getWeekdayName(regenDay, timezone)} Meal Plan`
                   : regenMode === 'meal' && regenDay && regenMealType
-                    ? `Regenerate ${regenMealType.charAt(0).toUpperCase() + regenMealType.slice(1)} for ${(() => { const [y, m, d] = regenDay.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long' }); })()}`
+                    ? `Regenerate ${regenMealType.charAt(0).toUpperCase() + regenMealType.slice(1)} for ${getWeekdayName(regenDay, timezone)}`
                     : 'Regenerate Day Meal Plan'}
             </h3>
             <label className="text-sm text-gray-700 mb-1">Why are you regenerating? (Dislikes, changes, or feedback for the AI)</label>

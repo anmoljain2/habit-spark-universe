@@ -11,7 +11,7 @@ import EdamamFoodDatabaseTester from '@/components/MealsComponents/EdamamFoodDat
 import EdamamWeeklyMealPlan from '@/components/MealsComponents/EdamamWeeklyMealPlan';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Calendar } from 'lucide-react';
-import { startOfWeek, formatISO } from 'date-fns';
+import { startOfWeek } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import MealsQuestionnaire from '@/components/MealsQuestionnaire';
 import { useProfile } from '@/components/ProfileContext';
@@ -24,9 +24,9 @@ const Meals: React.FC = () => {
   const navigate = useNavigate();
   const { nutritionPreferences, loading: profileLoading } = useProfile();
   const timezone = (nutritionPreferences && nutritionPreferences.timezone) || 'America/Los_Angeles';
-  const today = new Date();
-  const todayStr = getLocalDateStr(today, timezone);
-  const weekStart = getLocalDateStr(new Date(today.setDate(today.getDate() - today.getDay())), timezone);
+  const now = new Date();
+  const todayStr = getLocalDateStr(now, timezone);
+  const weekStart = getLocalDateStr(startOfWeek(now, { weekStartsOn: 0 }), timezone);
 
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
 
