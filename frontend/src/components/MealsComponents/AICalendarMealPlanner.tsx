@@ -201,8 +201,8 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
             <tr>
               <th className="p-3 border-b text-left text-base font-semibold text-gray-700">Meal Type</th>
               {daysOfWeek.map((day, idx) => {
-                const weekStartDate = new Date(baseWeekStartDate);
-                weekStartDate.setDate(baseWeekStartDate.getDate() + idx);
+                const weekStartDate = new Date(baseWeekStartDate.getTime());
+                weekStartDate.setDate(weekStartDate.getDate() + idx);
                 const dateStr = getLocalDateStr(weekStartDate, timezone);
                 const isToday = dateStr === todayStr;
                 // Format date as M/D
@@ -237,8 +237,8 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
               <tr key={type}>
                 <td className="p-3 border-b text-base font-semibold text-gray-700 capitalize">{type}</td>
                 {daysOfWeek.map((day, idx) => {
-                  const weekStartDate = new Date(baseWeekStartDate);
-                  weekStartDate.setDate(baseWeekStartDate.getDate() + idx);
+                  const weekStartDate = new Date(baseWeekStartDate.getTime());
+                  weekStartDate.setDate(weekStartDate.getDate() + idx);
                   const dateStr = getLocalDateStr(weekStartDate, timezone);
                   const meal = weekMeals[dateStr]?.[type];
                   const isToday = dateStr === todayStr;

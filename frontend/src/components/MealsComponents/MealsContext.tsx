@@ -30,11 +30,13 @@ export const MealsProvider: React.FC<{ weekStart: string; timezone: string; chil
     setLoading(true);
     // Calculate week dates in user's timezone using the same logic as the calendar
     const weekDates = Array.from({ length: 7 }, (_, i) => addDaysToDateStr(ws, i, timezone));
+    console.log('[MealsContext] weekDates for fetch:', weekDates); // DEBUG
     const { data, error } = await supabase
       .from('user_meals')
       .select('*')
       .eq('user_id', user.id)
       .in('date_only', weekDates);
+    console.log('[MealsContext] Supabase fetch result:', { data, error }); // DEBUG
     if (!error && data) {
       const mealsByDay: any = {};
       data.forEach((meal: any) => {
