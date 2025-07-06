@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Utensils, Coffee, Sandwich, Drumstick, Flame, Heart, Leaf, Egg, CheckCircle } from 'lucide-react';
 import { useMeals } from './MealsContext';
 import { getLocalDateStr } from '@/lib/utils';
+import ProgressBar from '@/components/ProgressBar';
 
 interface TodaysMealsProps {
   userId: string;
@@ -179,29 +180,10 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
         <div className="bg-white/90 rounded-2xl shadow-xl border-2 border-green-200 p-6 w-full max-w-xs flex flex-col items-center">
           <div className="text-lg font-bold text-green-700 mb-2">Today's Nutrition</div>
           <div className="flex flex-col gap-3 w-full">
-            {['calories', 'protein', 'carbs', 'fat'].map((macro) => {
-              let goal = 0;
-              if (macro === 'calories') goal = nutritionPrefs?.calories_target || 0;
-              if (macro === 'protein') goal = nutritionPrefs?.protein_target || 0;
-              if (macro === 'carbs') goal = nutritionPrefs?.carbs_target || 0;
-              if (macro === 'fat') goal = nutritionPrefs?.fat_target || 0;
-              const value = nutrition[macro as keyof typeof nutrition];
-              const percent = macroProgress(macro as keyof typeof nutrition, goal);
-              return (
-                <div key={macro} className="mb-1 w-full">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className={`font-semibold ${macroColors[macro as keyof typeof macroColors]}`}>{macro.charAt(0).toUpperCase() + macro.slice(1)}</span>
-                    <span className="text-sm text-gray-700 font-medium">{value} / {goal} {macro === 'calories' ? 'cal' : 'g'}</span>
-                  </div>
-                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`block h-3 rounded-full ${macroColors[macro as keyof typeof macroColors]} bg-opacity-70`}
-                      style={{ width: `${percent}%`, transition: 'width 0.5s' }}
-                    ></div>
-                  </div>
-                </div>
-              );
-            })}
+            <ProgressBar label="Calories" current={nutrition.calories} max={nutritionPrefs?.calories_target || 0} color="#fb923c" />
+            <ProgressBar label="Protein" current={nutrition.protein} max={nutritionPrefs?.protein_target || 0} color="#ec4899" />
+            <ProgressBar label="Carbs" current={nutrition.carbs} max={nutritionPrefs?.carbs_target || 0} color="#22c55e" />
+            <ProgressBar label="Fat" current={nutrition.fat} max={nutritionPrefs?.fat_target || 0} color="#f59e42" />
           </div>
         </div>
       </div>
