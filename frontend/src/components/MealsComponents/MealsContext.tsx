@@ -12,6 +12,14 @@ interface MealsContextType {
 
 const MealsContext = createContext<MealsContextType | undefined>(undefined);
 
+// Helper to add days to a YYYY-MM-DD string in a specific timezone
+function addDaysToDateStr(dateStr: string, days: number, timezone: string) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const base = new Date(Date.UTC(y, m - 1, d));
+  base.setUTCDate(base.getUTCDate() + days);
+  return getLocalDateStr(base, timezone);
+}
+
 export const MealsProvider: React.FC<{ weekStart: string; timezone: string; children: React.ReactNode }> = ({ weekStart, timezone, children }) => {
   const { user } = useAuth();
   const [weekMeals, setWeekMeals] = useState<Record<string, any>>({});
@@ -20,8 +28,8 @@ export const MealsProvider: React.FC<{ weekStart: string; timezone: string; chil
   const fetchWeekMeals = useCallback(async (ws: string = weekStart) => {
     if (!user) return;
     setLoading(true);
-    // Calculate week dates in user's timezone
-    const weekDates = Array.from({ length: 7 }, (_, i) => getLocalDateStr(new Date(new Date(ws).getTime() + i * 86400000), timezone));
+    // Calculate week dates in user's timezone using the same logic as the calendar
+    const weekDates = Array.from({ length: 7 }, (_, i) => addDaysToDateStr(ws, i, timezone));
     const { data, error } = await supabase
       .from('user_meals')
       .select('*')

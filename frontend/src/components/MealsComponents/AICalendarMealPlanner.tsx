@@ -113,11 +113,14 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
     setSelectedContexts([]);
   };
 
-  const getDateForDay = (start: string, dayIdx: number) => {
-    const d = new Date(start);
-    d.setDate(d.getDate() + dayIdx);
-    return d.toISOString().slice(0, 10);
-  };
+  // Helper to add days to a YYYY-MM-DD string in a specific timezone
+  function addDaysToDateStr(dateStr: string, days: number, timezone: string) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    // Create a date in the user's timezone
+    const base = new Date(Date.UTC(y, m - 1, d));
+    base.setUTCDate(base.getUTCDate() + days);
+    return getLocalDateStr(base, timezone);
+  }
 
   // Helper to get local weekday name from yyyy-mm-dd string and timezone
   function getWeekdayName(dateStr: string, timezone: string) {
@@ -194,11 +197,14 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
             <tr>
               <th className="p-3 border-b text-left text-base font-semibold text-gray-700">Meal Type</th>
               {daysOfWeek.map((day, idx) => {
-                const dateStr = getLocalDateStr(new Date(new Date(weekStart).getTime() + idx * 86400000), timezone);
+                const dateStr = addDaysToDateStr(weekStart, idx, timezone);
                 const isToday = dateStr === todayStr;
+                // Format date as M/D
+                const [year, month, dayNum] = dateStr.split('-');
+                const formattedDate = `${parseInt(month)}/${parseInt(dayNum)}`;
                 return (
                   <th key={day} className={`p-3 border-b text-center text-base font-semibold text-gray-700 relative ${isToday ? 'bg-green-100 text-green-900' : ''}`} data-today={isToday}>
-                    <span>{day}</span>
+                    <span>{day} - {formattedDate}</span>
                     <span className="inline-block ml-2 relative">
                       <button
                         className="text-green-600 hover:text-green-900"
@@ -225,7 +231,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
               <tr key={type}>
                 <td className="p-3 border-b text-base font-semibold text-gray-700 capitalize">{type}</td>
                 {daysOfWeek.map((day, idx) => {
-                  const dateStr = getLocalDateStr(new Date(new Date(weekStart).getTime() + idx * 86400000), timezone);
+                  const dateStr = addDaysToDateStr(weekStart, idx, timezone);
                   const meal = weekMeals[dateStr]?.[type];
                   const isToday = dateStr === todayStr;
                   return (
