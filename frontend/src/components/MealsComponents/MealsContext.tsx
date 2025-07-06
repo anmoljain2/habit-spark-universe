@@ -15,8 +15,8 @@ const MealsContext = createContext<MealsContextType | undefined>(undefined);
 // Helper to add days to a YYYY-MM-DD string in a specific timezone
 function addDaysToDateStr(dateStr: string, days: number, timezone: string) {
   const [y, m, d] = dateStr.split('-').map(Number);
-  const base = new Date(Date.UTC(y, m - 1, d));
-  base.setUTCDate(base.getUTCDate() + days);
+  const base = new Date(y, m - 1, d);
+  base.setDate(base.getDate() + days);
   return getLocalDateStr(base, timezone);
 }
 

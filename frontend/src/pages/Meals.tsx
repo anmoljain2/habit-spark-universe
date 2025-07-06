@@ -28,6 +28,7 @@ const Meals: React.FC = () => {
   const now = new Date();
   // Convert now to user's local time
   const localNow = toZonedTime(now, timezone);
+  // Always use localNow to determine week start so today is always included
   const weekStartDate = startOfWeek(localNow, { weekStartsOn: 0 });
   const weekStart = getLocalDateStr(weekStartDate, timezone);
   const todayStr = getLocalDateStr(localNow, timezone);
