@@ -231,6 +231,16 @@ const Auth = () => {
           title: "Welcome back!",
           description: "Successfully signed in.",
         });
+        // Update timezone in user_profiles
+        try {
+          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          await supabase
+            .from('user_profiles')
+            .update({ timezone })
+            .eq('user_id', data.user.id);
+        } catch (err) {
+          // Optionally log or ignore
+        }
         // Do not redirect here
       }
     } catch (error) {

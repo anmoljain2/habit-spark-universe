@@ -16,16 +16,18 @@ import { useNavigate } from 'react-router-dom';
 import MealsQuestionnaire from '@/components/MealsQuestionnaire';
 import { useProfile } from '@/components/ProfileContext';
 import { MealsProvider } from '@/components/MealsComponents/MealsContext';
+import { getLocalDateStr } from '@/lib/utils';
 
 const Meals: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id;
   const navigate = useNavigate();
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
-  const weekStart = formatISO(startOfWeek(today, { weekStartsOn: 0 }), { representation: 'date' });
-
   const { nutritionPreferences, loading: profileLoading } = useProfile();
+  const timezone = (nutritionPreferences && nutritionPreferences.timezone) || 'America/Los_Angeles';
+  const today = new Date();
+  const todayStr = getLocalDateStr(today, timezone);
+  const weekStart = getLocalDateStr(new Date(today.setDate(today.getDate() - today.getDay())), timezone);
+
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
 
   // AI Recipe Search state (for modularity, can be moved to a custom hook)
@@ -128,7 +130,7 @@ const Meals: React.FC = () => {
   }
 
   return (
-    <MealsProvider weekStart={weekStart}>
+    <MealsProvider weekStart={weekStart} timezone={timezone}>
       <div className="bg-gradient-to-br from-blue-50 to-green-50 min-h-screen w-full py-12">
         <div className="max-w-6xl mx-auto flex flex-col gap-6">
           {/* Nutrition Hub Header */}
@@ -141,11 +143,11 @@ const Meals: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-0 mt-2">Today's Meals</h2>
           {/* Today's Meals and Nutrition Card */}
           <div className="mt-0">
-            <TodaysMeals userId={userId} todayStr={todayStr} nutritionPrefs={nutritionPreferences || {}} />
+            <TodaysMeals userId={userId} todayStr={todayStr} nutritionPrefs={nutritionPreferences || {}} timezone={timezone} />
           </div>
           {/* AI Meal Plan Calendar */}
           <div className="w-full">
-            <AICalendarMealPlanner userId={userId} weekStart={weekStart} nutritionPrefs={nutritionPreferences || {}} />
+            <AICalendarMealPlanner userId={userId} weekStart={weekStart} nutritionPrefs={nutritionPreferences || {}} timezone={timezone} />
             {/* Move title and description directly above the calendar */}
             <div className="flex flex-col w-full mb-2 mt-4">
               <div className="flex items-center gap-2 mb-0">

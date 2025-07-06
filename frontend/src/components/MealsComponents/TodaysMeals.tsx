@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Utensils, Coffee, Sandwich, Drumstick, Flame, Heart, Leaf, Egg, CheckCircle } from 'lucide-react';
 import { useMeals } from './MealsContext';
+import { getLocalDateStr } from '@/lib/utils';
 
 interface TodaysMealsProps {
   userId: string;
   todayStr: string;
   nutritionPrefs: any;
+  timezone: string;
 }
 
 const mealTypes = [
@@ -30,12 +32,12 @@ const macroColors = {
   fat: 'text-yellow-700',
 };
 
-const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPrefs }) => {
+const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPrefs, timezone }) => {
   const { weekMeals, loading, refreshMeals } = useMeals();
   const [completing, setCompleting] = useState<string | null>(null);
 
-  // Get today's meals from context
-  const todayMealsObj = weekMeals?.[todayStr] || {};
+  const todayKey = getLocalDateStr(new Date(), timezone);
+  const todayMealsObj = weekMeals?.[todayKey] || {};
   const todayMeals = mealTypes.map(type => todayMealsObj[type.key]).filter(Boolean);
 
   // Calculate nutrition from completed meals

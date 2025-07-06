@@ -2,17 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, RefreshCw, Calendar, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useMeals } from './MealsContext';
+import { getLocalDateStr } from '@/lib/utils';
 
 interface AICalendarMealPlannerProps {
   userId: string;
   weekStart: string;
   nutritionPrefs: any;
+  timezone: string;
 }
 
 const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'];
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, weekStart, nutritionPrefs }) => {
+const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, weekStart, nutritionPrefs, timezone }) => {
   const { weekMeals, loading, refreshMeals } = useMeals();
   const [regeneratingDay, setRegeneratingDay] = useState<string | null>(null);
   const [regeneratingWeek, setRegeneratingWeek] = useState(false);
@@ -32,7 +34,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>([...mealTypes]);
   const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getLocalDateStr(new Date(), timezone);
   const todayIdx = (() => {
     const d = new Date(todayStr);
     return d.getDay();
@@ -192,9 +194,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
             <tr>
               <th className="p-3 border-b text-left text-base font-semibold text-gray-700">Meal Type</th>
               {daysOfWeek.map((day, idx) => {
-                const d = new Date(weekStart);
-                d.setDate(new Date(weekStart).getDate() + idx);
-                const dateStr = d.toISOString().slice(0, 10);
+                const dateStr = getLocalDateStr(new Date(new Date(weekStart).getTime() + idx * 86400000), timezone);
                 const isToday = dateStr === todayStr;
                 return (
                   <th key={day} className={`p-3 border-b text-center text-base font-semibold text-gray-700 relative ${isToday ? 'bg-green-100 text-green-900' : ''}`} data-today={isToday}>
@@ -225,9 +225,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
               <tr key={type}>
                 <td className="p-3 border-b text-base font-semibold text-gray-700 capitalize">{type}</td>
                 {daysOfWeek.map((day, idx) => {
-                  const d = new Date(weekStart);
-                  d.setDate(new Date(weekStart).getDate() + idx);
-                  const dateStr = d.toISOString().slice(0, 10);
+                  const dateStr = getLocalDateStr(new Date(new Date(weekStart).getTime() + idx * 86400000), timezone);
                   const meal = weekMeals[dateStr]?.[type];
                   const isToday = dateStr === todayStr;
                   return (

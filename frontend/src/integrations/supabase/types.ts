@@ -125,6 +125,44 @@ export type Database = {
         }
         Relationships: []
       }
+      grocery_lists: {
+        Row: {
+          checklist: Json | null
+          created_at: string | null
+          id: string
+          items: Json
+          updated_at: string | null
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          checklist?: Json | null
+          created_at?: string | null
+          id?: string
+          items: Json
+          updated_at?: string | null
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          checklist?: Json | null
+          created_at?: string | null
+          id?: string
+          items?: Json
+          updated_at?: string | null
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grocery_lists_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_config: {
         Row: {
           created_at: string | null
@@ -265,7 +303,9 @@ export type Database = {
       team: {
         Row: {
           bio: string | null
+          email: string | null
           id: string
+          linkedin: string | null
           months_at_lifequest: number
           name: string
           profile_picture: string | null
@@ -274,7 +314,9 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          email?: string | null
           id?: string
+          linkedin?: string | null
           months_at_lifequest: number
           name: string
           profile_picture?: string | null
@@ -283,7 +325,9 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          email?: string | null
           id?: string
+          linkedin?: string | null
           months_at_lifequest?: number
           name?: string
           profile_picture?: string | null
@@ -421,10 +465,10 @@ export type Database = {
           protein: number | null
           recipe: string | null
           serving_size: string | null
+          source: string | null
           tags: string[] | null
           time: string | null
           user_id: string | null
-          source: string | null
         }
         Insert: {
           calories?: number | null
@@ -441,10 +485,10 @@ export type Database = {
           protein?: number | null
           recipe?: string | null
           serving_size?: string | null
+          source?: string | null
           tags?: string[] | null
           time?: string | null
           user_id?: string | null
-          source?: string | null
         }
         Update: {
           calories?: number | null
@@ -461,10 +505,10 @@ export type Database = {
           protein?: number | null
           recipe?: string | null
           serving_size?: string | null
+          source?: string | null
           tags?: string[] | null
           time?: string | null
           user_id?: string | null
-          source?: string | null
         }
         Relationships: [
           {
@@ -543,6 +587,7 @@ export type Database = {
           allergies: string[] | null
           calories_target: number | null
           carbs_target: number | null
+          contexts: Json | null
           created_at: string | null
           dietary_restrictions: string[] | null
           fat_target: number | null
@@ -553,12 +598,12 @@ export type Database = {
           sodium_limit: number | null
           sugar_limit: number | null
           user_id: string | null
-          contexts: Json | null
         }
         Insert: {
           allergies?: string[] | null
           calories_target?: number | null
           carbs_target?: number | null
+          contexts?: Json | null
           created_at?: string | null
           dietary_restrictions?: string[] | null
           fat_target?: number | null
@@ -569,12 +614,12 @@ export type Database = {
           sodium_limit?: number | null
           sugar_limit?: number | null
           user_id?: string | null
-          contexts?: Json | null
         }
         Update: {
           allergies?: string[] | null
           calories_target?: number | null
           carbs_target?: number | null
+          contexts?: Json | null
           created_at?: string | null
           dietary_restrictions?: string[] | null
           fat_target?: number | null
@@ -585,7 +630,6 @@ export type Database = {
           sodium_limit?: number | null
           sugar_limit?: number | null
           user_id?: string | null
-          contexts?: Json | null
         }
         Relationships: [
           {
@@ -603,6 +647,7 @@ export type Database = {
           created_at: string | null
           display_name: string | null
           profile_visibility: string | null
+          timezone: string | null
           user_id: string
           username: string | null
         }
@@ -611,6 +656,7 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           profile_visibility?: string | null
+          timezone?: string | null
           user_id: string
           username?: string | null
         }
@@ -619,10 +665,64 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           profile_visibility?: string | null
+          timezone?: string | null
           user_id?: string
           username?: string | null
         }
         Relationships: []
+      }
+      user_recipes: {
+        Row: {
+          calories: number
+          carbs: number
+          created_at: string | null
+          fat: number
+          id: string
+          ingredients: Json
+          name: string
+          protein: number
+          recipe: string
+          serving_size: string
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          calories: number
+          carbs: number
+          created_at?: string | null
+          fat: number
+          id?: string
+          ingredients: Json
+          name: string
+          protein: number
+          recipe: string
+          serving_size: string
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          calories?: number
+          carbs?: number
+          created_at?: string | null
+          fat?: number
+          id?: string
+          ingredients?: Json
+          name?: string
+          protein?: number
+          recipe?: string
+          serving_size?: string
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_recipes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_workouts: {
         Row: {
@@ -695,86 +795,6 @@ export type Database = {
         }
         Relationships: []
       }
-      grocery_lists: {
-        Row: {
-          id: string;
-          user_id: string;
-          week_start: string;
-          items: Json | null;
-          updated_at: string;
-          checklist: Json | null;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          week_start: string;
-          items?: Json | null;
-          updated_at?: string;
-          checklist?: Json | null;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          week_start?: string;
-          items?: Json | null;
-          updated_at?: string;
-          checklist?: Json | null;
-        };
-        Relationships: [];
-      },
-      user_recipes: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          ingredients: Json;
-          recipe: string;
-          serving_size: string;
-          calories: number;
-          protein: number;
-          carbs: number;
-          fat: number;
-          created_at: string;
-          source: string | null;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          name: string;
-          ingredients: Json;
-          recipe: string;
-          serving_size: string;
-          calories: number;
-          protein: number;
-          carbs: number;
-          fat: number;
-          created_at?: string;
-          source?: string | null;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          name?: string;
-          ingredients?: Json;
-          recipe?: string;
-          serving_size?: string;
-          calories?: number;
-          protein?: number;
-          carbs?: number;
-          fat?: number;
-          created_at?: string;
-          source?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "user_recipes_user_id_fkey",
-            columns: ["user_id"],
-            isOneToOne: false,
-            referencedRelation: "users",
-            referencedColumns: ["id"]
-          }
-        ];
-      },
     }
     Views: {
       [_ in never]: never

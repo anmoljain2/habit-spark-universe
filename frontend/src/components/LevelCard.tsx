@@ -68,8 +68,8 @@ const LevelCard = ({ xpRefresh }: LevelCardProps) => {
         
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-gray-600">
-            <span>{progressXP.toLocaleString()} XP</span>
-            <span>{xpToNextLevel.toLocaleString()} XP to level {nextLevel}</span>
+            <span>{totalXP.toLocaleString()} Total XP</span>
+            <span>{nextLevelXP.toLocaleString()} XP for level {nextLevel}</span>
           </div>
           <div className={`relative w-full h-3 rounded-full overflow-hidden ${PROGRESS_BG}`}>
             <div

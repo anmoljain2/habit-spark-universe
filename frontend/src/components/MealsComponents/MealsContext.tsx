@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { getLocalDateStr } from '@/lib/utils';
 
 interface MealsContextType {
   weekMeals: Record<string, any>;
@@ -11,7 +12,7 @@ interface MealsContextType {
 
 const MealsContext = createContext<MealsContextType | undefined>(undefined);
 
-export const MealsProvider: React.FC<{ weekStart: string; children: React.ReactNode }> = ({ weekStart, children }) => {
+export const MealsProvider: React.FC<{ weekStart: string; timezone: string; children: React.ReactNode }> = ({ weekStart, timezone, children }) => {
   const { user } = useAuth();
   const [weekMeals, setWeekMeals] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
@@ -19,12 +20,13 @@ export const MealsProvider: React.FC<{ weekStart: string; children: React.ReactN
   const fetchWeekMeals = useCallback(async (ws: string = weekStart) => {
     if (!user) return;
     setLoading(true);
+    // Calculate week dates in user's timezone
+    const weekDates = Array.from({ length: 7 }, (_, i) => getLocalDateStr(new Date(new Date(ws).getTime() + i * 86400000), timezone));
     const { data, error } = await supabase
       .from('user_meals')
       .select('*')
       .eq('user_id', user.id)
-      .gte('date_only', ws)
-      .lte('date_only', new Date(new Date(ws).getTime() + 6 * 86400000).toISOString().slice(0, 10));
+      .in('date_only', weekDates);
     if (!error && data) {
       const mealsByDay: any = {};
       data.forEach((meal: any) => {
@@ -36,16 +38,16 @@ export const MealsProvider: React.FC<{ weekStart: string; children: React.ReactN
       setWeekMeals({});
     }
     setLoading(false);
-  }, [user, weekStart]);
+  }, [user, weekStart, timezone]);
 
   const refreshMeals = useCallback(async () => {
     await fetchWeekMeals(weekStart);
   }, [fetchWeekMeals, weekStart]);
 
   React.useEffect(() => {
-    if (user && weekStart) fetchWeekMeals(weekStart);
+    if (user && weekStart && timezone) fetchWeekMeals(weekStart);
     // eslint-disable-next-line
-  }, [user, weekStart]);
+  }, [user, weekStart, timezone]);
 
   return (
     <MealsContext.Provider value={{ weekMeals, fetchWeekMeals, loading, refreshMeals }}>
