@@ -195,7 +195,7 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
                   </div>
                   <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className={`h-3 rounded-full ${macroColors[macro as keyof typeof macroColors]} bg-opacity-70`}
+                      className={`block h-3 rounded-full ${macroColors[macro as keyof typeof macroColors]} bg-opacity-70`}
                       style={{ width: `${percent}%`, transition: 'width 0.5s' }}
                     ></div>
                   </div>
