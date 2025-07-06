@@ -12,6 +12,7 @@ import EdamamWeeklyMealPlan from '@/components/MealsComponents/EdamamWeeklyMealP
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Calendar } from 'lucide-react';
 import { startOfWeek } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { useNavigate } from 'react-router-dom';
 import MealsQuestionnaire from '@/components/MealsQuestionnaire';
 import { useProfile } from '@/components/ProfileContext';
@@ -25,8 +26,11 @@ const Meals: React.FC = () => {
   const { nutritionPreferences, loading: profileLoading } = useProfile();
   const timezone = (nutritionPreferences && nutritionPreferences.timezone) || 'America/Los_Angeles';
   const now = new Date();
-  const todayStr = getLocalDateStr(now, timezone);
-  const weekStart = getLocalDateStr(startOfWeek(now, { weekStartsOn: 0 }), timezone);
+  // Convert now to user's local time
+  const localNow = toZonedTime(now, timezone);
+  const weekStartDate = startOfWeek(localNow, { weekStartsOn: 0 });
+  const weekStart = getLocalDateStr(weekStartDate, timezone);
+  const todayStr = getLocalDateStr(localNow, timezone);
 
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
 

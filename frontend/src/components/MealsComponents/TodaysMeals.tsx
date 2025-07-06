@@ -37,9 +37,10 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
   const [completing, setCompleting] = useState<string | null>(null);
 
   const todayKey = getLocalDateStr(new Date(), timezone);
+  const weekMealsKeys = Object.keys(weekMeals);
   const todayMealsObj = weekMeals?.[todayKey] || {};
   // Debug log
-  console.log('TodaysMeals debug:', { todayKey, weekMealsKeys: Object.keys(weekMeals) });
+  console.log('TodaysMeals debug:', { todayKey, weekMealsKeys, todayMealsObj });
   const todayMeals = mealTypes.map(type => todayMealsObj[type.key]).filter(Boolean);
 
   // Calculate nutrition from completed meals
