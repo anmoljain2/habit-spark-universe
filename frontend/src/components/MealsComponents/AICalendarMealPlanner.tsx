@@ -9,12 +9,13 @@ interface AICalendarMealPlannerProps {
   weekStart: string;
   nutritionPrefs: any;
   timezone: string;
+  todayStr: string;
 }
 
 const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'];
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, weekStart, nutritionPrefs, timezone }) => {
+const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, weekStart, nutritionPrefs, timezone, todayStr }) => {
   const { weekMeals, loading, refreshMeals } = useMeals();
   const [regeneratingDay, setRegeneratingDay] = useState<string | null>(null);
   const [regeneratingWeek, setRegeneratingWeek] = useState(false);
@@ -34,7 +35,6 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>([...mealTypes]);
   const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
 
-  const todayStr = getLocalDateStr(new Date(), timezone);
   const todayIdx = (() => {
     const d = new Date(todayStr);
     return d.getDay();
@@ -45,6 +45,8 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
   // Parse weekStart as a date in the user's timezone once
   const [wsYear, wsMonth, wsDay] = weekStart.split('-').map(Number);
   const baseWeekStartDate = new Date(Date.UTC(wsYear, wsMonth - 1, wsDay));
+  console.log('[CALENDAR DEBUG] baseWeekStartDate:', baseWeekStartDate, '| ISO:', baseWeekStartDate.toISOString(), '| Local:', baseWeekStartDate.toLocaleString('en-US', { timeZone: timezone }), '| weekStart prop:', weekStart);
+  console.log('[CALENDAR DEBUG] todayStr:', todayStr);
 
   const handleRegenerateDay = (dateStr: string) => {
     setRegenMode('day');
@@ -205,6 +207,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                 weekStartDate.setDate(weekStartDate.getDate() + idx);
                 const dateStr = getLocalDateStr(weekStartDate, timezone);
                 const isToday = dateStr === todayStr;
+                console.log(`[CALENDAR DEBUG] Column ${idx}: weekStartDate:`, weekStartDate, '| ISO:', weekStartDate.toISOString(), '| Local:', weekStartDate.toLocaleString('en-US', { timeZone: timezone }), '| dateStr:', dateStr, '| isToday:', isToday);
                 // Format date as M/D
                 const [year, month, dayNum] = dateStr.split('-');
                 const formattedDate = `${parseInt(month)}/${parseInt(dayNum)}`;
@@ -242,6 +245,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                   const dateStr = getLocalDateStr(weekStartDate, timezone);
                   const meal = weekMeals[dateStr]?.[type];
                   const isToday = dateStr === todayStr;
+                  console.log(`[CALENDAR DEBUG] Row ${idx}: weekStartDate:`, weekStartDate, '| ISO:', weekStartDate.toISOString(), '| Local:', weekStartDate.toLocaleString('en-US', { timeZone: timezone }), '| dateStr:', dateStr, '| isToday:', isToday);
                   return (
                     <td
                       key={day}

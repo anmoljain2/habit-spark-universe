@@ -7,8 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getLocalDateStr(date: Date = new Date(), timezone: string = 'America/Los_Angeles'): string {
-  // Always treat the input date as UTC to avoid timezone drift
-  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const zoned: Date = toZonedTime(utcDate, timezone);
+  // Only apply toZonedTime once, do not force UTC conversion
+  const zoned: Date = toZonedTime(date, timezone);
   return format(zoned, 'yyyy-MM-dd', { timeZone: timezone });
 }
