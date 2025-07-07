@@ -26,11 +26,13 @@ const Meals: React.FC = () => {
   const { nutritionPreferences, loading: profileLoading } = useProfile();
   const timezone = (nutritionPreferences && nutritionPreferences.timezone) || 'America/Los_Angeles';
   const now = new Date();
-  // Convert now to user's local time
   const localNow = toZonedTime(now, timezone);
-  // Always use localNow to determine week start so today is always included
   const weekStartDate = startOfWeek(localNow, { weekStartsOn: 0 });
-  const weekStart = getLocalDateStr(weekStartDate, timezone);
+  const weekStart = [
+    weekStartDate.getFullYear(),
+    String(weekStartDate.getMonth() + 1).padStart(2, '0'),
+    String(weekStartDate.getDate()).padStart(2, '0')
+  ].join('-');
   const todayStr = getLocalDateStr(new Date(), timezone);
 
   // Expanded debug log for week start and today

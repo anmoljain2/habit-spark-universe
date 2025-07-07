@@ -44,9 +44,19 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
 
   // Parse weekStart as a date in the user's timezone once
   const [wsYear, wsMonth, wsDay] = weekStart.split('-').map(Number);
-  const baseWeekStartDate = new Date(Date.UTC(wsYear, wsMonth - 1, wsDay));
+  const baseWeekStartDate = new Date(wsYear, wsMonth - 1, wsDay);
   console.log('[CALENDAR DEBUG] baseWeekStartDate:', baseWeekStartDate, '| ISO:', baseWeekStartDate.toISOString(), '| Local:', baseWeekStartDate.toLocaleString('en-US', { timeZone: timezone }), '| weekStart prop:', weekStart);
   console.log('[CALENDAR DEBUG] todayStr:', todayStr);
+  console.log('[CALENDAR DEBUG] daysOfWeek:', daysOfWeek);
+
+  // Check that the first column matches weekStart
+  const firstColDate = new Date(baseWeekStartDate.getTime());
+  const firstColDateStr = getLocalDateStr(firstColDate, timezone);
+  if (firstColDateStr !== weekStart) {
+    console.warn('[CALENDAR WARNING] First column date does not match weekStart!', { firstColDateStr, weekStart });
+  } else {
+    console.log('[CALENDAR DEBUG] First column date matches weekStart:', firstColDateStr);
+  }
 
   const handleRegenerateDay = (dateStr: string) => {
     setRegenMode('day');
@@ -203,11 +213,11 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
             <tr>
               <th className="p-3 border-b text-left text-base font-semibold text-gray-700">Meal Type</th>
               {daysOfWeek.map((day, idx) => {
-                const weekStartDate = new Date(baseWeekStartDate.getTime());
-                weekStartDate.setDate(weekStartDate.getDate() + idx);
-                const dateStr = getLocalDateStr(weekStartDate, timezone);
+                // Always start from baseWeekStartDate and increment in local time
+                const colDate = new Date(baseWeekStartDate.getTime());
+                colDate.setDate(baseWeekStartDate.getDate() + idx);
+                const dateStr = getLocalDateStr(colDate, timezone);
                 const isToday = dateStr === todayStr;
-                console.log(`[CALENDAR DEBUG] Column ${idx}: weekStartDate:`, weekStartDate, '| ISO:', weekStartDate.toISOString(), '| Local:', weekStartDate.toLocaleString('en-US', { timeZone: timezone }), '| dateStr:', dateStr, '| isToday:', isToday);
                 // Format date as M/D
                 const [year, month, dayNum] = dateStr.split('-');
                 const formattedDate = `${parseInt(month)}/${parseInt(dayNum)}`;
@@ -240,12 +250,12 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
               <tr key={type}>
                 <td className="p-3 border-b text-base font-semibold text-gray-700 capitalize">{type}</td>
                 {daysOfWeek.map((day, idx) => {
-                  const weekStartDate = new Date(baseWeekStartDate.getTime());
-                  weekStartDate.setDate(weekStartDate.getDate() + idx);
-                  const dateStr = getLocalDateStr(weekStartDate, timezone);
+                  // Always start from baseWeekStartDate and increment in local time
+                  const colDate = new Date(baseWeekStartDate.getTime());
+                  colDate.setDate(baseWeekStartDate.getDate() + idx);
+                  const dateStr = getLocalDateStr(colDate, timezone);
                   const meal = weekMeals[dateStr]?.[type];
                   const isToday = dateStr === todayStr;
-                  console.log(`[CALENDAR DEBUG] Row ${idx}: weekStartDate:`, weekStartDate, '| ISO:', weekStartDate.toISOString(), '| Local:', weekStartDate.toLocaleString('en-US', { timeZone: timezone }), '| dateStr:', dateStr, '| isToday:', isToday);
                   return (
                     <td
                       key={day}
