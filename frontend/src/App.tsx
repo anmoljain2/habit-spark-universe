@@ -28,6 +28,7 @@ import Relationship from './pages/Relationship';
 import { JournalProvider } from './pages/Journal';
 import QuestionnaireWrapper from './components/QuestionnaireWrapper';
 import GroupCreationQuestionnaire from './components/GroupCreationQuestionnaire';
+import GroupProfile from './pages/GroupProfile';
 
 const queryClient = new QueryClient();
 
@@ -92,6 +93,7 @@ const App = () => (
               <Route path="/add-review" element={<PrivateLayout><ProtectedRoute><AddReview /></ProtectedRoute></PrivateLayout>} />
               <Route path="/relationship" element={<PrivateLayout><ProtectedRoute><Relationship /></ProtectedRoute></PrivateLayout>} />
               <Route path="/create-group" element={<PrivateLayout><ProtectedRoute><QuestionnaireWrapper><GroupCreationQuestionnaire /></QuestionnaireWrapper></ProtectedRoute></PrivateLayout>} />
+              <Route path="/group/:groupId" element={<PrivateLayout><ProtectedRoute><GroupProfile /></ProtectedRoute></PrivateLayout>} />
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>

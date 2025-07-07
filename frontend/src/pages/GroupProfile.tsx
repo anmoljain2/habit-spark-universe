@@ -1,0 +1,252 @@
+import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useProfile } from '../components/ProfileContext';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
+
+export default function GroupProfile() {
+  const { groupId } = useParams();
+  const { profile } = useProfile();
+  const navigate = useNavigate();
+  const [group, setGroup] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isMember, setIsMember] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [memberProfiles, setMemberProfiles] = useState<any[]>([]);
+  const [removingMember, setRemovingMember] = useState<string | null>(null);
+  const [showJoinCelebration, setShowJoinCelebration] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [sendingChat, setSendingChat] = useState(false);
+
+  useEffect(() => {
+    async function fetchGroup() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('social_groups')
+        .select('*, owner:owner(*), members, pending_requests')
+        .eq('id', groupId)
+        .single();
+      setGroup(data);
+      setIsMember(Array.isArray(data?.members) && profile?.user_id && data.members.includes(profile.user_id));
+      setLoading(false);
+      // Fetch member profiles
+      if (Array.isArray(data?.members) && data.members.length > 0) {
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('user_id,username,display_name')
+          .in('user_id', data.members);
+        setMemberProfiles(profiles || []);
+      } else {
+        setMemberProfiles([]);
+      }
+    }
+    if (groupId && profile?.user_id) fetchGroup();
+  }, [groupId, profile?.user_id]);
+
+  // Join group logic
+  async function joinGroup() {
+    if (!group || !profile?.user_id) return;
+    setJoining(true);
+    if (group.visibility === 'public') {
+      const newMembers = Array.isArray(group.members) ? [...group.members, profile.user_id] : [profile.user_id];
+      await supabase.from('social_groups').update({ members: newMembers }).eq('id', group.id);
+      setGroup({ ...group, members: newMembers });
+      setIsMember(true);
+      setShowJoinCelebration(true);
+      setTimeout(() => setShowJoinCelebration(false), 2000);
+    } else {
+      const newPending = Array.isArray(group.pending_requests) ? [...group.pending_requests, profile.user_id] : [profile.user_id];
+      await supabase.from('social_groups').update({ pending_requests: newPending }).eq('id', group.id);
+      setGroup({ ...group, pending_requests: newPending });
+    }
+    setJoining(false);
+  }
+
+  // Remove member logic (for owner)
+  async function removeMember(userId: string) {
+    if (!group || !profile?.user_id || group.owner !== profile.user_id) return;
+    const newMembers = (group.members || []).filter((id: string) => id !== userId);
+    await supabase.from('social_groups').update({ members: newMembers }).eq('id', group.id);
+    setGroup({ ...group, members: newMembers });
+  }
+
+  // Send chat message
+  async function sendChatMessage() {
+    if (!group || !profile?.user_id || !chatInput.trim()) return;
+    setSendingChat(true);
+    const newChat = {
+      user_id: profile.user_id,
+      username: profile.display_name || profile.username || 'User',
+      message: chatInput.trim(),
+      timestamp: new Date().toISOString(),
+    };
+    const updatedChats = Array.isArray(group.chats) ? [...group.chats, newChat] : [newChat];
+    await supabase.from('social_groups').update({ chats: updatedChats, last_message_at: newChat.timestamp }).eq('id', group.id);
+    setGroup({ ...group, chats: updatedChats, last_message_at: newChat.timestamp });
+    setChatInput('');
+    setSendingChat(false);
+  }
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (!group) return <div className="min-h-screen flex items-center justify-center">Group not found.</div>;
+
+  const isPublic = group.visibility === 'public';
+  const owner = group.owner || {};
+
+  return (
+    <div className="max-w-3xl mx-auto py-8">
+      {/* Celebration Popup */}
+      {showJoinCelebration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-gradient-to-br from-green-300 via-emerald-300 to-blue-400 rounded-2xl shadow-2xl px-10 py-8 flex flex-col items-center border-4 border-white/80 animate-pop">
+            <div className="text-6xl mb-4 animate-bounce">🎉</div>
+            <h2 className="text-3xl font-extrabold text-white drop-shadow mb-2 text-center">Welcome to the Group!</h2>
+            <p className="text-lg text-white/90 font-semibold text-center mb-2">You've joined <span className='font-bold'>{group.name}</span>! Connect, share, and grow together! 🚀</p>
+          </div>
+        </div>
+      )}
+      {/* Back Button */}
+      <div className="mb-6">
+        <button
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/80 border border-white/50 text-gray-700 hover:bg-white/90 transition-all duration-200 shadow-sm hover:shadow-md"
+          onClick={() => {
+            if (window.history.length > 2) navigate(-1);
+            else navigate('/social');
+          }}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+      </div>
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold flex items-center gap-3">
+            <Avatar className="h-14 w-14">
+              <AvatarFallback className="bg-green-200 text-green-800 font-bold text-2xl">
+                {group.name?.[0]?.toUpperCase() || 'G'}
+              </AvatarFallback>
+            </Avatar>
+            {group.name}
+          </CardTitle>
+          {/* Join Group Button or In Group label */}
+          <div className="mt-2">
+            {isMember ? (
+              <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold">In Group</span>
+            ) : (
+              <Button
+                className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2 rounded-lg font-semibold mt-2"
+                onClick={joinGroup}
+                disabled={joining}
+              >
+                {joining ? 'Joining...' : 'Join Group'}
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-lg font-semibold">Owner:</div>
+          <div className="flex items-center gap-3 mb-2">
+            <Avatar className="h-10 w-10">
+              <AvatarFallback className="bg-gray-200 text-gray-700 font-bold">
+                {owner.display_name?.[0]?.toUpperCase() || owner.username?.[0]?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-bold text-gray-800">{owner.display_name || owner.username || 'Unknown'}</span>
+          </div>
+          <div className="text-gray-700 mb-2"><span className="font-semibold">Description:</span> {group.description || 'No description.'}</div>
+          <div className="text-gray-700 mb-2"><span className="font-semibold">Bio:</span> {group.bio || 'No bio.'}</div>
+          <div className="text-gray-700 mb-2"><span className="font-semibold">Visibility:</span> {group.visibility}</div>
+          {/* Show more info if public or member */}
+          {(isPublic || isMember) ? (
+            <>
+              <div className="text-gray-700 mb-2"><span className="font-semibold">Members:</span> {Array.isArray(group.members) ? group.members.length : 0}</div>
+              {/* List member names if available, and allow owner to remove */}
+              {Array.isArray(group.members) && group.members.length > 0 && (
+                <ul className="mt-2 space-y-2">
+                  {group.members.map((memberId: string) => {
+                    const member = memberProfiles.find((m: any) => m.user_id === memberId);
+                    return (
+                      <li key={memberId} className="flex items-center gap-2">
+                        <span className="text-gray-800">
+                          {memberId === group.owner
+                            ? `Owner (You)`
+                            : member?.display_name || member?.username || memberId}
+                        </span>
+                        {profile?.user_id === group.owner && memberId !== group.owner && (
+                          <AlertDialog open={removingMember === memberId} onOpenChange={open => setRemovingMember(open ? memberId : null)}>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={() => setRemovingMember(memberId)}>
+                                Remove
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove {member?.display_name || member?.username || 'this user'} from the group?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to remove this member? They will lose access to the group immediately.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel onClick={() => setRemovingMember(null)}>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => { removeMember(memberId); setRemovingMember(null); }}>Remove</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {/* Group Chat Section */}
+              <div className="mt-8">
+                <div className="font-semibold text-lg text-emerald-700 mb-2">Group Chat</div>
+                <div className="bg-white/80 rounded-lg border border-emerald-200 p-4 max-h-64 overflow-y-auto space-y-3">
+                  {Array.isArray(group.chats) && group.chats.length > 0 ? (
+                    group.chats.map((chat: any, idx: number) => (
+                      <div key={idx} className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-emerald-800">{chat.username}</span>
+                          <span className="text-xs text-gray-500">{new Date(chat.timestamp).toLocaleString()}</span>
+                        </div>
+                        <div className="text-gray-800 ml-2">{chat.message}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-400 italic">No messages yet. Start the conversation!</div>
+                  )}
+                </div>
+                {(isMember || isPublic) && (
+                  <form className="flex gap-2 mt-4" onSubmit={e => { e.preventDefault(); sendChatMessage(); }}>
+                    <input
+                      type="text"
+                      className="flex-1 border rounded px-3 py-2"
+                      placeholder="Type your message..."
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      disabled={sendingChat}
+                    />
+                    <Button type="submit" className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold" disabled={sendingChat || !chatInput.trim()}>
+                      Send
+                    </Button>
+                  </form>
+                )}
+                {group.last_message_at && (
+                  <div className="text-xs text-gray-500 mt-2">Last message: {new Date(group.last_message_at).toLocaleString()}</div>
+                )}
+              </div>
+              {/* Chats, etc. can be added here */}
+              <div className="mt-4">Member list and chat above.</div>
+            </>
+          ) : (
+            <div className="text-gray-500 italic mt-4">This is a private group. Join to see more.</div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+} 

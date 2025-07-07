@@ -560,7 +560,11 @@ const Profile = () => {
                     <div className="space-y-3">
                       {/* Owned group at top if exists */}
                       {ownedGroup && (
-                        <div key={ownedGroup.id} className="p-3 rounded-lg border-2 border-green-300 bg-green-50 flex flex-col gap-2">
+                        <div
+                          key={ownedGroup.id}
+                          className="p-3 rounded-lg border-2 border-green-300 bg-green-50 flex flex-col gap-2 cursor-pointer hover:bg-green-100"
+                          onClick={() => navigate(`/group/${ownedGroup.id}`)}
+                        >
                           <div className="flex items-center gap-2">
                             <div className="font-bold text-green-800 flex items-center gap-2">{ownedGroup.name} <span className="text-xs font-semibold text-green-700">(owner)</span></div>
                             {ownedGroup.bio && <div className="text-xs text-gray-700 ml-2">{ownedGroup.bio}</div>}
@@ -574,14 +578,16 @@ const Profile = () => {
                                 {ownedGroup.pending_requests.map((userId: string) => (
                                   <li key={userId} className="flex items-center gap-2">
                                     <span className="text-gray-800">{userId}</span>
-                                    <Button size="sm" className="bg-green-500 text-white" onClick={async () => {
+                                    <Button size="sm" className="bg-green-500 text-white" onClick={async (e) => {
+                                      e.stopPropagation();
                                       // Approve: add to members, remove from pending_requests
                                       const newMembers = [...(ownedGroup.members || []), userId];
                                       const newPending = (ownedGroup.pending_requests || []).filter((id: string) => id !== userId);
                                       await supabase.from('social_groups').update({ members: newMembers, pending_requests: newPending }).eq('id', ownedGroup.id);
                                       setOwnedGroup({ ...ownedGroup, members: newMembers, pending_requests: newPending });
                                     }}>Approve</Button>
-                                    <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={async () => {
+                                    <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={async (e) => {
+                                      e.stopPropagation();
                                       // Decline: just remove from pending_requests
                                       const newPending = (ownedGroup.pending_requests || []).filter((id: string) => id !== userId);
                                       await supabase.from('social_groups').update({ pending_requests: newPending }).eq('id', ownedGroup.id);
@@ -596,7 +602,11 @@ const Profile = () => {
                       )}
                       {/* Other groups */}
                       {userGroups.map((group) => (
-                        <div key={group.id} className="p-3 rounded-lg border border-gray-200 bg-gray-50 flex items-center gap-2">
+                        <div
+                          key={group.id}
+                          className="p-3 rounded-lg border border-gray-200 bg-gray-50 flex items-center gap-2 cursor-pointer hover:bg-gray-100"
+                          onClick={() => navigate(`/group/${group.id}`)}
+                        >
                           <div className="font-bold text-gray-800 flex items-center gap-2">{group.name}{group.owner === profile.user_id && <span className="text-xs font-semibold text-green-700">(owner)</span>}</div>
                           {group.bio && <div className="text-xs text-gray-600 ml-2">{group.bio}</div>}
                           <div className="text-xs text-gray-500 ml-auto">{Array.isArray(group.members) ? group.members.length : 0} members</div>
