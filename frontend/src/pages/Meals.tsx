@@ -33,6 +33,15 @@ const Meals: React.FC = () => {
   const weekStart = getLocalDateStr(weekStartDate, timezone);
   const todayStr = getLocalDateStr(localNow, timezone);
 
+  // Expanded debug log for week start and today
+  console.log('[DEBUG] Raw now:', now, '| ISO:', now.toISOString());
+  console.log('[DEBUG] localNow:', localNow, '| ISO:', localNow.toISOString());
+  console.log('[DEBUG] weekStartDate:', weekStartDate, '| ISO:', weekStartDate.toISOString());
+  console.log('[DEBUG] weekStart (formatted):', weekStart);
+  console.log('[DEBUG] todayStr (formatted):', todayStr);
+  console.log('[DEBUG] Week Start (localized):', weekStartDate.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: timezone }), '| Date String:', weekStart);
+  console.log('[DEBUG] Today (localized):', localNow.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: timezone }), '| Date String:', todayStr);
+
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
 
   // AI Recipe Search state (for modularity, can be moved to a custom hook)
