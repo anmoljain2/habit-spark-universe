@@ -29,7 +29,17 @@ export const MealsProvider: React.FC<{ weekStart: string; timezone: string; chil
     if (!user) return;
     setLoading(true);
     // Calculate week dates in user's timezone using the same logic as the calendar
-    const weekDates = Array.from({ length: 7 }, (_, i) => addDaysToDateStr(ws, i, timezone));
+    const [wsYear, wsMonth, wsDay] = ws.split('-').map(Number);
+    const baseDate = new Date(wsYear, wsMonth - 1, wsDay);
+    const weekDates = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(baseDate.getTime());
+      d.setDate(d.getDate() + i);
+      return [
+        d.getFullYear(),
+        String(d.getMonth() + 1).padStart(2, '0'),
+        String(d.getDate()).padStart(2, '0')
+      ].join('-');
+    });
     console.log('[MealsContext] weekDates for fetch:', weekDates); // DEBUG
     const { data, error } = await supabase
       .from('user_meals')
@@ -48,7 +58,7 @@ export const MealsProvider: React.FC<{ weekStart: string; timezone: string; chil
       setWeekMeals({});
     }
     setLoading(false);
-  }, [user, weekStart, timezone]);
+  }, [user, weekStart]);
 
   const refreshMeals = useCallback(async () => {
     await fetchWeekMeals(weekStart);
