@@ -13,7 +13,6 @@ const Navbar = () => {
 
   const navItems = [
     { path: '/', label: 'Dashboard' },
-    { path: '/habits', label: 'Habits' },
     { path: '/journal', label: 'Journal' },
     { path: '/news', label: 'News' },
     { path: '/meals', label: 'Meals' },

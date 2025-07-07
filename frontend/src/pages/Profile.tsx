@@ -8,12 +8,16 @@ import { AchievementsBadgesRow } from '../components/AchievementBadge';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Profile = () => {
   const { profile, habits, newsPreferences, nutritionPreferences, fitnessGoals, friends, loading } = useProfile();
   const navigate = useNavigate();
   const [unfriendDialog, setUnfriendDialog] = useState<{ open: boolean, friendUserId: string | null, friendUsername: string | null }>({ open: false, friendUserId: null, friendUsername: null });
+  const [userGroups, setUserGroups] = useState<any[]>([]);
+  const [ownedGroup, setOwnedGroup] = useState<any | null>(null);
+  const [groupsLoading, setGroupsLoading] = useState(true);
 
   // Accept/decline friend request
   const handleAcceptFriend = async (requestId: string) => {
@@ -36,6 +40,28 @@ const Profile = () => {
       setUnfriendDialog({ open: false, friendUserId: null, friendUsername: null });
     }
   };
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      setGroupsLoading(true);
+      if (!profile?.user_id) return;
+      // Fetch groups where user is a member
+      const { data: memberGroups } = await supabase
+        .from('social_groups')
+        .select('*')
+        .contains('members', [profile.user_id]);
+      setUserGroups(memberGroups?.filter(g => g.owner !== profile.user_id) || []);
+      // Fetch group where user is owner
+      const { data: owned } = await supabase
+        .from('social_groups')
+        .select('*')
+        .eq('owner', profile.user_id)
+        .single();
+      setOwnedGroup(owned || null);
+      setGroupsLoading(false);
+    };
+    fetchGroups();
+  }, [profile?.user_id]);
 
   if (!profile) return null;
   if (loading) return (
@@ -510,6 +536,90 @@ const Profile = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Groups Section */}
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent flex items-center gap-2">
+              <UsersIcon className="w-6 h-6 text-green-600" />
+              My Groups
+            </CardTitle>
+            <CardDescription className="text-gray-600">Your group memberships and ownership</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {groupsLoading ? (
+              <div className="text-center py-8 text-gray-500">Loading groups...</div>
+            ) : (
+              <>
+                {/* All Groups (owned group at top, with (owner) label) */}
+                <div>
+                  <div className="font-semibold text-gray-800 mb-2">Groups You're In</div>
+                  {(!ownedGroup && userGroups.length === 0) ? (
+                    <div className="text-gray-500 text-sm mb-4">You're not a member of any groups yet.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {/* Owned group at top if exists */}
+                      {ownedGroup && (
+                        <div key={ownedGroup.id} className="p-3 rounded-lg border-2 border-green-300 bg-green-50 flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <div className="font-bold text-green-800 flex items-center gap-2">{ownedGroup.name} <span className="text-xs font-semibold text-green-700">(owner)</span></div>
+                            {ownedGroup.bio && <div className="text-xs text-gray-700 ml-2">{ownedGroup.bio}</div>}
+                            <div className="text-xs text-gray-500 ml-auto">{Array.isArray(ownedGroup.members) ? ownedGroup.members.length : 0} members</div>
+                          </div>
+                          {/* Join Requests Section for Private Groups */}
+                          {ownedGroup.visibility === 'private' && Array.isArray(ownedGroup.pending_requests) && ownedGroup.pending_requests.length > 0 && (
+                            <div className="mt-2 bg-white/80 rounded-lg p-3 border border-green-200">
+                              <div className="font-semibold text-green-700 mb-2">Join Requests</div>
+                              <ul className="space-y-2">
+                                {ownedGroup.pending_requests.map((userId: string) => (
+                                  <li key={userId} className="flex items-center gap-2">
+                                    <span className="text-gray-800">{userId}</span>
+                                    <Button size="sm" className="bg-green-500 text-white" onClick={async () => {
+                                      // Approve: add to members, remove from pending_requests
+                                      const newMembers = [...(ownedGroup.members || []), userId];
+                                      const newPending = (ownedGroup.pending_requests || []).filter((id: string) => id !== userId);
+                                      await supabase.from('social_groups').update({ members: newMembers, pending_requests: newPending }).eq('id', ownedGroup.id);
+                                      setOwnedGroup({ ...ownedGroup, members: newMembers, pending_requests: newPending });
+                                    }}>Approve</Button>
+                                    <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={async () => {
+                                      // Decline: just remove from pending_requests
+                                      const newPending = (ownedGroup.pending_requests || []).filter((id: string) => id !== userId);
+                                      await supabase.from('social_groups').update({ pending_requests: newPending }).eq('id', ownedGroup.id);
+                                      setOwnedGroup({ ...ownedGroup, pending_requests: newPending });
+                                    }}>Decline</Button>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {/* Other groups */}
+                      {userGroups.map((group) => (
+                        <div key={group.id} className="p-3 rounded-lg border border-gray-200 bg-gray-50 flex items-center gap-2">
+                          <div className="font-bold text-gray-800 flex items-center gap-2">{group.name}{group.owner === profile.user_id && <span className="text-xs font-semibold text-green-700">(owner)</span>}</div>
+                          {group.bio && <div className="text-xs text-gray-600 ml-2">{group.bio}</div>}
+                          <div className="text-xs text-gray-500 ml-auto">{Array.isArray(group.members) ? group.members.length : 0} members</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Create Group button if not owner */}
+                {!ownedGroup && (
+                  <div className="mt-6 text-center">
+                    <Button
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-300"
+                      onClick={() => navigate('/create-group')}
+                    >
+                      Create Your Group
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

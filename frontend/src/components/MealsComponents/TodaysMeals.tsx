@@ -183,7 +183,7 @@ const TodaysMeals: React.FC<TodaysMealsProps> = ({ userId, todayStr, nutritionPr
             <ProgressBar label="Calories" current={nutrition.calories} max={nutritionPrefs?.calories_target || 0} color="#fb923c" />
             <ProgressBar label="Protein" current={nutrition.protein} max={nutritionPrefs?.protein_target || 0} color="#ec4899" />
             <ProgressBar label="Carbs" current={nutrition.carbs} max={nutritionPrefs?.carbs_target || 0} color="#22c55e" />
-            <ProgressBar label="Fat" current={nutrition.fat} max={nutritionPrefs?.fat_target || 0} color="#f59e42" />
+            <ProgressBar label="Fat" current={nutrition.fat} max={nutritionPrefs?.fat_target || 0} color="#3b82f6" />
           </div>
         </div>
       </div>

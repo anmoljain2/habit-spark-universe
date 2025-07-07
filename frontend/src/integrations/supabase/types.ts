@@ -795,6 +795,77 @@ export type Database = {
         }
         Relationships: []
       }
+      social_groups: {
+        Row: {
+          id: string;
+          name: string;
+          owner: string;
+          members: string[]; // or Json if you want to keep it generic
+          bio: string | null;
+          description: string | null;
+          avatar_url: string | null;
+          visibility: string;
+          invite_code: string | null;
+          max_members: number | null;
+          tags: string[] | null;
+          chats: any[]; // or Json
+          last_message_at: string | null;
+          is_active: boolean;
+          rules: string | null;
+          pending_requests: string[]; // or Json
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          owner: string;
+          members?: string[];
+          bio?: string | null;
+          description?: string | null;
+          avatar_url?: string | null;
+          visibility?: string;
+          invite_code?: string | null;
+          max_members?: number | null;
+          tags?: string[] | null;
+          chats?: any[];
+          last_message_at?: string | null;
+          is_active?: boolean;
+          rules?: string | null;
+          pending_requests?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          owner?: string;
+          members?: string[];
+          bio?: string | null;
+          description?: string | null;
+          avatar_url?: string | null;
+          visibility?: string;
+          invite_code?: string | null;
+          max_members?: number | null;
+          tags?: string[] | null;
+          chats?: any[];
+          last_message_at?: string | null;
+          is_active?: boolean;
+          rules?: string | null;
+          pending_requests?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "social_groups_owner_fkey";
+            columns: ["owner"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     }
     Views: {
       [_ in never]: never

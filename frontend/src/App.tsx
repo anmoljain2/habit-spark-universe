@@ -11,7 +11,6 @@ import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Social from "./pages/Social";
-import Habits from "./pages/Habits";
 import UserProfile from "./pages/UserProfile";
 import News from './pages/News';
 import Meals from './pages/Meals';
@@ -27,6 +26,8 @@ import AddReview from './pages/AddReview';
 import { ProfileProvider } from './components/ProfileContext';
 import Relationship from './pages/Relationship';
 import { JournalProvider } from './pages/Journal';
+import QuestionnaireWrapper from './components/QuestionnaireWrapper';
+import GroupCreationQuestionnaire from './components/GroupCreationQuestionnaire';
 
 const queryClient = new QueryClient();
 
@@ -82,7 +83,6 @@ const App = () => (
               <Route path="/profile" element={<PrivateLayout><ProtectedRoute><Profile /></ProtectedRoute></PrivateLayout>} />
               <Route path="/profile/edit" element={<PrivateLayout><ProtectedRoute><EditProfile /></ProtectedRoute></PrivateLayout>} />
               <Route path="/social" element={<PrivateLayout><ProtectedRoute><Social /></ProtectedRoute></PrivateLayout>} />
-              <Route path="/habits" element={<PrivateLayout><ProtectedRoute><Habits /></ProtectedRoute></PrivateLayout>} />
               <Route path="/user/:username" element={<PrivateLayout><ProtectedRoute><UserProfile /></ProtectedRoute></PrivateLayout>} />
               <Route path="/news" element={<PrivateLayout><ProtectedRoute><News /></ProtectedRoute></PrivateLayout>} />
               <Route path="/meals" element={<PrivateLayout><ProtectedRoute><Meals /></ProtectedRoute></PrivateLayout>} />
@@ -91,6 +91,7 @@ const App = () => (
               <Route path="/finances" element={<PrivateLayout><ProtectedRoute><Finances /></ProtectedRoute></PrivateLayout>} />
               <Route path="/add-review" element={<PrivateLayout><ProtectedRoute><AddReview /></ProtectedRoute></PrivateLayout>} />
               <Route path="/relationship" element={<PrivateLayout><ProtectedRoute><Relationship /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/create-group" element={<PrivateLayout><ProtectedRoute><QuestionnaireWrapper><GroupCreationQuestionnaire /></QuestionnaireWrapper></ProtectedRoute></PrivateLayout>} />
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
