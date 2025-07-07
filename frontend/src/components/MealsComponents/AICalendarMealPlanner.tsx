@@ -44,7 +44,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
 
   // Parse weekStart as a date in the user's timezone once
   const [wsYear, wsMonth, wsDay] = weekStart.split('-').map(Number);
-  const baseWeekStartDate = new Date(wsYear, wsMonth - 1, wsDay);
+  const baseWeekStartDate = new Date(Date.UTC(wsYear, wsMonth - 1, wsDay));
 
   const handleRegenerateDay = (dateStr: string) => {
     setRegenMode('day');
