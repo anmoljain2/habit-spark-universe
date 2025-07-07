@@ -213,10 +213,14 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
             <tr>
               <th className="p-3 border-b text-left text-base font-semibold text-gray-700">Meal Type</th>
               {daysOfWeek.map((day, idx) => {
-                // Always start from baseWeekStartDate and increment in local time
+                // Correct local date math: always add idx days to baseWeekStartDate
                 const colDate = new Date(baseWeekStartDate.getTime());
-                colDate.setDate(baseWeekStartDate.getDate() + idx);
-                const dateStr = getLocalDateStr(colDate, timezone);
+                colDate.setDate(colDate.getDate() + idx);
+                const dateStr = [
+                  colDate.getFullYear(),
+                  String(colDate.getMonth() + 1).padStart(2, '0'),
+                  String(colDate.getDate()).padStart(2, '0')
+                ].join('-');
                 const isToday = dateStr === todayStr;
                 // Format date as M/D
                 const [year, month, dayNum] = dateStr.split('-');
@@ -250,10 +254,14 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
               <tr key={type}>
                 <td className="p-3 border-b text-base font-semibold text-gray-700 capitalize">{type}</td>
                 {daysOfWeek.map((day, idx) => {
-                  // Always start from baseWeekStartDate and increment in local time
+                  // Correct local date math: always add idx days to baseWeekStartDate
                   const colDate = new Date(baseWeekStartDate.getTime());
-                  colDate.setDate(baseWeekStartDate.getDate() + idx);
-                  const dateStr = getLocalDateStr(colDate, timezone);
+                  colDate.setDate(colDate.getDate() + idx);
+                  const dateStr = [
+                    colDate.getFullYear(),
+                    String(colDate.getMonth() + 1).padStart(2, '0'),
+                    String(colDate.getDate()).padStart(2, '0')
+                  ].join('-');
                   const meal = weekMeals[dateStr]?.[type];
                   const isToday = dateStr === todayStr;
                   return (
