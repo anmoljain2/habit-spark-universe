@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
 import { useProfile } from '@/components/ProfileContext';
 import WeeklyWorkoutCalendar from '../components/WeeklyWorkoutCalendar';
+import FitnessGoals from '../components/FitnessGoals';
 
 const Fitness = () => {
   const { user } = useAuth();
@@ -481,6 +482,9 @@ const Fitness = () => {
               </div>
               <WeeklyWorkoutCalendar />
             </div>
+
+            {/* Fitness Goals */}
+            <FitnessGoals />
 
             {/* Achievements */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">

@@ -866,6 +866,68 @@ export type Database = {
           }
         ];
       };
+      fitness_goals: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          description: string;
+          motivational_prompt: string;
+          target_type: string;
+          target_value: number;
+          unit: string;
+          start_date: string;
+          end_date: string | null;
+          progress: number;
+          status: string;
+          created_at: string;
+          completed_at: string | null;
+          icon: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          description?: string;
+          motivational_prompt: string;
+          target_type: string;
+          target_value: number;
+          unit: string;
+          start_date: string;
+          end_date?: string | null;
+          progress?: number;
+          status?: string;
+          created_at?: string;
+          completed_at?: string | null;
+          icon?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          description?: string;
+          motivational_prompt?: string;
+          target_type?: string;
+          target_value?: number;
+          unit?: string;
+          start_date?: string;
+          end_date?: string | null;
+          progress?: number;
+          status?: string;
+          created_at?: string;
+          completed_at?: string | null;
+          icon?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fitness_goals_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     }
     Views: {
       [_ in never]: never
