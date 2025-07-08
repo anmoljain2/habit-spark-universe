@@ -650,6 +650,7 @@ export type Database = {
           timezone: string | null
           user_id: string
           username: string | null
+          group_ids: string[] | null
         }
         Insert: {
           bio?: string | null
@@ -659,6 +660,7 @@ export type Database = {
           timezone?: string | null
           user_id: string
           username?: string | null
+          group_ids?: string[] | null
         }
         Update: {
           bio?: string | null
@@ -668,6 +670,7 @@ export type Database = {
           timezone?: string | null
           user_id?: string
           username?: string | null
+          group_ids?: string[] | null
         }
         Relationships: []
       }

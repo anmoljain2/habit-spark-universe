@@ -18,6 +18,7 @@ const Profile = () => {
   const [userGroups, setUserGroups] = useState<any[]>([]);
   const [ownedGroup, setOwnedGroup] = useState<any | null>(null);
   const [groupsLoading, setGroupsLoading] = useState(true);
+  const [leaveDialog, setLeaveDialog] = useState<{ open: boolean, groupId: string | null, groupName: string | null }>({ open: false, groupId: null, groupName: null });
 
   // Accept/decline friend request
   const handleAcceptFriend = async (requestId: string) => {
@@ -41,16 +42,51 @@ const Profile = () => {
     }
   };
 
+  // Leave group logic for Profile page
+  const leaveGroup = async (groupId: string) => {
+    if (!profile?.user_id) return;
+    // Remove user from group members
+    const { data: group } = await supabase
+      .from('social_groups')
+      .select('members')
+      .eq('id', groupId)
+      .single();
+    const newMembers = (group?.members || []).filter((id: string) => id !== profile.user_id);
+    await supabase.from('social_groups').update({ members: newMembers }).eq('id', groupId);
+    // Remove groupId from user's group_ids
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('group_ids')
+      .eq('user_id', profile.user_id)
+      .single();
+    const groupIds = userProfile?.group_ids || [];
+    if (groupIds.includes(groupId)) {
+      await supabase.from('user_profiles').update({ group_ids: groupIds.filter((id: string) => id !== groupId) }).eq('user_id', profile.user_id);
+    }
+    // Refresh groups
+    setUserGroups(prev => prev.filter(g => g.id !== groupId));
+  };
+
   useEffect(() => {
     const fetchGroups = async () => {
       setGroupsLoading(true);
       if (!profile?.user_id) return;
-      // Fetch groups where user is a member (JSONB array)
-      const { data: memberGroups } = await supabase
-        .from('social_groups')
-        .select('*')
-        .contains('members', [String(profile.user_id)]);
-      setUserGroups(memberGroups?.filter(g => g.owner !== profile.user_id) || []);
+      // Fetch group_ids from user_profiles
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('group_ids')
+        .eq('user_id', profile.user_id)
+        .single();
+      const groupIds = userProfile?.group_ids || [];
+      let userGroups = [];
+      if (groupIds.length > 0) {
+        const { data: groups } = await supabase
+          .from('social_groups')
+          .select('*')
+          .in('id', groupIds);
+        userGroups = groups || [];
+      }
+      setUserGroups(userGroups.filter(g => g.owner !== profile.user_id));
       // Fetch group where user is owner
       const { data: owned } = await supabase
         .from('social_groups')
@@ -604,12 +640,21 @@ const Profile = () => {
                       {userGroups.map((group) => (
                         <div
                           key={group.id}
-                          className="p-3 rounded-lg border border-gray-200 bg-gray-50 flex items-center gap-2 cursor-pointer hover:bg-gray-100"
-                          onClick={() => navigate(`/group/${group.id}`)}
+                          className="p-3 rounded-lg border border-gray-200 bg-gray-50 flex items-center gap-2 hover:bg-gray-100"
                         >
-                          <div className="font-bold text-gray-800 flex items-center gap-2">{group.name}{group.owner === profile.user_id && <span className="text-xs font-semibold text-green-700">(owner)</span>}</div>
-                          {group.bio && <div className="text-xs text-gray-600 ml-2">{group.bio}</div>}
-                          <div className="text-xs text-gray-500 ml-auto">{Array.isArray(group.members) ? group.members.length : 0} members</div>
+                          <div className="flex-1 flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/group/${group.id}`)}>
+                            <div className="font-bold text-gray-800 flex items-center gap-2">{group.name}</div>
+                            {group.bio && <div className="text-xs text-gray-600 ml-2">{group.bio}</div>}
+                            <div className="text-xs text-gray-500 ml-auto">{Array.isArray(group.members) ? group.members.length : 0} members</div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-red-100 text-red-700 border border-red-200 hover:bg-red-200 hover:text-red-900 font-semibold ml-2"
+                            onClick={() => setLeaveDialog({ open: true, groupId: group.id, groupName: group.name })}
+                          >
+                            Leave Group
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -628,6 +673,25 @@ const Profile = () => {
                 )}
               </>
             )}
+            {/* Confirmation modal for leaving group */}
+            <AlertDialog open={leaveDialog.open} onOpenChange={open => setLeaveDialog(open ? leaveDialog : { open: false, groupId: null, groupName: null })}>
+              <AlertDialogTrigger asChild>
+                <span></span> {/* Hidden trigger, modal is controlled manually */}
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Leave {leaveDialog.groupName}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to leave <span className="font-semibold">{leaveDialog.groupName}</span> group?
+                    You will lose access to group chat and content.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setLeaveDialog({ open: false, groupId: null, groupName: null })}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => { if (leaveDialog.groupId) leaveGroup(leaveDialog.groupId); setLeaveDialog({ open: false, groupId: null, groupName: null }); }}>Leave Group</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </div>

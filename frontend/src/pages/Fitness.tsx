@@ -361,11 +361,6 @@ const Fitness = () => {
         </div>
         {error && <div className="text-center text-red-600 font-semibold mb-4">{error}</div>}
 
-        {/* Fitness Goals - full width, above all */}
-        <div className="mb-8">
-          <FitnessGoals />
-        </div>
-
         {/* Main Content: Today's Workout + Motivation side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           <div className="lg:col-span-2 space-y-8">
@@ -486,50 +481,51 @@ const Fitness = () => {
         </div>
 
         {/* Weekly Schedule Calendar - full width */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <Calendar className="w-6 h-6 text-pink-600" />
-              This Week's Workout Calendar
-            </h2>
-          </div>
-          <WeeklyWorkoutCalendar />
-        </div>
+        <WeeklyWorkoutCalendar />
 
         {/* Everything else below calendar */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             {/* Sidebar: LogWorkout and Weekly Progress only */}
-            <div className="space-y-6">
-              <LogWorkout userId={user.id} onLogged={fetchWorkouts} />
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
-                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-pink-600" />
-                  Weekly Progress
-                </h3>
-                <div className="space-y-4">
-                  {weeklyStats.map((stat, index) => {
-                    const percentage = (stat.current / stat.target) * 100;
-                    return (
-                      <div key={index}>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium text-gray-700">{stat.label}</span>
-                          <span className="text-sm text-gray-600">{stat.current}/{stat.target}{stat.label === 'Calories Burned' ? ' kcal' : stat.label === 'Active Minutes' ? ' min' : ''}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <LogWorkout userId={user.id} onLogged={fetchWorkouts} />
+              </div>
+              <div>
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-pink-600" />
+                    Weekly Progress
+                  </h3>
+                  <div className="space-y-4">
+                    {weeklyStats.map((stat, index) => {
+                      const percentage = (stat.current / stat.target) * 100;
+                      return (
+                        <div key={index}>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-medium text-gray-700">{stat.label}</span>
+                            <span className="text-sm text-gray-600">{stat.current}/{stat.target}{stat.label === 'Calories Burned' ? ' kcal' : stat.label === 'Active Minutes' ? ' min' : ''}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div 
+                              className={`bg-gradient-to-r ${stat.color} h-3 rounded-full transition-all duration-500`}
+                              style={{ width: `${Math.min(100, percentage)}%` }}
+                            ></div>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">{Math.round(percentage)}% complete</div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                          <div 
-                            className={`bg-gradient-to-r ${stat.color} h-3 rounded-full transition-all duration-500`}
-                            style={{ width: `${Math.min(100, percentage)}%` }}
-                          ></div>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">{Math.round(percentage)}% complete</div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Move Fitness Goals to the bottom */}
+        <div className="mt-12">
+          <FitnessGoals />
         </div>
       </div>
     </div>

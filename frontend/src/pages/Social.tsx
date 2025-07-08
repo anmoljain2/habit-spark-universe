@@ -83,6 +83,19 @@ export const SocialProvider: React.FC<{ userId: string; children: React.ReactNod
         .from('social_groups')
         .update({ members: newMembers })
         .eq('id', group.id);
+      // Update user_profiles.group_ids
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('group_ids')
+        .eq('user_id', userId)
+        .single();
+      const groupIds = userProfile?.group_ids || [];
+      if (!groupIds.includes(group.id)) {
+        await supabase
+          .from('user_profiles')
+          .update({ group_ids: [...groupIds, group.id] })
+          .eq('user_id', userId);
+      }
     } else {
       // Add user to pending_requests
       const newPending = Array.isArray(group.pending_requests) ? [...group.pending_requests, userId] : [userId];

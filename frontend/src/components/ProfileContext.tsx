@@ -98,11 +98,19 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Fetch main stats (level, XP, streak, etc.)
     const { data: statsData } = await supabase
       .from('profiles')
-      .select('level, total_xp, streak, habits_completed_percent')
+      .select('total_xp, streak, habits_completed_percent')
       .eq('id', user.id)
       .single();
-    setLevel(statsData?.level || 1);
-    setTotalXP(statsData?.total_xp || 0);
+    const xp = statsData?.total_xp || 0;
+    setTotalXP(xp);
+    // Calculate level from XP
+    const getXPForLevel = (level: number) => Math.pow(level, 2) * 100;
+    let computedLevel = 1;
+    while (getXPForLevel(computedLevel) <= xp) {
+      computedLevel++;
+    }
+    computedLevel = Math.max(1, computedLevel - 1);
+    setLevel(computedLevel);
     setMainStats(statsData);
     // Fetch achievements
     const { data: achievementsData } = await supabase

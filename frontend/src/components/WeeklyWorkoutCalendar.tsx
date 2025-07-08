@@ -93,30 +93,28 @@ const WeeklyWorkoutCalendar: React.FC = () => {
       <h2 className="text-3xl font-bold text-pink-700 mb-6 flex items-center gap-2">
         <span>📅</span> This Week&apos;s Workout Calendar
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
         {weekData.map((day, idx) => {
           const Icon = workoutIcons[day.type] || Dumbbell;
           const color = workoutColors[day.type] || 'from-gray-200 to-gray-400';
           return (
             <div
               key={day.day}
-              className={`rounded-2xl shadow-lg p-4 flex flex-col items-center bg-gradient-to-br ${color} text-white min-h-[260px]`}
+              className={`flex flex-col items-center rounded-2xl shadow-lg p-6 min-h-[480px] bg-gradient-to-b ${color} text-white relative`}
             >
-              <div className="flex flex-col items-center mb-2">
-                <div className="rounded-full bg-white/30 p-3 mb-2">
-                  <Icon className="w-8 h-8" />
-                </div>
-                <div className="font-bold text-lg">{day.day}</div>
-                <span className="inline-block mt-1 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white border border-white/30">
-                  {day.type}
-                </span>
+              <div className="flex flex-col items-center mb-6">
+                <div className="text-3xl mb-2"><Icon /></div>
+                <div className="font-bold text-lg mb-1">{day.day}</div>
+                <div className="text-sm font-semibold mb-2">{day.type}</div>
               </div>
-              <div className="text-sm font-semibold mb-2 text-white/90 text-center">{day.summary}</div>
-              <ul className="text-xs text-white/80 list-disc pl-4 text-left">
-                {day.details.map((d, i) => (
-                  <li key={i}>{d}</li>
-                ))}
-              </ul>
+              <div className="flex-1 w-full flex flex-col gap-4">
+                <div className="text-base font-medium mb-2">{day.summary}</div>
+                <ul className="text-sm space-y-2">
+                  {day.details.map((item: string, i: number) => (
+                    <li key={i} className="leading-relaxed">{item}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
           );
         })}

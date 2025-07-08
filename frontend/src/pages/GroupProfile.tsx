@@ -21,6 +21,7 @@ export default function GroupProfile() {
   const [showJoinCelebration, setShowJoinCelebration] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [sendingChat, setSendingChat] = useState(false);
+  const [leaveDialog, setLeaveDialog] = useState(false);
 
   useEffect(() => {
     async function fetchGroup() {
@@ -54,6 +55,16 @@ export default function GroupProfile() {
     if (group.visibility === 'public') {
       const newMembers = Array.isArray(group.members) ? [...group.members, profile.user_id] : [profile.user_id];
       await supabase.from('social_groups').update({ members: newMembers }).eq('id', group.id);
+      // Add groupId to user's group_ids
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('group_ids')
+        .eq('user_id', profile.user_id)
+        .single();
+      const groupIds = userProfile?.group_ids || [];
+      if (!groupIds.includes(group.id)) {
+        await supabase.from('user_profiles').update({ group_ids: [...groupIds, group.id] }).eq('user_id', profile.user_id);
+      }
       setGroup({ ...group, members: newMembers });
       setIsMember(true);
       setShowJoinCelebration(true);
@@ -71,6 +82,16 @@ export default function GroupProfile() {
     if (!group || !profile?.user_id || group.owner !== profile.user_id) return;
     const newMembers = (group.members || []).filter((id: string) => id !== userId);
     await supabase.from('social_groups').update({ members: newMembers }).eq('id', group.id);
+    // Remove groupId from user's group_ids
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('group_ids')
+      .eq('user_id', userId)
+      .single();
+    const groupIds = userProfile?.group_ids || [];
+    if (groupIds.includes(group.id)) {
+      await supabase.from('user_profiles').update({ group_ids: groupIds.filter((id: string) => id !== group.id) }).eq('user_id', userId);
+    }
     setGroup({ ...group, members: newMembers });
   }
 
@@ -89,6 +110,27 @@ export default function GroupProfile() {
     setGroup({ ...group, chats: updatedChats, last_message_at: newChat.timestamp });
     setChatInput('');
     setSendingChat(false);
+  }
+
+  // Leave group logic (for members)
+  async function leaveGroup() {
+    if (!group || !profile?.user_id) return;
+    // Remove user from group members
+    const newMembers = (group.members || []).filter((id: string) => id !== profile.user_id);
+    await supabase.from('social_groups').update({ members: newMembers }).eq('id', group.id);
+    // Remove groupId from user's group_ids
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('group_ids')
+      .eq('user_id', profile.user_id)
+      .single();
+    const groupIds = userProfile?.group_ids || [];
+    if (groupIds.includes(group.id)) {
+      await supabase.from('user_profiles').update({ group_ids: groupIds.filter((id: string) => id !== group.id) }).eq('user_id', profile.user_id);
+    }
+    setGroup({ ...group, members: newMembers });
+    setIsMember(false);
+    navigate('/profile');
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -135,7 +177,37 @@ export default function GroupProfile() {
           {/* Join Group Button or In Group label */}
           <div className="mt-2">
             {isMember ? (
-              <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold">In Group</span>
+              profile?.user_id === group.owner ? (
+                <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold">In Group (Owner)</span>
+              ) : (
+                <>
+                  <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold mr-3">In Group</span>
+                  <Button
+                    className="bg-red-100 text-red-700 border border-red-200 hover:bg-red-200 hover:text-red-900 font-semibold"
+                    variant="outline"
+                    onClick={() => setLeaveDialog(true)}
+                  >
+                    Leave Group
+                  </Button>
+                  <AlertDialog open={leaveDialog} onOpenChange={setLeaveDialog}>
+                    <AlertDialogTrigger asChild>
+                      <span></span> {/* Hidden trigger, modal is controlled manually */}
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Leave {group.name}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to leave <span className="font-semibold">{group.name}</span> group? You will lose access to group chat and content.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setLeaveDialog(false)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={leaveGroup}>Leave Group</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )
             ) : (
               <Button
                 className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2 rounded-lg font-semibold mt-2"
@@ -176,10 +248,16 @@ export default function GroupProfile() {
                             ? `Owner (You)`
                             : member?.display_name || member?.username || memberId}
                         </span>
+                        {/* Show REMOVE button for non-owner members if current user is owner */}
                         {profile?.user_id === group.owner && memberId !== group.owner && (
                           <AlertDialog open={removingMember === memberId} onOpenChange={open => setRemovingMember(open ? memberId : null)}>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={() => setRemovingMember(memberId)}>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="ml-auto bg-red-100 text-red-700 border-red-200 hover:bg-red-200 hover:text-red-900"
+                                onClick={() => setRemovingMember(memberId)}
+                              >
                                 Remove
                               </Button>
                             </AlertDialogTrigger>
