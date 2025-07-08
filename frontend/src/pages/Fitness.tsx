@@ -217,13 +217,6 @@ const Fitness = () => {
     { day: "Sunday", workout: "Full Body", duration: "60 min", intensity: "High" }
   ];
 
-  const achievements = [
-    { title: "7-Day Streak", icon: "🔥", unlocked: true },
-    { title: "First 5K", icon: "🏃‍♂️", unlocked: true },
-    { title: "Strength Master", icon: "💪", unlocked: false },
-    { title: "Consistency King", icon: "👑", unlocked: false }
-  ];
-
   // Mark today's workout as complete (and update UI)
   const markWorkoutComplete = async () => {
     setTimerActive(false);
@@ -367,33 +360,17 @@ const Fitness = () => {
           </p>
         </div>
         {error && <div className="text-center text-red-600 font-semibold mb-4">{error}</div>}
-        <div className="flex justify-end mb-4">
-          {weeklyWorkouts.length === 0 ? (
-            <button
-              onClick={() => generateWorkouts()}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-              disabled={workoutsLoading}
-            >
-              {workoutsLoading ? 'Generating...' : 'Generate Plan'}
-            </button>
-          ) : (
-            <button
-              onClick={handleRegenerate}
-              className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-              disabled={regenerating || workoutsLoading}
-            >
-              {regenerating ? 'Regenerating...' : 'Regenerate Plan'}
-            </button>
-          )}
+
+        {/* Fitness Goals - full width, above all */}
+        <div className="mb-8">
+          <FitnessGoals />
         </div>
-        <div className="mb-4 text-center text-pink-700 font-semibold">
-          {weeklyWorkouts.length > 0 && `You have ${weeklyWorkouts.length} workouts for this week.`}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
+
+        {/* Main Content: Today's Workout + Motivation side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           <div className="lg:col-span-2 space-y-8">
             {/* Today's Workout */}
-            <div className="bg-gradient-to-br from-pink-600 to-rose-600 rounded-2xl p-8 text-white shadow-2xl relative">
+            <div className="bg-gradient-to-br from-pink-600 to-rose-600 rounded-2xl p-8 text-white shadow-2xl relative mb-8">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-3xl font-bold mb-2">{todayWorkout?.details?.workout_type || 'Rest Day'}</h2>
@@ -471,93 +448,9 @@ const Fitness = () => {
                 )) : <div className="text-center text-pink-200">Rest day or no workout scheduled.</div>}
               </div>
             </div>
-
-            {/* Weekly Schedule */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                  <Calendar className="w-6 h-6 text-pink-600" />
-                  This Week's Schedule
-                </h2>
-              </div>
-              <WeeklyWorkoutCalendar />
-            </div>
-
-            {/* Fitness Goals */}
-            <FitnessGoals />
-
-            {/* Achievements */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <Award className="w-6 h-6 text-pink-600" />
-                Achievements
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {achievements.map((achievement, index) => (
-                  <div key={index} className={`text-center p-4 rounded-xl transition-all ${
-                    achievement.unlocked 
-                      ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200' 
-                      : 'bg-gray-50 border-2 border-gray-200 opacity-60'
-                  }`}>
-                    <div className="text-3xl mb-2">{achievement.icon}</div>
-                    <h3 className="font-semibold text-gray-800 text-sm">{achievement.title}</h3>
-                    {achievement.unlocked && (
-                      <div className="text-xs text-yellow-600 font-medium mt-1">Unlocked!</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
-
-          {/* Sidebar */}
+          {/* Daily Motivation next to Today's Workout */}
           <div className="space-y-6">
-            <LogWorkout userId={user.id} onLogged={fetchWorkouts} />
-            {/* Weekly Progress */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-pink-600" />
-                Weekly Progress
-              </h3>
-              <div className="space-y-4">
-                {weeklyStats.map((stat, index) => {
-                  const percentage = (stat.current / stat.target) * 100;
-                  return (
-                    <div key={index}>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium text-gray-700">{stat.label}</span>
-                        <span className="text-sm text-gray-600">{stat.current}/{stat.target}{stat.label === 'Calories Burned' ? ' kcal' : stat.label === 'Active Minutes' ? ' min' : ''}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div 
-                          className={`bg-gradient-to-r ${stat.color} h-3 rounded-full transition-all duration-500`}
-                          style={{ width: `${Math.min(percentage, 100)}%` }}
-                        ></div>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">{Math.round(percentage)}% complete</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-6 text-white shadow-lg">
-              <h3 className="text-lg font-bold mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm p-3 rounded-xl font-medium transition-all text-left">
-                  📊 Log Workout
-                </button>
-                <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm p-3 rounded-xl font-medium transition-all text-left">
-                  🎯 Set New Goal
-                </button>
-                <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm p-3 rounded-xl font-medium transition-all text-left">
-                  📱 Start Timer
-                </button>
-              </div>
-            </div>
-
-            {/* Motivation */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
               <h3 className="text-xl font-bold text-gray-800 mb-4">Daily Motivation</h3>
               <div className="text-center">
@@ -565,6 +458,74 @@ const Fitness = () => {
                 <p className="text-gray-700 italic mb-4">"The only bad workout is the one that didn't happen."</p>
                 <div className="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-4 py-2 rounded-xl font-medium text-sm">
                   You're 80% to your weekly goal!
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Regenerate Plan button above calendar */}
+        <div className="flex justify-end mb-4">
+          {weeklyWorkouts.length === 0 ? (
+            <button
+              onClick={() => generateWorkouts()}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+              disabled={workoutsLoading}
+            >
+              {workoutsLoading ? 'Generating...' : 'Generate Plan'}
+            </button>
+          ) : (
+            <button
+              onClick={handleRegenerate}
+              className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+              disabled={regenerating || workoutsLoading}
+            >
+              {regenerating ? 'Regenerating...' : 'Regenerate Plan'}
+            </button>
+          )}
+        </div>
+
+        {/* Weekly Schedule Calendar - full width */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <Calendar className="w-6 h-6 text-pink-600" />
+              This Week's Workout Calendar
+            </h2>
+          </div>
+          <WeeklyWorkoutCalendar />
+        </div>
+
+        {/* Everything else below calendar */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            {/* Sidebar: LogWorkout and Weekly Progress only */}
+            <div className="space-y-6">
+              <LogWorkout userId={user.id} onLogged={fetchWorkouts} />
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
+                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-pink-600" />
+                  Weekly Progress
+                </h3>
+                <div className="space-y-4">
+                  {weeklyStats.map((stat, index) => {
+                    const percentage = (stat.current / stat.target) * 100;
+                    return (
+                      <div key={index}>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium text-gray-700">{stat.label}</span>
+                          <span className="text-sm text-gray-600">{stat.current}/{stat.target}{stat.label === 'Calories Burned' ? ' kcal' : stat.label === 'Active Minutes' ? ' min' : ''}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div 
+                            className={`bg-gradient-to-r ${stat.color} h-3 rounded-full transition-all duration-500`}
+                            style={{ width: `${Math.min(100, percentage)}%` }}
+                          ></div>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">{Math.round(percentage)}% complete</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

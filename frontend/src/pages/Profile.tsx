@@ -45,11 +45,11 @@ const Profile = () => {
     const fetchGroups = async () => {
       setGroupsLoading(true);
       if (!profile?.user_id) return;
-      // Fetch groups where user is a member
+      // Fetch groups where user is a member (JSONB array)
       const { data: memberGroups } = await supabase
         .from('social_groups')
         .select('*')
-        .contains('members', [profile.user_id]);
+        .contains('members', [String(profile.user_id)]);
       setUserGroups(memberGroups?.filter(g => g.owner !== profile.user_id) || []);
       // Fetch group where user is owner
       const { data: owned } = await supabase
