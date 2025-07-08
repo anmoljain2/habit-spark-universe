@@ -7,6 +7,7 @@ import { useProfile } from '../components/ProfileContext';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import GroupEditQuestionnaire from '../components/GroupEditQuestionnaire';
 
 export default function GroupProfile() {
   const { groupId } = useParams();
@@ -22,6 +23,7 @@ export default function GroupProfile() {
   const [chatInput, setChatInput] = useState('');
   const [sendingChat, setSendingChat] = useState(false);
   const [leaveDialog, setLeaveDialog] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     async function fetchGroup() {
@@ -241,7 +243,26 @@ export default function GroupProfile() {
                 </AlertDialog>
               </>
             ) : profile?.user_id === group.owner ? (
-              <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold">In Group (Owner)</span>
+              <>
+                <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold mr-3">In Group (Owner)</span>
+                <Button
+                  className="bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 hover:text-blue-900 font-semibold ml-2"
+                  variant="outline"
+                  onClick={() => setShowEditModal(true)}
+                >
+                  Edit Group
+                </Button>
+                {showEditModal && (
+                  <GroupEditQuestionnaire
+                    group={group}
+                    onClose={() => setShowEditModal(false)}
+                    onSaved={async (updatedGroup) => {
+                      setGroup(updatedGroup);
+                      setShowEditModal(false);
+                    }}
+                  />
+                )}
+              </>
             ) : (
               <Button
                 className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2 rounded-lg font-semibold mt-2"

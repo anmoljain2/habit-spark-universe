@@ -18,13 +18,18 @@ export default function GroupCreationQuestionnaire() {
     description: '',
     visibility: 'public',
     avatar_url: '',
+    rules: [] as string[],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
-    setForm(f => ({ ...f, [name]: value }));
+    if (name === 'rules') {
+      setForm(f => ({ ...f, rules: value.split('\n').map((r: string) => r.trim()).filter(Boolean) }));
+    } else {
+      setForm(f => ({ ...f, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: any) => {
@@ -54,6 +59,7 @@ export default function GroupCreationQuestionnaire() {
       pending_requests: [],
       chats: [],
       is_active: true,
+      rules: form.rules,
     }).select('id').single();
     if (insertError) {
       setError(insertError.message);
@@ -111,6 +117,10 @@ export default function GroupCreationQuestionnaire() {
         <select name="visibility" value={form.visibility} onChange={handleChange} className="w-full border rounded px-3 py-2">
           {visibilities.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
         </select>
+      </div>
+      <div>
+        <label className="block font-semibold mb-1">Rules (one per line)</label>
+        <textarea name="rules" value={form.rules.join('\n')} onChange={handleChange} className="w-full border rounded px-3 py-2" rows={4} placeholder="Enter group rules, one per line..." />
       </div>
       {/* Avatar upload can be added here if needed */}
       <Button type="submit" className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold" disabled={loading}>

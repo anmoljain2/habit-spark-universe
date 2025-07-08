@@ -28,6 +28,9 @@ const Fitness = () => {
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const timerInterval = useRef<NodeJS.Timeout | null>(null);
   const switchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [loggedWorkouts, setLoggedWorkouts] = useState<any[]>([]);
+  // Add state for hovered workout
+  const [hoveredWorkoutId, setHoveredWorkoutId] = useState<string | null>(null);
 
   const getWeekRange = () => {
     const now = new Date();
@@ -251,6 +254,20 @@ const Fitness = () => {
     // eslint-disable-next-line
   }, [timerActive, timerPaused, timerSeconds]);
 
+  // Fetch user_logged_workouts for the current user
+  useEffect(() => {
+    const fetchLoggedWorkouts = async () => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from('user_logged_workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      setLoggedWorkouts(data || []);
+    };
+    if (user) fetchLoggedWorkouts();
+  }, [user]);
+
   // LogWorkout component
   const LogWorkout = ({ userId, onLogged }: { userId: string, onLogged: () => void }) => {
     const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -328,6 +345,25 @@ const Fitness = () => {
         </form>
       </div>
     );
+  };
+
+  // Handler for dropping a logged workout onto a calendar day
+  const handleLoggedWorkoutDrop = async (date: string, workout: any) => {
+    if (!user) return;
+    try {
+      // Delete existing workout for that date
+      await supabase.from('user_workouts').delete().eq('user_id', user.id).eq('date', date);
+      // Insert the logged workout for that date
+      await supabase.from('user_workouts').insert({
+        user_id: user.id,
+        date,
+        details: workout.details,
+      });
+      toast.success('Replaced workout for ' + date + ' with your logged workout!');
+      fetchWorkouts();
+    } catch (err) {
+      toast.error('Failed to replace workout.');
+    }
   };
 
   if (profileLoading) {
@@ -466,13 +502,59 @@ const Fitness = () => {
 
         {/* Weekly Schedule Calendar - full width */}
         <div className="mt-2">
-          <WeeklyWorkoutCalendar />
+          <WeeklyWorkoutCalendar onLoggedWorkoutDrop={handleLoggedWorkoutDrop} />
         </div>
 
         {/* Everything else below calendar */}
         <div className="w-full flex flex-col md:flex-row gap-8 mb-10">
           <div className="flex-1 min-w-0">
             <LogWorkout userId={user.id} onLogged={fetchWorkouts} />
+            {/* Drag-and-drop instructional message */}
+            <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg px-4 py-2 mb-3 text-sm font-medium flex items-center gap-2">
+              <span role="img" aria-label="drag">🖱️</span>
+              Drag and drop your logged workouts onto any day in the calendar to replace the scheduled workout with your own.
+            </div>
+            {/* User Logged Workouts List */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow border border-white/50 mt-2">
+              <h4 className="text-lg font-bold text-gray-800 mb-2">Your Logged Workouts</h4>
+              {loggedWorkouts.length === 0 ? (
+                <div className="text-gray-500 text-sm">No logged workouts yet.</div>
+              ) : (
+                <ul className="divide-y divide-gray-200">
+                  {loggedWorkouts.map((w) => (
+                    <li
+                      key={w.id}
+                      className="py-2 cursor-pointer hover:bg-gray-100 rounded transition-all relative"
+                      onMouseEnter={() => setHoveredWorkoutId(w.id)}
+                      onMouseLeave={() => setHoveredWorkoutId(null)}
+                      draggable
+                      onDragStart={e => {
+                        e.dataTransfer.setData('application/json', JSON.stringify(w));
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                    >
+                      <span className="font-semibold text-gray-800">{w.name}</span>
+                      {hoveredWorkoutId === w.id && (
+                        <div className="absolute left-48 top-0 z-50 bg-white border border-gray-300 shadow-lg rounded-lg p-4 min-w-[260px] text-sm text-gray-800 whitespace-pre-line">
+                          <div className="font-bold text-base mb-1">{w.name}</div>
+                          {w.description && <div className="mb-2 text-gray-600">{w.description}</div>}
+                          {w.details?.exercises && Array.isArray(w.details.exercises) && w.details.exercises.length > 0 && (
+                            <div>
+                              <div className="font-semibold mb-1">Exercises:</div>
+                              <ul className="list-disc pl-5">
+                                {w.details.exercises.map((ex: any, i: number) => (
+                                  <li key={i}>{ex.name} ({ex.sets} sets × {ex.reps} reps{ex.rest ? `, rest ${ex.rest}` : ''})</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
           <div className="flex-1 min-w-0">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 w-full">

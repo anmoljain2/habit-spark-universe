@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Dumbbell, Heart, Bed, Sparkles } from 'lucide-react';
+import { Dumbbell, Heart, Bed, Sparkles, Calendar } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { formatISO, startOfWeek } from 'date-fns';
@@ -94,7 +94,11 @@ const weekData = [
 
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const WeeklyWorkoutCalendar: React.FC = () => {
+interface WeeklyWorkoutCalendarProps {
+  onLoggedWorkoutDrop?: (date: string, workout: any) => void;
+}
+
+const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedWorkoutDrop }) => {
   const { user } = useAuth();
   const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
@@ -108,6 +112,8 @@ const WeeklyWorkoutCalendar: React.FC = () => {
   const [selectedContexts, setSelectedContexts] = useState<string[]>([]);
   const [savingContext, setSavingContext] = useState(false);
   const [contextSaved, setContextSaved] = useState(false);
+  // Add drag-over state
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
   // Calculate week start (Sunday) and today in user's local time
   const now = new Date();
@@ -234,8 +240,8 @@ const WeeklyWorkoutCalendar: React.FC = () => {
   return (
     <div className="w-full px-2 md:px-8 py-10 flex justify-center">
       <div className="w-full max-w-7xl mx-auto mt-6 mb-10">
-        <h2 className="text-3xl font-extrabold text-pink-700 mb-6 flex items-center gap-3 tracking-tight">
-          <span className="text-4xl">📅</span> This Week's Workout Calendar
+        <h2 className="text-3xl font-extrabold text-pink-700 mb-6 flex items-center gap-2">
+          <Calendar className="w-7 h-7 text-pink-600" /> Weekly Workout Calendar
         </h2>
         <div className="flex justify-end mb-2">
           <button
@@ -327,50 +333,43 @@ const WeeklyWorkoutCalendar: React.FC = () => {
         )}
         {error && <div className="text-center text-red-600 font-semibold mb-4">{error}</div>}
         <div className="w-full">
-          <div className="grid grid-cols-7 gap-2 w-full">
+          <div className="grid grid-cols-7 gap-4">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-8 w-full">
                 <span className="text-pink-700 font-medium">Loading workout plan...</span>
               </div>
             ) : (
-              weekDates.map((dateStr, idx) => {
-                const dayName = daysOfWeek[idx];
-                const workout = weekWorkouts[dateStr];
-                const type = workout?.details?.workout_type || '';
-                const Icon = workoutIcons[type] || Dumbbell;
-                const colorMap: Record<string, string> = {
-                  'Full Body': 'from-pink-500 via-rose-400 to-rose-600',
-                  'Cardio - Running': 'from-blue-500 via-sky-400 to-indigo-600',
-                  'Rest': 'from-gray-200 via-gray-100 to-gray-300',
-                  'Yoga': 'from-green-400 via-emerald-300 to-teal-500',
-                  'HIIT': 'from-orange-400 via-pink-500 to-red-500',
-                };
-                const color = colorMap[type] || 'from-purple-400 via-pink-400 to-pink-600';
-                const isToday = dateStr === todayStr;
+              weekDates.map((date, idx) => {
+                const workout = weekWorkouts[date];
+                const isToday = date === todayStr;
                 return (
                   <div
-                    key={dateStr}
-                    className={`flex flex-col items-center rounded-xl shadow border border-white/60 px-2 py-3 bg-gradient-to-b ${color} text-white relative transition-all duration-300 ${isToday ? 'ring-4 ring-pink-400 scale-105 z-10' : 'opacity-95 hover:scale-105 hover:z-10'} font-semibold min-h-0`}
-                    style={{ minHeight: '180px', maxHeight: '320px', height: '100%' }}
+                    key={date}
+                    className={`relative rounded-xl p-3 min-h-[120px] flex flex-col items-start justify-between border shadow-sm transition-all duration-200 bg-white/80 ${isToday ? 'border-pink-500 ring-2 ring-pink-300' : 'border-gray-200'} ${dragOverDate === date ? 'bg-blue-100 border-blue-400' : ''}`}
+                    onDragOver={e => { e.preventDefault(); setDragOverDate(date); }}
+                    onDragLeave={() => setDragOverDate(null)}
+                    onDrop={e => {
+                      setDragOverDate(null);
+                      const workoutStr = e.dataTransfer.getData('application/json');
+                      if (workoutStr && onLoggedWorkoutDrop) {
+                        try {
+                          const loggedWorkout = JSON.parse(workoutStr);
+                          onLoggedWorkoutDrop(date, loggedWorkout);
+                        } catch {}
+                      }
+                    }}
                   >
-                    <div className="flex flex-col items-center mb-2">
-                      <div className="text-xl mb-1 drop-shadow-lg"><Icon /></div>
-                      <div className="font-extrabold text-base mb-0.5 tracking-tight drop-shadow-lg">{dayName}</div>
-                      <div className="text-[11px] font-bold mb-1 uppercase tracking-wide drop-shadow">{type}</div>
-                    </div>
-                    <div className="flex-1 w-full flex flex-col gap-1">
-                      <div className="text-xs font-medium mb-1 drop-shadow-sm whitespace-pre-line line-clamp-3">{workout?.details?.summary || ''}</div>
-                      <ul className="text-[11px] space-y-0.5">
-                        {(workout?.details?.exercises || []).slice(0, 3).map((item: any, i: number) => (
-                          <li key={i} className="leading-tight whitespace-pre-line">
-                            {item.name ? `${item.name} (${item.sets}×${item.reps})${item.rest ? `, Rest: ${item.rest}` : ''}${item.notes ? `, ${item.notes}` : ''}` : item}
-                          </li>
+                    <div className="text-xs font-semibold text-gray-500 mb-1">{daysOfWeek[idx]}</div>
+                    <div className="font-bold text-lg mb-1 truncate w-full">{workout?.details?.workout_type || 'Rest Day'}</div>
+                    <div className="text-gray-600 text-xs line-clamp-2 mb-1">{workout?.details?.summary || ''}</div>
+                    {workout?.details?.exercises && Array.isArray(workout.details.exercises) && workout.details.exercises.length > 0 && (
+                      <ul className="text-xs text-gray-500 list-disc pl-4">
+                        {workout.details.exercises.slice(0, 2).map((ex: any, i: number) => (
+                          <li key={i}>{ex.name} ({ex.sets}×{ex.reps})</li>
                         ))}
-                        {(workout?.details?.exercises || []).length > 3 && (
-                          <li className="text-[10px] italic text-white/70">+{(workout?.details?.exercises.length - 3)} more...</li>
-                        )}
+                        {workout.details.exercises.length > 2 && <li>+{workout.details.exercises.length - 2} more…</li>}
                       </ul>
-                    </div>
+                    )}
                   </div>
                 );
               })

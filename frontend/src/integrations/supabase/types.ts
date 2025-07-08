@@ -817,7 +817,7 @@ export type Database = {
           chats: any[]; // or Json
           last_message_at: string | null;
           is_active: boolean;
-          rules: string | null;
+          rules: string[];
           pending_requests: string[]; // or Json
           created_at: string;
           updated_at: string;
@@ -837,7 +837,7 @@ export type Database = {
           chats?: any[];
           last_message_at?: string | null;
           is_active?: boolean;
-          rules?: string | null;
+          rules?: string[];
           pending_requests?: string[];
           created_at?: string;
           updated_at?: string;
@@ -857,7 +857,7 @@ export type Database = {
           chats?: any[];
           last_message_at?: string | null;
           is_active?: boolean;
-          rules?: string | null;
+          rules?: string[];
           pending_requests?: string[];
           created_at?: string;
           updated_at?: string;
@@ -930,6 +930,44 @@ export type Database = {
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      user_logged_workouts: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string | null;
+          details: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string | null;
+          details: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          description?: string | null;
+          details?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_logged_workouts_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
             referencedColumns: ["id"];
           }
         ];
