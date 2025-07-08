@@ -233,11 +233,11 @@ const WeeklyWorkoutCalendar: React.FC = () => {
 
   return (
     <div className="w-full px-2 md:px-8 py-10 flex justify-center">
-      <div className="w-full max-w-7xl mx-auto mt-10 mb-10">
-        <h2 className="text-3xl font-extrabold text-pink-700 mb-8 flex items-center gap-3 tracking-tight">
-          <span className="text-4xl">📅</span> This Week&apos;s Workout Calendar
+      <div className="w-full max-w-7xl mx-auto mt-6 mb-10">
+        <h2 className="text-3xl font-extrabold text-pink-700 mb-6 flex items-center gap-3 tracking-tight">
+          <span className="text-4xl">📅</span> This Week's Workout Calendar
         </h2>
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end mb-2">
           <button
             onClick={handleRegenerate}
             className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
@@ -326,8 +326,8 @@ const WeeklyWorkoutCalendar: React.FC = () => {
           </div>
         )}
         {error && <div className="text-center text-red-600 font-semibold mb-4">{error}</div>}
-        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-pink-300 scrollbar-track-pink-50">
-          <div className="flex gap-6 min-w-[1400px]">
+        <div className="w-full">
+          <div className="grid grid-cols-7 gap-2 w-full">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-8 w-full">
                 <span className="text-pink-700 font-medium">Loading workout plan...</span>
@@ -338,7 +338,6 @@ const WeeklyWorkoutCalendar: React.FC = () => {
                 const workout = weekWorkouts[dateStr];
                 const type = workout?.details?.workout_type || '';
                 const Icon = workoutIcons[type] || Dumbbell;
-                // Vibrant color scheme
                 const colorMap: Record<string, string> = {
                   'Full Body': 'from-pink-500 via-rose-400 to-rose-600',
                   'Cardio - Running': 'from-blue-500 via-sky-400 to-indigo-600',
@@ -351,21 +350,25 @@ const WeeklyWorkoutCalendar: React.FC = () => {
                 return (
                   <div
                     key={dateStr}
-                    className={`flex flex-col items-center rounded-3xl shadow-2xl px-8 py-10 min-h-[520px] w-[260px] md:w-[220px] bg-gradient-to-b ${color} text-white relative transition-all duration-300 ${isToday ? 'ring-4 ring-pink-400 scale-105 z-10' : 'opacity-90 hover:scale-105 hover:z-10'} font-semibold`}
+                    className={`flex flex-col items-center rounded-xl shadow border border-white/60 px-2 py-3 bg-gradient-to-b ${color} text-white relative transition-all duration-300 ${isToday ? 'ring-4 ring-pink-400 scale-105 z-10' : 'opacity-95 hover:scale-105 hover:z-10'} font-semibold min-h-0`}
+                    style={{ minHeight: '180px', maxHeight: '320px', height: '100%' }}
                   >
-                    <div className="flex flex-col items-center mb-8">
-                      <div className="text-4xl mb-3 drop-shadow-lg"><Icon /></div>
-                      <div className="font-extrabold text-2xl mb-1 tracking-tight drop-shadow-lg">{dayName}</div>
-                      <div className="text-base font-bold mb-2 uppercase tracking-wide drop-shadow">{type}</div>
+                    <div className="flex flex-col items-center mb-2">
+                      <div className="text-xl mb-1 drop-shadow-lg"><Icon /></div>
+                      <div className="font-extrabold text-base mb-0.5 tracking-tight drop-shadow-lg">{dayName}</div>
+                      <div className="text-[11px] font-bold mb-1 uppercase tracking-wide drop-shadow">{type}</div>
                     </div>
-                    <div className="flex-1 w-full flex flex-col gap-4">
-                      <div className="text-lg font-medium mb-2 drop-shadow-sm">{workout?.details?.summary || ''}</div>
-                      <ul className="text-base space-y-2">
-                        {(workout?.details?.exercises || []).map((item: any, i: number) => (
-                          <li key={i} className="leading-relaxed">
-                            {item.name ? `${item.name} (${item.sets} sets × ${item.reps})${item.rest ? `, Rest: ${item.rest}` : ''}${item.notes ? `, ${item.notes}` : ''}` : item}
+                    <div className="flex-1 w-full flex flex-col gap-1">
+                      <div className="text-xs font-medium mb-1 drop-shadow-sm whitespace-pre-line line-clamp-3">{workout?.details?.summary || ''}</div>
+                      <ul className="text-[11px] space-y-0.5">
+                        {(workout?.details?.exercises || []).slice(0, 3).map((item: any, i: number) => (
+                          <li key={i} className="leading-tight whitespace-pre-line">
+                            {item.name ? `${item.name} (${item.sets}×${item.reps})${item.rest ? `, Rest: ${item.rest}` : ''}${item.notes ? `, ${item.notes}` : ''}` : item}
                           </li>
                         ))}
+                        {(workout?.details?.exercises || []).length > 3 && (
+                          <li className="text-[10px] italic text-white/70">+{(workout?.details?.exercises.length - 3)} more...</li>
+                        )}
                       </ul>
                     </div>
                   </div>

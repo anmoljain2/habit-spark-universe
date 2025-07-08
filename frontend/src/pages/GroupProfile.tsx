@@ -26,38 +26,59 @@ export default function GroupProfile() {
   useEffect(() => {
     async function fetchGroup() {
       setLoading(true);
-      // Debug logging
-      console.log('[GroupProfile] groupId param:', groupId);
-      if (!groupId) {
-        console.warn('[GroupProfile] No groupId param provided');
+      // Step 1: Find the full group ID by snippet
+      let fullGroupId = null;
+      let groupData = null;
+      console.log('[GroupProfile][DEBUG] groupId param from URL:', groupId);
+      // Fetch all groups whose id starts with the snippet (client-side filter for now)
+      const { data: groups, error } = await supabase
+        .from('social_groups')
+        .select('id');
+      if (error) {
+        console.error('[GroupProfile][DEBUG] Supabase error fetching group IDs:', error);
         setGroup(null);
         setLoading(false);
         return;
       }
-      const pattern = `${(groupId || '').toLowerCase()}%`;
-      console.log('[GroupProfile] Query pattern:', pattern);
-      // Find group whose id starts with groupId (6-char snippet), case-insensitive
-      const { data: groups, error } = await supabase
+      console.log('[GroupProfile][DEBUG] All group IDs fetched:', groups?.map(g => g.id));
+      if (Array.isArray(groups)) {
+        const match = groups.find(g => g.id.startsWith((groupId || '').toLowerCase()));
+        if (match) {
+          fullGroupId = match.id;
+          console.log('[GroupProfile][DEBUG] Matched fullGroupId:', fullGroupId);
+        } else {
+          console.warn('[GroupProfile][DEBUG] No group found for snippet:', groupId);
+        }
+      }
+      if (!fullGroupId) {
+        setGroup(null);
+        setLoading(false);
+        return;
+      }
+      // Step 2: Fetch the group by full ID
+      const { data: group, error: groupError } = await supabase
         .from('social_groups')
         .select('*, owner:owner(*), members, pending_requests')
-        .ilike('id', pattern);
-      if (error) {
-        console.error('[GroupProfile] Supabase error:', error);
+        .eq('id', fullGroupId)
+        .single();
+      if (groupError) {
+        console.error('[GroupProfile][DEBUG] Error fetching group by full ID:', groupError);
+        setGroup(null);
+        setLoading(false);
+        return;
       }
-      console.log('[GroupProfile] Supabase returned groups:', groups);
-      const data = Array.isArray(groups) && groups.length > 0 ? groups[0] : null;
-      if (!data) {
-        console.warn('[GroupProfile] No group found for pattern:', pattern);
-      }
-      setGroup(data);
-      setIsMember(Array.isArray(data?.members) && profile?.user_id && data.members.includes(profile.user_id));
+      groupData = group;
+      console.log('[GroupProfile][DEBUG] Group data fetched:', groupData);
+      setGroup(groupData);
+      setIsMember(Array.isArray(groupData?.members) && profile?.user_id && groupData.members.includes(profile.user_id));
       setLoading(false);
       // Fetch member profiles
-      if (Array.isArray(data?.members) && data.members.length > 0) {
+      if (Array.isArray(groupData?.members) && groupData.members.length > 0) {
         const { data: profiles } = await supabase
           .from('user_profiles')
           .select('user_id,username,display_name')
-          .in('user_id', data.members);
+          .in('user_id', groupData.members);
+        console.log('[GroupProfile][DEBUG] Member profiles fetched:', profiles);
         setMemberProfiles(profiles || []);
       } else {
         setMemberProfiles([]);

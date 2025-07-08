@@ -10,6 +10,7 @@ import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
 import { useProfile } from '@/components/ProfileContext';
 import WeeklyWorkoutCalendar from '../components/WeeklyWorkoutCalendar';
 import FitnessGoals from '../components/FitnessGoals';
+import { getLocalDateStr } from '@/lib/utils';
 
 const Fitness = () => {
   const { user } = useAuth();
@@ -61,21 +62,20 @@ const Fitness = () => {
     // eslint-disable-next-line
   }, [user]);
 
-  const handleRegenerate = async () => {
-    if (!user) return;
-    setRegenerating(true);
-    setError('');
-    const { weekStart, weekEnd } = getWeekRange();
-    // Delete existing workouts for the week
-    await supabase
-      .from('user_workouts')
-      .delete()
-      .eq('user_id', user.id)
-      .gte('week_start', weekStart)
-      .lte('week_start', weekEnd);
-    await fetchWorkouts();
-    setRegenerating(false);
-  };
+  // Detect user's timezone dynamically
+  const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Debug: log todayStr and all workout dates after fetching
+  useEffect(() => {
+    const today = new Date();
+    const todayStr = getLocalDateStr(today, detectedTimezone);
+    console.log('[Fitness][DEBUG] Detected timezone:', detectedTimezone);
+    console.log('[Fitness][DEBUG] todayStr (local):', todayStr);
+    console.log('[Fitness][DEBUG] weeklyWorkouts:', weeklyWorkouts);
+    console.log('[Fitness][DEBUG] weeklyWorkouts dates:', weeklyWorkouts.map(w => w.date));
+    const found = weeklyWorkouts.find(w => w.date === todayStr);
+    console.log('[Fitness][DEBUG] todayWorkout lookup result:', found);
+  }, [weeklyWorkouts, detectedTimezone]);
 
   const generateWorkouts = async (retryCount = 0) => {
     if (!user) return;
@@ -97,8 +97,10 @@ const Fitness = () => {
 
   // Find today's workout using user's local date (YYYY-MM-DD)
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10); // YYYY-MM-DD in local time
+  const todayStr = getLocalDateStr(today, detectedTimezone); // Local YYYY-MM-DD
   const todayWorkout = weeklyWorkouts.find(w => w.date === todayStr);
+  // Debug: log before rendering main card
+  console.log('[Fitness][DEBUG] Rendering main card with todayStr:', todayStr, '| todayWorkout:', todayWorkout);
   // Fallback: if not found, show rest day
 
   // Build the workout queue: [{ phase: 'work'|'rest', seconds, exerciseIdx, setNum }]

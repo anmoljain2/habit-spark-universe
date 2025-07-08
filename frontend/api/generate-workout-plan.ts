@@ -27,8 +27,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // 1. Check for existing workouts for this week
     const now = new Date();
-    const weekStart = formatISO(startOfWeek(now, { weekStartsOn: 1 }), { representation: 'date' });
-    const weekEnd = formatISO(endOfWeek(now, { weekStartsOn: 1 }), { representation: 'date' });
+    const weekStart = formatISO(startOfWeek(now, { weekStartsOn: 0 }), { representation: 'date' });
+    const weekEnd = formatISO(endOfWeek(now, { weekStartsOn: 0 }), { representation: 'date' });
     const { data: existingWorkouts, error: existingError } = await supabase
       .from('user_workouts')
       .select('*')
@@ -105,7 +105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 5. Save plan to user_workouts (one row per day)
-    const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const weekStartDate = new Date(weekStart);
     for (let i = 0; i < plan.length; i++) {
       const day = plan[i];
