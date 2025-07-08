@@ -182,7 +182,7 @@ const HabitsList = ({ onXPChange, hideAddButton }: HabitsListProps) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {habits.map((habit) => (
-            <div key={habit.id} className="relative group">
+            <div key={habit.id} className="relative group h-full flex flex-col">
               <HabitCard
                 id={habit.id}
                 name={habit.habit_name}
@@ -197,7 +197,7 @@ const HabitsList = ({ onXPChange, hideAddButton }: HabitsListProps) => {
                   refreshHabits();
                 }}
               />
-              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <div className="absolute bottom-4 right-4 flex gap-2 z-10">
                 <button onClick={() => openEdit(habit)} className="bg-white rounded-full p-1 shadow hover:bg-gray-100"><Pencil className="w-4 h-4 text-indigo-600" /></button>
                 <button onClick={() => handleDelete(habit.id)} className="bg-white rounded-full p-1 shadow hover:bg-gray-100"><Trash2 className="w-4 h-4 text-red-600" /></button>
               </div>

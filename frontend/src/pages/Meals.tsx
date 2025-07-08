@@ -24,7 +24,9 @@ const Meals: React.FC = () => {
   const userId = user?.id;
   const navigate = useNavigate();
   const { nutritionPreferences, loading: profileLoading } = useProfile();
-  const timezone = (nutritionPreferences && nutritionPreferences.timezone) || 'America/Los_Angeles';
+  // Detect user's timezone dynamically if not set in preferences
+  const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timezone = (nutritionPreferences && nutritionPreferences.timezone) || detectedTimezone;
   // Use UTC as the base for toZonedTime
   const now = new Date(Date.now());
   const utcNow = new Date(now.toISOString());

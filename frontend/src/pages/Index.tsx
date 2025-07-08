@@ -127,7 +127,7 @@ const Index = () => {
         {/* Main Content - Full Width */}
         <LevelCard xpRefresh={xpRefresh} />
         <StatsOverview xpRefresh={xpRefresh} />
-        <HabitsList onXPChange={handleXPChange} hideAddButton />
+        <HabitsList onXPChange={handleXPChange} />
         
         {/* Horizontal Info Sections - Full Width */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">

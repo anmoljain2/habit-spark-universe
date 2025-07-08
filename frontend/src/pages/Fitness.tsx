@@ -8,6 +8,7 @@ import { formatISO, startOfWeek, endOfWeek } from 'date-fns';
 import { toast } from 'sonner';
 import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
 import { useProfile } from '@/components/ProfileContext';
+import WeeklyWorkoutCalendar from '../components/WeeklyWorkoutCalendar';
 
 const Fitness = () => {
   const { user } = useAuth();
@@ -253,6 +254,83 @@ const Fitness = () => {
     // eslint-disable-next-line
   }, [timerActive, timerPaused, timerSeconds]);
 
+  // LogWorkout component
+  const LogWorkout = ({ userId, onLogged }: { userId: string, onLogged: () => void }) => {
+    const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [workoutType, setWorkoutType] = useState('');
+    const [summary, setSummary] = useState('');
+    const [exercises, setExercises] = useState([{ name: '', sets: '', reps: '', rest: '', notes: '' }]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const handleExerciseChange = (idx: number, key: string, value: string) => {
+      setExercises(exs => exs.map((ex, i) => i === idx ? { ...ex, [key]: value } : ex));
+    };
+    const addExercise = () => setExercises(exs => [...exs, { name: '', sets: '', reps: '', rest: '', notes: '' }]);
+    const removeExercise = (idx: number) => setExercises(exs => exs.filter((_, i) => i !== idx));
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
+      setError('');
+      try {
+        // Remove any existing workout for this user and date
+        await supabase.from('user_workouts').delete().eq('user_id', userId).eq('date', date);
+        // Insert new workout
+        const { error: insertError } = await supabase.from('user_workouts').insert({
+          user_id: userId,
+          date,
+          details: {
+            workout_type: workoutType,
+            summary,
+            exercises: exercises.filter(ex => ex.name.trim()),
+          },
+        });
+        if (insertError) throw insertError;
+        setWorkoutType('');
+        setSummary('');
+        setExercises([{ name: '', sets: '', reps: '', rest: '', notes: '' }]);
+        onLogged();
+      } catch (err: any) {
+        setError(err.message || 'Failed to log workout');
+      }
+      setLoading(false);
+    };
+    return (
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 mb-6">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">Log Workout</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block font-semibold text-gray-700 mb-1">Day</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full border rounded px-3 py-2" />
+          </div>
+          <div>
+            <label className="block font-semibold text-gray-700 mb-1">Workout Type</label>
+            <input type="text" value={workoutType} onChange={e => setWorkoutType(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="e.g. Full Body Strength" />
+          </div>
+          <div>
+            <label className="block font-semibold text-gray-700 mb-1">Summary</label>
+            <textarea value={summary} onChange={e => setSummary(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="Describe the workout..." />
+          </div>
+          <div>
+            <label className="block font-semibold text-gray-700 mb-1">Exercises</label>
+            {exercises.map((ex, idx) => (
+              <div key={idx} className="flex flex-col md:flex-row gap-2 mb-2">
+                <input type="text" value={ex.name} onChange={e => handleExerciseChange(idx, 'name', e.target.value)} className="flex-1 border rounded px-2 py-1" placeholder="Exercise name" />
+                <input type="number" min="1" value={ex.sets} onChange={e => handleExerciseChange(idx, 'sets', e.target.value)} className="w-20 border rounded px-2 py-1" placeholder="Sets" />
+                <input type="number" min="1" value={ex.reps} onChange={e => handleExerciseChange(idx, 'reps', e.target.value)} className="w-20 border rounded px-2 py-1" placeholder="Reps" />
+                <input type="text" value={ex.rest} onChange={e => handleExerciseChange(idx, 'rest', e.target.value)} className="w-24 border rounded px-2 py-1" placeholder="Rest" />
+                <input type="text" value={ex.notes} onChange={e => handleExerciseChange(idx, 'notes', e.target.value)} className="flex-1 border rounded px-2 py-1" placeholder="Notes" />
+                {exercises.length > 1 && <button type="button" onClick={() => removeExercise(idx)} className="text-red-500 font-bold">&times;</button>}
+              </div>
+            ))}
+            <button type="button" onClick={addExercise} className="text-blue-600 font-semibold mt-1">+ Add Exercise</button>
+          </div>
+          {error && <div className="text-red-600 text-sm">{error}</div>}
+          <button type="submit" className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-2 rounded-lg font-bold" disabled={loading}>{loading ? 'Logging...' : 'Log Workout'}</button>
+        </form>
+      </div>
+    );
+  };
+
   if (profileLoading) {
     return (
       <div className="min-h-screen">
@@ -401,28 +479,7 @@ const Fitness = () => {
                   This Week's Schedule
                 </h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {weeklyWorkouts.map((workout, index) => (
-                  <div key={index} className="p-4 bg-gray-50/80 rounded-xl hover:bg-gray-100/80 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-gray-800">{workout.details?.day || 'Day'}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        workout.details?.workout_type === 'Rest' ? 'bg-green-100 text-green-700' : 'bg-pink-100 text-pink-700'
-                      }`}>
-                        {workout.details?.workout_type || 'Rest'}
-                      </span>
-                    </div>
-                    <h4 className="font-medium text-gray-800 mb-1">{workout.details?.summary || ''}</h4>
-                    {workout.details?.exercises?.length > 0 && (
-                      <ul className="text-gray-700 text-sm list-disc pl-5">
-                        {workout.details.exercises.map((ex: any, i: number) => (
-                          <li key={i}>{ex.name} ({ex.sets} sets × {ex.reps}){ex.rest ? `, Rest: ${ex.rest}` : ''}{ex.notes ? `, ${ex.notes}` : ''}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <WeeklyWorkoutCalendar />
             </div>
 
             {/* Achievements */}
@@ -451,6 +508,7 @@ const Fitness = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            <LogWorkout userId={user.id} onLogged={fetchWorkouts} />
             {/* Weekly Progress */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
               <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
