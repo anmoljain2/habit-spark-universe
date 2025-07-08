@@ -117,8 +117,6 @@ const Social = () => {
   const { potentialFriends, friends, groups, loading, addingFriend, joiningGroup, joinedGroups, refreshSocial, addFriend, joinGroup } = useSocial();
   const navigate = useNavigate();
   const [showJoinCelebration, setShowJoinCelebration] = useState<{ groupName: string } | null>(null);
-  const [friendSearch, setFriendSearch] = useState('');
-  const [groupSearch, setGroupSearch] = useState('');
 
   // Wrapper for joinGroup to show celebration
   const handleJoinGroup = async (group: any) => {
@@ -128,15 +126,6 @@ const Social = () => {
       setTimeout(() => setShowJoinCelebration(null), 2000);
     }
   };
-
-  // Filtered lists
-  const filteredFriends = potentialFriends.filter(f =>
-    (f.display_name || f.username || '').toLowerCase().includes(friendSearch.toLowerCase())
-  );
-  const filteredGroups = groups.filter(g =>
-    (g.name || '').toLowerCase().includes(groupSearch.toLowerCase()) ||
-    (g.bio || '').toLowerCase().includes(groupSearch.toLowerCase())
-  );
 
   if (!user) return null;
   
@@ -179,15 +168,8 @@ const Social = () => {
                 <p className="text-gray-600">Connect with new friends and expand your network</p>
               </div>
             </div>
-            {/* Friend Search Bar */}
-            <input
-              type="text"
-              className="w-full border rounded px-3 py-2 mb-4"
-              placeholder="Search friends by name or username..."
-              value={friendSearch}
-              onChange={e => setFriendSearch(e.target.value)}
-            />
-            {filteredFriends.length === 0 ? (
+
+            {potentialFriends.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">👥</div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">All Caught Up!</h3>
@@ -195,7 +177,7 @@ const Social = () => {
               </div>
             ) : (
               <div className="space-y-4 max-h-96 overflow-y-auto">
-                {filteredFriends.map((friend) => (
+                {potentialFriends.map((friend) => (
                   <div
                     key={friend.user_id}
                     className="p-4 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow duration-200 cursor-pointer transform hover:-translate-y-1"
@@ -261,15 +243,7 @@ const Social = () => {
                 <p className="text-gray-600">Join a group and grow together</p>
               </div>
             </div>
-            {/* Group Search Bar */}
-            <input
-              type="text"
-              className="w-full border rounded px-3 py-2 mb-4"
-              placeholder="Search groups by name or bio..."
-              value={groupSearch}
-              onChange={e => setGroupSearch(e.target.value)}
-            />
-            {filteredGroups.length === 0 ? (
+            {groups.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">👥</div>
                 <h3 className="text-xl font-semibold text-gray-800 mb-2">No groups found</h3>
@@ -277,7 +251,7 @@ const Social = () => {
               </div>
             ) : (
               <div className="space-y-4 max-h-96 overflow-y-auto">
-                {filteredGroups.map((group) => {
+                {groups.map((group) => {
                   const isMember = Array.isArray(group.members) && group.members.includes(user.id);
                   const isPending = Array.isArray(group.pending_requests) && group.pending_requests.includes(user.id);
                   return (

@@ -25,19 +25,24 @@ const Meals: React.FC = () => {
   const navigate = useNavigate();
   const { nutritionPreferences, loading: profileLoading } = useProfile();
   const timezone = (nutritionPreferences && nutritionPreferences.timezone) || 'America/Los_Angeles';
-  const now = new Date();
-  const localNow = toZonedTime(now, timezone);
+  // Use UTC as the base for toZonedTime
+  const now = new Date(Date.now());
+  const utcNow = new Date(now.toISOString());
+  const localNow = toZonedTime(utcNow, timezone);
+
+  // Comprehensive debug logging
+  console.log('[DEBUG] Raw now (system local):', now, '| ISO:', now.toISOString());
+  console.log('[DEBUG] UTC now:', utcNow, '| ISO:', utcNow.toISOString());
+  console.log('[DEBUG] localNow (toZonedTime):', localNow, '| ISO:', localNow.toISOString(), '| Timezone:', timezone);
+
   const weekStartDate = startOfWeek(localNow, { weekStartsOn: 0 });
   const weekStart = [
     weekStartDate.getFullYear(),
     String(weekStartDate.getMonth() + 1).padStart(2, '0'),
     String(weekStartDate.getDate()).padStart(2, '0')
   ].join('-');
-  const todayStr = getLocalDateStr(new Date(), timezone);
+  const todayStr = getLocalDateStr(localNow, timezone);
 
-  // Expanded debug log for week start and today
-  console.log('[DEBUG] Raw now:', now, '| ISO:', now.toISOString());
-  console.log('[DEBUG] localNow:', localNow, '| ISO:', localNow.toISOString());
   console.log('[DEBUG] weekStartDate:', weekStartDate, '| ISO:', weekStartDate.toISOString());
   console.log('[DEBUG] weekStart (formatted):', weekStart);
   console.log('[DEBUG] todayStr (formatted):', todayStr);
