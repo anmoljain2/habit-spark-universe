@@ -215,35 +215,33 @@ export default function GroupProfile() {
           </CardTitle>
           {/* Join Group Button or In Group label */}
           <div className="mt-2">
-            {isMember ? (
-              profile?.user_id === group.owner ? (
-                <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold">In Group (Owner)</span>
-              ) : (
-                <>
-                  <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold mr-3">In Group</span>
-                  <Button
-                    className="bg-red-100 text-red-700 border border-red-200 hover:bg-red-200 hover:text-red-900 font-semibold"
-                    variant="outline"
-                    onClick={() => setLeaveDialog(true)}
-                  >
-                    Leave Group
-                  </Button>
-                  <AlertDialog open={leaveDialog} onOpenChange={setLeaveDialog}>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Leave {group.name}?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to leave <span className="font-semibold">{group.name}</span> group? You will lose access to group chat and content.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setLeaveDialog(false)}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={leaveGroup}>Leave Group</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </>
-              )
+            {isMember && profile?.user_id !== group.owner ? (
+              <>
+                <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold mr-3">In Group</span>
+                <Button
+                  className="bg-red-100 text-red-700 border border-red-200 hover:bg-red-200 hover:text-red-900 font-semibold"
+                  variant="outline"
+                  onClick={() => setLeaveDialog(true)}
+                >
+                  Leave Group
+                </Button>
+                <AlertDialog open={leaveDialog} onOpenChange={setLeaveDialog}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Leave {group.name}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to leave <span className="font-semibold">{group.name}</span> group? You will lose access to group chat and content.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setLeaveDialog(false)}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={leaveGroup}>Leave Group</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            ) : profile?.user_id === group.owner ? (
+              <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold">In Group (Owner)</span>
             ) : (
               <Button
                 className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2 rounded-lg font-semibold mt-2"

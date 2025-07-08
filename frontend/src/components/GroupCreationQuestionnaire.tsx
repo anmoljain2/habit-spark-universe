@@ -43,7 +43,7 @@ export default function GroupCreationQuestionnaire() {
       return;
     }
     // Insert new group
-    const { error: insertError } = await supabase.from('social_groups').insert({
+    const { data: insertData, error: insertError } = await supabase.from('social_groups').insert({
       name: form.name,
       bio: form.bio,
       description: form.description,
@@ -54,11 +54,37 @@ export default function GroupCreationQuestionnaire() {
       pending_requests: [],
       chats: [],
       is_active: true,
-    });
+    }).select('id').single();
     if (insertError) {
       setError(insertError.message);
       setLoading(false);
       return;
+    }
+    // Update user's group_ids to include the new group
+    if (insertData && insertData.id && profile?.user_id) {
+      // Fetch current group_ids
+      const { data: userProfile, error: userProfileError } = await supabase
+        .from('user_profiles')
+        .select('group_ids')
+        .eq('user_id', profile.user_id)
+        .single();
+      if (userProfileError) {
+        setError('Group created, but failed to update your group list.');
+        setLoading(false);
+        return;
+      }
+      const groupIds = userProfile?.group_ids || [];
+      if (!groupIds.includes(insertData.id)) {
+        const { error: updateError } = await supabase
+          .from('user_profiles')
+          .update({ group_ids: [...groupIds, insertData.id] })
+          .eq('user_id', profile.user_id);
+        if (updateError) {
+          setError('Group created, but failed to update your group list.');
+          setLoading(false);
+          return;
+        }
+      }
     }
     setLoading(false);
     navigate('/profile');
