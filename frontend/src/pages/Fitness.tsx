@@ -95,10 +95,11 @@ const Fitness = () => {
     setWorkoutsLoading(false);
   };
 
-  // Find today's workout
+  // Find today's workout using user's local date (YYYY-MM-DD)
   const today = new Date();
-  const todayName = today.toLocaleDateString('en-US', { weekday: 'long' });
-  const todayWorkout = weeklyWorkouts.find(w => w.details && w.details.day && w.details.day.toLowerCase().includes(todayName.toLowerCase()));
+  const todayStr = today.toISOString().slice(0, 10); // YYYY-MM-DD in local time
+  const todayWorkout = weeklyWorkouts.find(w => w.date === todayStr);
+  // Fallback: if not found, show rest day
 
   // Build the workout queue: [{ phase: 'work'|'rest', seconds, exerciseIdx, setNum }]
   const buildWorkoutQueue = () => {
@@ -364,7 +365,7 @@ const Fitness = () => {
         {error && <div className="text-center text-red-600 font-semibold mb-4">{error}</div>}
 
         {/* Main Content: Today's Workout + Motivation side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-2">
           <div className="lg:col-span-2 space-y-8">
             {/* Today's Workout */}
             <div className="bg-gradient-to-br from-pink-600 to-rose-600 rounded-2xl p-8 text-white shadow-2xl relative mb-8">
@@ -461,65 +462,41 @@ const Fitness = () => {
           </div>
         </div>
 
-        {/* Regenerate Plan button above calendar */}
-        <div className="flex justify-end mb-4">
-          {weeklyWorkouts.length === 0 ? (
-            <button
-              onClick={() => generateWorkouts()}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-              disabled={workoutsLoading}
-            >
-              {workoutsLoading ? 'Generating...' : 'Generate Plan'}
-            </button>
-          ) : (
-            <button
-              onClick={handleRegenerate}
-              className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-4 py-2 rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-              disabled={regenerating || workoutsLoading}
-            >
-              {regenerating ? 'Regenerating...' : 'Regenerate Plan'}
-            </button>
-          )}
+        {/* Weekly Schedule Calendar - full width */}
+        <div className="mt-2">
+          <WeeklyWorkoutCalendar />
         </div>
 
-        {/* Weekly Schedule Calendar - full width */}
-        <WeeklyWorkoutCalendar />
-
         {/* Everything else below calendar */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            {/* Sidebar: LogWorkout and Weekly Progress side by side, full width */}
-            <div className="flex flex-col md:flex-row gap-8 w-full mb-10">
-              <div className="flex-1 min-w-0">
-                <LogWorkout userId={user.id} onLogged={fetchWorkouts} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 w-full">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-pink-600" />
-                    Weekly Progress
-                  </h3>
-                  <div className="space-y-4">
-                    {weeklyStats.map((stat, index) => {
-                      const percentage = (stat.current / stat.target) * 100;
-                      return (
-                        <div key={index}>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="font-medium text-gray-700">{stat.label}</span>
-                            <span className="text-sm text-gray-600">{stat.current}/{stat.target}{stat.label === 'Calories Burned' ? ' kcal' : stat.label === 'Active Minutes' ? ' min' : ''}</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div 
-                              className={`bg-gradient-to-r ${stat.color} h-3 rounded-full transition-all duration-500`}
-                              style={{ width: `${Math.min(100, percentage)}%` }}
-                            ></div>
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">{Math.round(percentage)}% complete</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+        <div className="w-full flex flex-col md:flex-row gap-8 mb-10">
+          <div className="flex-1 min-w-0">
+            <LogWorkout userId={user.id} onLogged={fetchWorkouts} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 w-full">
+              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-pink-600" />
+                Weekly Progress
+              </h3>
+              <div className="space-y-4">
+                {weeklyStats.map((stat, index) => {
+                  const percentage = (stat.current / stat.target) * 100;
+                  return (
+                    <div key={index}>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium text-gray-700">{stat.label}</span>
+                        <span className="text-sm text-gray-600">{stat.current}/{stat.target}{stat.label === 'Calories Burned' ? ' kcal' : stat.label === 'Active Minutes' ? ' min' : ''}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className={`bg-gradient-to-r ${stat.color} h-3 rounded-full transition-all duration-500`}
+                          style={{ width: `${Math.min(100, percentage)}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">{Math.round(percentage)}% complete</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

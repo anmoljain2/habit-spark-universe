@@ -19,6 +19,7 @@ const Profile = () => {
   const [ownedGroup, setOwnedGroup] = useState<any | null>(null);
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [leaveDialog, setLeaveDialog] = useState<{ open: boolean, groupId: string | null, groupName: string | null }>({ open: false, groupId: null, groupName: null });
+  const [fitnessContexts, setFitnessContexts] = useState<string[]>([]);
 
   // Accept/decline friend request
   const handleAcceptFriend = async (requestId: string) => {
@@ -77,14 +78,19 @@ const Profile = () => {
         .select('group_ids')
         .eq('user_id', profile.user_id)
         .single();
+      console.log('[Profile] userProfile:', userProfile);
       const groupIds = userProfile?.group_ids || [];
+      console.log('[Profile] groupIds:', groupIds);
       let userGroups = [];
       if (groupIds.length > 0) {
         const { data: groups } = await supabase
           .from('social_groups')
           .select('*')
           .in('id', groupIds);
+        console.log('[Profile] groups fetched by groupIds:', groups);
         userGroups = groups || [];
+      } else {
+        console.warn('[Profile] No groupIds found for user');
       }
       setUserGroups(userGroups.filter(g => g.owner !== profile.user_id));
       // Fetch group where user is owner
@@ -93,10 +99,24 @@ const Profile = () => {
         .select('*')
         .eq('owner', profile.user_id)
         .single();
+      console.log('[Profile] ownedGroup:', owned);
       setOwnedGroup(owned || null);
       setGroupsLoading(false);
     };
     fetchGroups();
+  }, [profile?.user_id]);
+
+  useEffect(() => {
+    const fetchFitnessContexts = async () => {
+      if (!profile?.user_id) return;
+      const { data } = await supabase
+        .from('user_fitness_goals')
+        .select('contexts')
+        .eq('user_id', profile.user_id)
+        .single();
+      setFitnessContexts(data?.contexts || []);
+    };
+    fetchFitnessContexts();
   }, [profile?.user_id]);
 
   if (!profile) return null;
@@ -689,6 +709,27 @@ const Profile = () => {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+          </CardContent>
+        </Card>
+
+        {/* Saved Fitness Plan Contexts */}
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+              Saved Fitness Plan Contexts
+            </CardTitle>
+            <CardDescription className="text-gray-600">Feedback and preferences you've saved for workout planning</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {fitnessContexts && fitnessContexts.length > 0 ? (
+              <ul className="list-disc ml-6 space-y-2">
+                {fitnessContexts.map((context: string, i: number) => (
+                  <li key={i} className="text-gray-800 bg-pink-50 rounded-lg px-4 py-2 shadow-sm border border-pink-100">{context}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-center py-6 text-gray-500">No saved contexts yet.</div>
+            )}
           </CardContent>
         </Card>
       </div>

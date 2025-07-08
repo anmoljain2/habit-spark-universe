@@ -356,6 +356,7 @@ export type Database = {
           start_date: string | null
           target_weight: number | null
           user_id: string | null
+          contexts: string[] | null
         }
         Insert: {
           cardio_preferences?: string[] | null
@@ -376,6 +377,7 @@ export type Database = {
           start_date?: string | null
           target_weight?: number | null
           user_id?: string | null
+          contexts?: string[] | null
         }
         Update: {
           cardio_preferences?: string[] | null
@@ -396,6 +398,7 @@ export type Database = {
           start_date?: string | null
           target_weight?: number | null
           user_id?: string | null
+          contexts?: string[] | null
         }
         Relationships: [
           {

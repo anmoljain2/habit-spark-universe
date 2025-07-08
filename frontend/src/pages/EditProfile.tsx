@@ -126,6 +126,12 @@ const EditProfile = () => {
   const [showHabitForm, setShowHabitForm] = useState(false);
   const [habits, setHabits] = useState<any[]>([]);
 
+  // Fitness Contexts state
+  const [fitnessContexts, setFitnessContexts] = useState<string[]>([]);
+  const [newFitnessContext, setNewFitnessContext] = useState('');
+  const [editingFitnessContextIdx, setEditingFitnessContextIdx] = useState<number | null>(null);
+  const [fitnessContextLoading, setFitnessContextLoading] = useState(false);
+
   // Initialize form state from context data (profile, habits, etc.)
   useEffect(() => {
     if (profile) {
@@ -192,6 +198,20 @@ const EditProfile = () => {
   useEffect(() => {
     setHabits(contextHabits || []);
   }, [contextHabits]);
+
+  // Fetch fitness contexts on mount
+  useEffect(() => {
+    const fetchFitnessContexts = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('user_fitness_goals')
+        .select('contexts')
+        .eq('user_id', user.id)
+        .single();
+      setFitnessContexts(data?.contexts || []);
+    };
+    fetchFitnessContexts();
+  }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -457,6 +477,54 @@ const EditProfile = () => {
     await supabase.from('user_nutrition_preferences').update({ contexts: newContexts }).eq('user_id', user.id);
     setDirtyContexts(prev => ({ ...prev, [i]: false }));
     setSavingContextIdx(null);
+  };
+
+  // Add new context
+  const handleAddFitnessContext = async () => {
+    if (!user || !newFitnessContext.trim()) return;
+    setFitnessContextLoading(true);
+    const newContexts = [...fitnessContexts, newFitnessContext.trim()];
+    await supabase
+      .from('user_fitness_goals')
+      .update({ contexts: newContexts })
+      .eq('user_id', user.id);
+    setFitnessContexts(newContexts);
+    setNewFitnessContext('');
+    setFitnessContextLoading(false);
+  };
+
+  // Remove context
+  const handleRemoveFitnessContext = async (i: number) => {
+    if (!user) return;
+    setFitnessContextLoading(true);
+    const newContexts = fitnessContexts.filter((_, idx) => idx !== i);
+    await supabase
+      .from('user_fitness_goals')
+      .update({ contexts: newContexts })
+      .eq('user_id', user.id);
+    setFitnessContexts(newContexts);
+    setFitnessContextLoading(false);
+  };
+
+  // Edit context
+  const handleEditFitnessContext = (i: number) => {
+    setEditingFitnessContextIdx(i);
+    setNewFitnessContext(fitnessContexts[i]);
+  };
+
+  // Save edited context
+  const handleSaveFitnessContextAtIdx = async (i: number) => {
+    if (!user || !newFitnessContext.trim()) return;
+    setFitnessContextLoading(true);
+    const newContexts = fitnessContexts.map((ctx, idx) => idx === i ? newFitnessContext.trim() : ctx);
+    await supabase
+      .from('user_fitness_goals')
+      .update({ contexts: newContexts })
+      .eq('user_id', user.id);
+    setFitnessContexts(newContexts);
+    setEditingFitnessContextIdx(null);
+    setNewFitnessContext('');
+    setFitnessContextLoading(false);
   };
 
   if (loading) {
@@ -863,6 +931,52 @@ const EditProfile = () => {
               <div>
                 <Label>Notes</Label>
                 <Input value={fitnessNotes} onChange={e => setFitnessNotes(e.target.value)} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Fitness Plan Contexts Editing */}
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 mb-8">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+              Edit Saved Fitness Plan Contexts
+            </CardTitle>
+            <CardDescription className="text-gray-600">Manage your saved feedback and preferences for workout planning</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {fitnessContexts.length === 0 && <div className="text-gray-500">No saved contexts yet.</div>}
+              {fitnessContexts.map((ctx, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  {editingFitnessContextIdx === i ? (
+                    <>
+                      <Input
+                        value={newFitnessContext}
+                        onChange={e => setNewFitnessContext(e.target.value)}
+                        className="flex-1"
+                        disabled={fitnessContextLoading}
+                      />
+                      <Button size="sm" className="bg-green-500 text-white" onClick={() => handleSaveFitnessContextAtIdx(i)} disabled={fitnessContextLoading || !newFitnessContext.trim()}><Check className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="outline" className="text-gray-600 border-gray-200" onClick={() => { setEditingFitnessContextIdx(null); setNewFitnessContext(''); }} disabled={fitnessContextLoading}><X className="w-4 h-4" /></Button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex-1 text-gray-800 bg-pink-50 rounded-lg px-4 py-2 shadow-sm border border-pink-100">{ctx}</span>
+                      <Button size="sm" variant="outline" className="text-blue-600 border-blue-200" onClick={() => handleEditFitnessContext(i)} disabled={fitnessContextLoading}><Pencil className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={() => handleRemoveFitnessContext(i)} disabled={fitnessContextLoading}><X className="w-4 h-4" /></Button>
+                    </>
+                  )}
+                </div>
+              ))}
+              <div className="flex items-center gap-2 mt-4">
+                <Input
+                  value={editingFitnessContextIdx === null ? newFitnessContext : ''}
+                  onChange={e => { if (editingFitnessContextIdx === null) setNewFitnessContext(e.target.value); }}
+                  placeholder="Add new context..."
+                  className="flex-1"
+                  disabled={fitnessContextLoading || editingFitnessContextIdx !== null}
+                />
+                <Button size="sm" className="bg-pink-600 text-white" onClick={handleAddFitnessContext} disabled={fitnessContextLoading || !newFitnessContext.trim() || editingFitnessContextIdx !== null}><Plus className="w-4 h-4" /></Button>
               </div>
             </div>
           </CardContent>

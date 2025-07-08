@@ -10,7 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { user_id } = req.body;
+  const { user_id, regenerate_feedback } = req.body;
   if (!user_id) {
     res.status(400).json({ error: 'user_id is required' });
     return;
@@ -53,22 +53,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 3. Build OpenAI prompt
-    const prompt = `Generate a personalized weekly workout plan for a user with these preferences:
-- Days per week: ${preferences.days_per_week || 'N/A'}
-- Minutes per session: ${preferences.minutes_per_session || 'N/A'}
-- Intensity: ${preferences.intensity || 'N/A'}
-- Cardio preferences: ${(preferences.cardio_preferences || []).join(', ') || 'N/A'}
-- Muscle focus: ${(preferences.muscle_focus || []).join(', ') || 'N/A'}
-- Equipment: ${(preferences.equipment_available || []).join(', ') || 'N/A'}
-- Injury limitations: ${preferences.injury_limitations || 'None'}
-- Preferred time of day: ${preferences.preferred_time_of_day || 'Any'}
-
-Return a JSON array of 7 objects, one for each day (Monday to Sunday). Each object should include:
-- day (e.g., 'Monday')
-- workout_type (e.g., 'Upper Body', 'Cardio', etc.)
-- exercises: array of { name, sets, reps, rest, notes, duration, calories_burned } (duration and calories_burned are required, in minutes and kcal, for each exercise)
-- summary: string
-If a day is a rest day, set workout_type to 'Rest' and exercises to an empty array. Do not include any extra text.`;
+    let prompt = `Generate a personalized weekly workout plan for a user with these preferences:
+    - Days per week: ${preferences.days_per_week || 'N/A'}
+    - Minutes per session: ${preferences.minutes_per_session || 'N/A'}
+    - Intensity: ${preferences.intensity || 'N/A'}
+    - Cardio preferences: ${(preferences.cardio_preferences || []).join(', ') || 'N/A'}
+    - Muscle focus: ${(preferences.muscle_focus || []).join(', ') || 'N/A'}
+    - Equipment: ${(preferences.equipment_available || []).join(', ') || 'N/A'}
+    - Injury limitations: ${preferences.injury_limitations || 'None'}
+    - Preferred time of day: ${preferences.preferred_time_of_day || 'Any'}
+    `;
+    if (regenerate_feedback && regenerate_feedback.trim()) {
+      prompt += `\nThe user has requested the following changes or feedback: "${regenerate_feedback.trim()}". Please take this into account when generating the plan.`;
+    }
+    prompt += `\nReturn a JSON array of 7 objects, one for each day (Monday to Sunday). Each object should include:
+    - day (e.g., 'Monday')
+    - workout_type (e.g., 'Upper Body', 'Cardio', etc.)
+    - exercises: array of { name, sets, reps, rest, notes, duration, calories_burned } (duration and calories_burned are required, in minutes and kcal, for each exercise)
+    - summary: string
+    If a day is a rest day, set workout_type to 'Rest' and exercises to an empty array. Do not include any extra text.`;
 
     // 4. Call OpenAI
     const completion = await openai.chat.completions.create({

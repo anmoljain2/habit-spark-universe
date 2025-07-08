@@ -26,12 +26,29 @@ export default function GroupProfile() {
   useEffect(() => {
     async function fetchGroup() {
       setLoading(true);
-      // Find group whose id starts with groupId (6-char snippet)
+      // Debug logging
+      console.log('[GroupProfile] groupId param:', groupId);
+      if (!groupId) {
+        console.warn('[GroupProfile] No groupId param provided');
+        setGroup(null);
+        setLoading(false);
+        return;
+      }
+      const pattern = `${(groupId || '').toLowerCase()}%`;
+      console.log('[GroupProfile] Query pattern:', pattern);
+      // Find group whose id starts with groupId (6-char snippet), case-insensitive
       const { data: groups, error } = await supabase
         .from('social_groups')
         .select('*, owner:owner(*), members, pending_requests')
-        .like('id', `${groupId}%`);
+        .ilike('id', pattern);
+      if (error) {
+        console.error('[GroupProfile] Supabase error:', error);
+      }
+      console.log('[GroupProfile] Supabase returned groups:', groups);
       const data = Array.isArray(groups) && groups.length > 0 ? groups[0] : null;
+      if (!data) {
+        console.warn('[GroupProfile] No group found for pattern:', pattern);
+      }
       setGroup(data);
       setIsMember(Array.isArray(data?.members) && profile?.user_id && data.members.includes(profile.user_id));
       setLoading(false);
