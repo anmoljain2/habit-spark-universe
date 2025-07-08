@@ -26,11 +26,12 @@ export default function GroupProfile() {
   useEffect(() => {
     async function fetchGroup() {
       setLoading(true);
-      const { data, error } = await supabase
+      // Find group whose id starts with groupId (6-char snippet)
+      const { data: groups, error } = await supabase
         .from('social_groups')
         .select('*, owner:owner(*), members, pending_requests')
-        .eq('id', groupId)
-        .single();
+        .like('id', `${groupId}%`);
+      const data = Array.isArray(groups) && groups.length > 0 ? groups[0] : null;
       setGroup(data);
       setIsMember(Array.isArray(data?.members) && profile?.user_id && data.members.includes(profile.user_id));
       setLoading(false);
@@ -190,9 +191,6 @@ export default function GroupProfile() {
                     Leave Group
                   </Button>
                   <AlertDialog open={leaveDialog} onOpenChange={setLeaveDialog}>
-                    <AlertDialogTrigger asChild>
-                      <span></span> {/* Hidden trigger, modal is controlled manually */}
-                    </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Leave {group.name}?</AlertDialogTitle>

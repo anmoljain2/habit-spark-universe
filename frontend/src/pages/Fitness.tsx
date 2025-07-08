@@ -307,12 +307,14 @@ const Fitness = () => {
           <div>
             <label className="block font-semibold text-gray-700 mb-1">Exercises</label>
             {exercises.map((ex, idx) => (
-              <div key={idx} className="flex flex-col md:flex-row gap-2 mb-2">
-                <input type="text" value={ex.name} onChange={e => handleExerciseChange(idx, 'name', e.target.value)} className="flex-1 border rounded px-2 py-1" placeholder="Exercise name" />
-                <input type="number" min="1" value={ex.sets} onChange={e => handleExerciseChange(idx, 'sets', e.target.value)} className="w-20 border rounded px-2 py-1" placeholder="Sets" />
-                <input type="number" min="1" value={ex.reps} onChange={e => handleExerciseChange(idx, 'reps', e.target.value)} className="w-20 border rounded px-2 py-1" placeholder="Reps" />
-                <input type="text" value={ex.rest} onChange={e => handleExerciseChange(idx, 'rest', e.target.value)} className="w-24 border rounded px-2 py-1" placeholder="Rest" />
-                <input type="text" value={ex.notes} onChange={e => handleExerciseChange(idx, 'notes', e.target.value)} className="flex-1 border rounded px-2 py-1" placeholder="Notes" />
+              <div key={idx} className="flex flex-col md:flex-row gap-2 mb-2 w-full">
+                <div className="flex flex-col md:flex-row gap-2 w-full">
+                  <input type="text" value={ex.name} onChange={e => handleExerciseChange(idx, 'name', e.target.value)} className="flex-1 border rounded px-2 py-1 min-w-0" placeholder="Exercise name" />
+                  <input type="number" min="1" value={ex.sets} onChange={e => handleExerciseChange(idx, 'sets', e.target.value)} className="w-20 border rounded px-2 py-1 min-w-0" placeholder="Sets" />
+                  <input type="number" min="1" value={ex.reps} onChange={e => handleExerciseChange(idx, 'reps', e.target.value)} className="w-20 border rounded px-2 py-1 min-w-0" placeholder="Reps" />
+                  <input type="text" value={ex.rest} onChange={e => handleExerciseChange(idx, 'rest', e.target.value)} className="w-24 border rounded px-2 py-1 min-w-0" placeholder="Rest" />
+                  <input type="text" value={ex.notes} onChange={e => handleExerciseChange(idx, 'notes', e.target.value)} className="flex-1 border rounded px-2 py-1 min-w-0" placeholder="Notes" />
+                </div>
                 {exercises.length > 1 && <button type="button" onClick={() => removeExercise(idx)} className="text-red-500 font-bold">&times;</button>}
               </div>
             ))}
@@ -486,13 +488,13 @@ const Fitness = () => {
         {/* Everything else below calendar */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            {/* Sidebar: LogWorkout and Weekly Progress only */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+            {/* Sidebar: LogWorkout and Weekly Progress side by side, full width */}
+            <div className="flex flex-col md:flex-row gap-8 w-full mb-10">
+              <div className="flex-1 min-w-0">
                 <LogWorkout userId={user.id} onLogged={fetchWorkouts} />
               </div>
-              <div>
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
+              <div className="flex-1 min-w-0">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 w-full">
                   <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-pink-600" />
                     Weekly Progress

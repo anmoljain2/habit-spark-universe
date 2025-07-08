@@ -599,7 +599,7 @@ const Profile = () => {
                         <div
                           key={ownedGroup.id}
                           className="p-3 rounded-lg border-2 border-green-300 bg-green-50 flex flex-col gap-2 cursor-pointer hover:bg-green-100"
-                          onClick={() => navigate(`/group/${ownedGroup.id}`)}
+                          onClick={() => navigate(`/group/${ownedGroup.id.slice(0,6)}`)}
                         >
                           <div className="flex items-center gap-2">
                             <div className="font-bold text-green-800 flex items-center gap-2">{ownedGroup.name} <span className="text-xs font-semibold text-green-700">(owner)</span></div>
@@ -642,7 +642,7 @@ const Profile = () => {
                           key={group.id}
                           className="p-3 rounded-lg border border-gray-200 bg-gray-50 flex items-center gap-2 hover:bg-gray-100"
                         >
-                          <div className="flex-1 flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/group/${group.id}`)}>
+                          <div className="flex-1 flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/group/${group.id.slice(0,6)}`)}>
                             <div className="font-bold text-gray-800 flex items-center gap-2">{group.name}</div>
                             {group.bio && <div className="text-xs text-gray-600 ml-2">{group.bio}</div>}
                             <div className="text-xs text-gray-500 ml-auto">{Array.isArray(group.members) ? group.members.length : 0} members</div>
@@ -675,9 +675,6 @@ const Profile = () => {
             )}
             {/* Confirmation modal for leaving group */}
             <AlertDialog open={leaveDialog.open} onOpenChange={open => setLeaveDialog(open ? leaveDialog : { open: false, groupId: null, groupName: null })}>
-              <AlertDialogTrigger asChild>
-                <span></span> {/* Hidden trigger, modal is controlled manually */}
-              </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Leave {leaveDialog.groupName}?</AlertDialogTitle>

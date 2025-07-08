@@ -271,7 +271,7 @@ const Social = () => {
                     <div
                       key={group.id}
                       className="p-4 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow duration-200 cursor-pointer"
-                      onClick={() => navigate(`/group/${group.id}`)}
+                      onClick={() => navigate(`/group/${group.id.slice(0,6)}`)}
                     >
                       <div className="flex items-center gap-4">
                         <div className="flex flex-col flex-1 min-w-0">
