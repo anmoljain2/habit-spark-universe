@@ -1,53 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../integrations/supabase/client';
+import { useAuth } from '../hooks/useAuth';
 
 const News = () => {
+  const { user, loading: authLoading } = useAuth();
   const [news, setNews] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  // TODO: Replace with actual user preferences from profile/context
-  const preferences = ['technology', 'health', 'finance'];
 
-  const fetchNews = async () => {
+  const fetchNewsFromSupabase = async (userId: string) => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/generate-news-feed', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: 'demo', preferences }),
-      });
-      const data = await res.json();
-      // Try to parse the AI response as JSON
-      let parsed = [];
-      try {
-        parsed = typeof data.news === 'string' ? JSON.parse(data.news) : data.news;
-      } catch {
-        parsed = [];
-      }
-      setNews(parsed);
+      const { data, error } = await supabase
+        .from('user_news')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: false });
+      if (error) throw error;
+      setNews(data || []);
     } catch (err: any) {
       setError('Failed to fetch news');
     }
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (user && user.id) {
+      fetchNewsFromSupabase(user.id);
+    }
+  }, [user]);
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-600">Loading...</div>;
+  }
+  if (!user) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-600">Please log in to view your personalized news.</div>;
+  }
+
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-3xl font-bold mb-4">Personalized News</h1>
-      <button
-        onClick={fetchNews}
-        className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-4 py-2 rounded-xl font-medium mb-6"
-        disabled={loading}
-      >
-        {loading ? 'Loading...' : 'Get My News'}
-      </button>
+      {loading && <div className="text-gray-600 mb-4">Loading...</div>}
       {error && <div className="text-red-600 mb-4">{error}</div>}
       <div className="grid gap-6">
         {news.map((item, idx) => (
-          <div key={idx} className="bg-white rounded-xl shadow p-4">
+          <div key={item.id || idx} className="bg-white rounded-xl shadow p-4">
             <h3 className="text-xl font-bold mb-2">{item.headline}</h3>
             <p className="mb-1">{item.summary}</p>
-            <small className="text-gray-500 block mb-1">{item.reason}</small>
             {item.source && item.url && (
               <a
                 href={item.url}
@@ -58,6 +58,7 @@ const News = () => {
                 Source: {item.source}
               </a>
             )}
+            <div className="text-xs text-gray-400 mt-2">{item.date ? new Date(item.date).toLocaleString() : ''}</div>
           </div>
         ))}
       </div>

@@ -1,6 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import NewsAPI from 'newsapi';
 import { OpenAI } from 'openai';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -14,13 +15,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  if (!process.env.NEWSAPI_KEY || !process.env.OPENAI_API_KEY) {
+  if (!process.env.NEWSAPI_KEY || !process.env.OPENAI_API_KEY || !process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     res.status(500).json({ error: 'Missing required environment variables' });
     return;
   }
 
   const newsapi = new NewsAPI(process.env.NEWSAPI_KEY);
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   try {
     // 1. Fetch news from NewsAPI.org
@@ -48,8 +50,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     const aiContent = completion.choices[0].message.content;
     console.log('[OpenAI] Response:', aiContent);
-    // 4. Return result
-    res.status(200).json({ news: aiContent });
+    const aiNewsDigest = JSON.parse(aiContent);
+    console.log('[AI News Digest]:', aiNewsDigest);
+
+    // After getting aiNewsDigest (array of news articles)
+    // Insert each article into user_news
+    const now = new Date().toISOString();
+    const inserts = Array.isArray(aiNewsDigest) ? aiNewsDigest.map((item: any) => ({
+      user_id,
+      headline: item.headline,
+      summary: item.summary,
+      reason: item.reason,
+      source: item.source,
+      url: item.url,
+      date: now,
+    })) : [];
+    if (inserts.length > 0) {
+      const { error: insertError } = await supabase.from('user_news').insert(inserts);
+      if (insertError) {
+        res.status(500).json({ error: 'Failed to save news to Supabase', details: insertError });
+        return;
+      }
+    }
+    res.status(200).json({ news: aiNewsDigest });
   } catch (err) {
     console.error('[API ERROR]', err);
     res.status(500).json({ error: 'Internal server error', details: err?.message || err });
