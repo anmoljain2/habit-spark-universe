@@ -32,6 +32,7 @@ const Fitness = () => {
   // Add state for hovered workout
   const [hoveredWorkoutId, setHoveredWorkoutId] = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean, workout: any | null }>({ open: false, workout: null });
+  const calendarRef = useRef<{ refresh: () => void }>(null);
 
   const getWeekRange = () => {
     const now = new Date();
@@ -326,6 +327,7 @@ const Fitness = () => {
         setSummary('');
         setExercises([{ name: '', sets: '', reps: '', rest: '', notes: '' }]);
         onLogged();
+        await fetchWorkouts(); // Ensure calendar is refreshed immediately
         // Refresh logged workouts list
         if (typeof setLoggedWorkouts === 'function') {
           const { data } = await supabase
@@ -335,6 +337,7 @@ const Fitness = () => {
             .order('created_at', { ascending: false });
           setLoggedWorkouts(data || []);
         }
+        if (calendarRef.current) calendarRef.current.refresh();
       } catch (err: any) {
         setError(err.message || 'Failed to log workout');
       }
@@ -393,6 +396,7 @@ const Fitness = () => {
       });
       toast.success('Replaced workout for ' + date + ' with your logged workout!');
       fetchWorkouts();
+      if (calendarRef.current) calendarRef.current.refresh();
     } catch (err) {
       toast.error('Failed to replace workout.');
     }
@@ -560,7 +564,7 @@ const Fitness = () => {
 
         {/* Weekly Schedule Calendar - full width */}
         <div className="mt-2">
-          <WeeklyWorkoutCalendar onLoggedWorkoutDrop={handleLoggedWorkoutDrop} />
+          <WeeklyWorkoutCalendar ref={calendarRef} onLoggedWorkoutDrop={handleLoggedWorkoutDrop} />
         </div>
 
         {/* Everything else below calendar */}

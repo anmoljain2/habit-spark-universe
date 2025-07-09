@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Dumbbell, Heart, Bed, Sparkles, Calendar } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -130,7 +130,10 @@ function setCustomDragImage(e: React.DragEvent, name: string) {
 
 export { setCustomDragImage };
 
-const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedWorkoutDrop }) => {
+const WeeklyWorkoutCalendar = forwardRef<
+  { refresh: () => void },
+  WeeklyWorkoutCalendarProps
+>(({ onLoggedWorkoutDrop }, ref) => {
   const { user } = useAuth();
   const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
@@ -146,6 +149,7 @@ const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedW
   const [contextSaved, setContextSaved] = useState(false);
   // Add drag-over state
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+  const [hoveredDate, setHoveredDate] = useState<string | null>(null);
 
   // Calculate week start (Sunday) and today in user's local time
   const now = new Date();
@@ -162,30 +166,34 @@ const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedW
   });
 
   // Fetch workouts for the week
+  const fetchCalendar = async () => {
+    if (!user) return;
+    setLoading(true);
+    setError('');
+    const { data, error } = await supabase
+      .from('user_workouts')
+      .select('*')
+      .eq('user_id', user.id)
+      .in('date', weekDates);
+    if (error) {
+      setError('Failed to fetch workouts: ' + error.message);
+      setWeekWorkouts({});
+    } else {
+      // Map by date
+      const byDate: any = {};
+      (data || []).forEach((w: any) => {
+        byDate[w.date] = w;
+      });
+      setWeekWorkouts(byDate);
+    }
+    setLoading(false);
+  };
+
+  useImperativeHandle(ref, () => ({ refresh: fetchCalendar }), [user]);
+
   useEffect(() => {
-    const fetchWorkouts = async () => {
-      if (!user) return;
-      setLoading(true);
-      setError('');
-      const { data, error } = await supabase
-        .from('user_workouts')
-        .select('*')
-        .eq('user_id', user.id)
-        .in('date', weekDates);
-      if (error) {
-        setError('Failed to fetch workouts: ' + error.message);
-        setWeekWorkouts({});
-      } else {
-        // Map by date
-        const byDate: any = {};
-        (data || []).forEach((w: any) => {
-          byDate[w.date] = w;
-        });
-        setWeekWorkouts(byDate);
-      }
-      setLoading(false);
-    };
-    if (user) fetchWorkouts();
+    fetchCalendar();
+    // eslint-disable-next-line
   }, [user, weekStart]);
 
   // Fetch saved contexts on mount
@@ -395,6 +403,8 @@ const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedW
                         } catch {}
                       }
                     }}
+                    onMouseEnter={() => setHoveredDate(date)}
+                    onMouseLeave={() => setHoveredDate(null)}
                   >
                     <div className="text-xs font-semibold text-gray-500 mb-1">{daysOfWeek[idx]}</div>
                     <div className="font-bold text-lg mb-1 truncate w-full">{workout?.details?.workout_type || 'Rest Day'}</div>
@@ -407,6 +417,23 @@ const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedW
                         {workout.details.exercises.length > 2 && <li>+{workout.details.exercises.length - 2} more…</li>}
                       </ul>
                     )}
+                    {/* Tooltip/modal for full workout info */}
+                    {hoveredDate === date && workout && (
+                      <div className="absolute z-50 left-1/2 top-full mt-2 -translate-x-1/2 bg-white border border-gray-300 shadow-xl rounded-xl p-4 min-w-[260px] max-w-xs text-sm text-gray-800 whitespace-pre-line">
+                        <div className="font-bold text-base mb-1">{workout.details?.workout_type || 'Rest Day'}</div>
+                        {workout.details?.summary && <div className="mb-2 text-gray-600">{workout.details.summary}</div>}
+                        {workout.details?.exercises && Array.isArray(workout.details.exercises) && workout.details.exercises.length > 0 && (
+                          <div>
+                            <div className="font-semibold mb-1">Exercises:</div>
+                            <ul className="list-disc pl-5">
+                              {workout.details.exercises.map((ex: any, i: number) => (
+                                <li key={i}>{ex.name} ({ex.sets} sets × {ex.reps} reps{ex.rest ? `, rest ${ex.rest}` : ''})</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -416,6 +443,6 @@ const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedW
       </div>
     </div>
   );
-};
+});
 
 export default WeeklyWorkoutCalendar; 
