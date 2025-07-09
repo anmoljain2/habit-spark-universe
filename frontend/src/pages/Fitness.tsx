@@ -12,6 +12,62 @@ import WeeklyWorkoutCalendar, { setCustomDragImage } from '../components/WeeklyW
 import FitnessGoals from '../components/FitnessGoals';
 import { getLocalDateStr } from '@/lib/utils';
 
+// Move EditLoggedWorkoutModal above Fitness so it is defined before use
+function EditLoggedWorkoutModal({ workout, onClose, onSave }: { workout: any, onClose: () => void, onSave: (w: any) => void }) {
+  const [name, setName] = useState(workout.name || '');
+  const [description, setDescription] = useState(workout.description || '');
+  const [exercises, setExercises] = useState(workout.details?.exercises || []);
+  const [saving, setSaving] = useState(false);
+  const handleExerciseChange = (idx: number, key: string, value: string) => {
+    setExercises(exs => exs.map((ex, i) => i === idx ? { ...ex, [key]: value } : ex));
+  };
+  const addExercise = () => setExercises(exs => [...exs, { name: '', sets: '', reps: '', rest: '', notes: '' }]);
+  const removeExercise = (idx: number) => setExercises(exs => exs.filter((_, i) => i !== idx));
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    await onSave({ ...workout, name, description, details: { ...workout.details, exercises } });
+    setSaving(false);
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg flex flex-col gap-4">
+        <h3 className="text-lg font-bold text-blue-700 mb-2">Edit Logged Workout</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block font-semibold text-gray-700 mb-1">Workout Name</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border rounded px-3 py-2" required />
+          </div>
+          <div>
+            <label className="block font-semibold text-gray-700 mb-1">Description</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full border rounded px-3 py-2" />
+          </div>
+          <div>
+            <label className="block font-semibold text-gray-700 mb-1">Exercises</label>
+            {exercises.map((ex, idx) => (
+              <div key={idx} className="flex flex-col md:flex-row gap-2 mb-2 w-full">
+                <div className="flex flex-col md:flex-row gap-2 w-full">
+                  <input type="text" value={ex.name} onChange={e => handleExerciseChange(idx, 'name', e.target.value)} className="flex-1 border rounded px-2 py-1 min-w-0" placeholder="Exercise name" />
+                  <input type="number" min="1" value={ex.sets} onChange={e => handleExerciseChange(idx, 'sets', e.target.value)} className="w-20 border rounded px-2 py-1 min-w-0" placeholder="Sets" />
+                  <input type="number" min="1" value={ex.reps} onChange={e => handleExerciseChange(idx, 'reps', e.target.value)} className="w-20 border rounded px-2 py-1 min-w-0" placeholder="Reps" />
+                  <input type="text" value={ex.rest} onChange={e => handleExerciseChange(idx, 'rest', e.target.value)} className="w-24 border rounded px-2 py-1 min-w-0" placeholder="Rest" />
+                  <input type="text" value={ex.notes} onChange={e => handleExerciseChange(idx, 'notes', e.target.value)} className="flex-1 border rounded px-2 py-1 min-w-0" placeholder="Notes" />
+                </div>
+                {exercises.length > 1 && <button type="button" onClick={() => removeExercise(idx)} className="text-red-500 font-bold">&times;</button>}
+              </div>
+            ))}
+            <button type="button" onClick={addExercise} className="text-blue-600 font-semibold mt-1">+ Add Exercise</button>
+          </div>
+          <div className="flex gap-2 justify-end mt-4">
+            <button type="button" className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={onClose} disabled={saving}>Cancel</button>
+            <button type="submit" className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 const Fitness = () => {
   const { user } = useAuth();
   const { fitnessGoals, loading: profileLoading, refreshProfile } = useProfile();
@@ -34,6 +90,7 @@ const Fitness = () => {
   const [deleteModal, setDeleteModal] = useState<{ open: boolean, workout: any | null }>({ open: false, workout: null });
   const calendarRef = useRef<{ refresh: () => void }>(null);
   const [wasManuallyReset, setWasManuallyReset] = useState(false);
+  const [editModal, setEditModal] = useState<{ open: boolean, workout: any | null }>({ open: false, workout: null });
 
   const getWeekRange = () => {
     const now = new Date();
@@ -396,10 +453,16 @@ const Fitness = () => {
       // Delete existing workout for that date
       await supabase.from('user_workouts').delete().eq('user_id', user.id).eq('date', date);
       // Insert the logged workout for that date
+      const workoutType = workout.details?.workout_type || workout.name || 'Custom Workout';
+      const details = {
+        ...workout.details,
+        workout_type: workoutType,
+      };
       await supabase.from('user_workouts').insert({
         user_id: user.id,
         date,
-        details: workout.details,
+        workout_type: workoutType,
+        details,
       });
       toast.success('Replaced workout for ' + date + ' with your logged workout!');
       fetchWorkouts();
@@ -613,6 +676,14 @@ const Fitness = () => {
                       >
                         <X className="w-5 h-5" />
                       </button>
+                      {/* Edit button - now immediately to the left of X */}
+                      <button
+                        className="absolute right-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-blue-600 p-1"
+                        onClick={e => { e.stopPropagation(); setEditModal({ open: true, workout: w }); }}
+                        aria-label="Edit workout"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6H9v-3z" /></svg>
+                      </button>
                       {hoveredWorkoutId === w.id && (
                         <div className="absolute left-48 top-0 z-50 bg-white border border-gray-300 shadow-lg rounded-lg p-4 min-w-[260px] text-sm text-gray-800 whitespace-pre-line">
                           <div className="font-bold text-base mb-1">{w.name}</div>
@@ -669,6 +740,29 @@ const Fitness = () => {
             </div>
           </div>
         </div>
+      )}
+      {/* Edit Workout Modal */}
+      {editModal.open && editModal.workout && (
+        <EditLoggedWorkoutModal
+          workout={editModal.workout}
+          onClose={() => setEditModal({ open: false, workout: null })}
+          onSave={async (updated) => {
+            // Save to Supabase
+            try {
+              const { error } = await supabase.from('user_logged_workouts').update({
+                name: updated.name,
+                description: updated.description,
+                details: updated.details,
+              }).eq('id', updated.id);
+              if (error) throw error;
+              setLoggedWorkouts(ws => ws.map(w => w.id === updated.id ? { ...w, ...updated } : w));
+              toast.success('Workout updated!');
+              setEditModal({ open: false, workout: null });
+            } catch (err: any) {
+              toast.error('Failed to update workout.');
+            }
+          }}
+        />
       )}
     </div>
   );

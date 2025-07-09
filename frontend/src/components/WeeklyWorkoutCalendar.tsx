@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatISO, startOfWeek } from 'date-fns';
 import axios from 'axios';
 import { useProfile } from '../components/ProfileContext';
+import { toast } from 'sonner';
 
 const workoutIcons: Record<string, any> = {
   'Full Body Strength': Dumbbell,
@@ -150,6 +151,15 @@ const WeeklyWorkoutCalendar = forwardRef<
   // Add drag-over state
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+  const [regenDayModal, setRegenDayModal] = useState<{ open: boolean, date: string | null }>({ open: false, date: null });
+  const [regenDayFeedback, setRegenDayFeedback] = useState('');
+  const [regenDayLoading, setRegenDayLoading] = useState(false);
+  // Add state for editing a calendar day
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState<any>({});
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [savingToLogged, setSavingToLogged] = useState(false);
+  const [showLoggedTooltip, setShowLoggedTooltip] = useState(false);
 
   // Calculate week start (Sunday) and today in user's local time
   const now = new Date();
@@ -376,6 +386,49 @@ const WeeklyWorkoutCalendar = forwardRef<
             </div>
           </div>
         )}
+        {/* Regenerate Day Modal */}
+        {regenDayModal.open && regenDayModal.date && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md flex flex-col gap-4">
+              <h3 className="text-lg font-bold text-orange-700 mb-2">Regenerate {daysOfWeek[weekDates.indexOf(regenDayModal.date)]} Workout</h3>
+              <label className="text-sm text-gray-700 mb-1">Why are you regenerating this day? (Feedback for the AI)</label>
+              <textarea
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:ring-orange-500 focus:border-orange-500"
+                rows={3}
+                value={regenDayFeedback}
+                onChange={e => setRegenDayFeedback(e.target.value)}
+                placeholder="E.g. I want more cardio, less HIIT, etc."
+                disabled={regenDayLoading}
+              />
+              <div className="flex gap-2 justify-end mt-2">
+                <button className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={() => setRegenDayModal({ open: false, date: null })} disabled={regenDayLoading}>Cancel</button>
+                <button
+                  className="px-4 py-2 rounded-lg bg-orange-600 text-white font-semibold hover:bg-orange-700 flex items-center gap-2"
+                  onClick={async () => {
+                    if (!user || !regenDayModal.date) return;
+                    setRegenDayLoading(true);
+                    try {
+                      await axios.post('/api/generate-workout-plan', {
+                        user_id: user.id,
+                        regenerate_feedback: regenDayFeedback,
+                        regenerate_date: regenDayModal.date,
+                      });
+                      await fetchCalendar();
+                      setRegenDayModal({ open: false, date: null });
+                      setRegenDayFeedback('');
+                    } catch (err) {
+                      setError('Failed to regenerate day.');
+                    }
+                    setRegenDayLoading(false);
+                  }}
+                  disabled={regenDayLoading || !regenDayFeedback.trim()}
+                >
+                  {regenDayLoading ? 'Regenerating...' : 'Regenerate'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {error && <div className="text-center text-red-600 font-semibold mb-4">{error}</div>}
         <div className="w-full">
           <div className="grid grid-cols-7 gap-4">
@@ -433,6 +486,102 @@ const WeeklyWorkoutCalendar = forwardRef<
                           </div>
                         )}
                       </div>
+                    )}
+                    {editingDate === date ? (
+                      <div className="w-full mt-2 bg-white border border-blue-200 rounded-xl p-3 shadow-lg">
+                        <form onSubmit={async e => {
+                          e.preventDefault();
+                          setSavingEdit(true);
+                          try {
+                            await supabase.from('user_workouts').update({
+                              workout_type: editFields.workout_type,
+                              details: { ...editFields, workout_type: editFields.workout_type },
+                            }).eq('user_id', user.id).eq('date', date);
+                            await fetchCalendar();
+                            setEditingDate(null);
+                            toast.success('Workout updated!');
+                          } catch (err) {
+                            toast.error('Failed to update workout.');
+                          }
+                          setSavingEdit(false);
+                        }} className="space-y-2">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Workout Type</label>
+                            <input type="text" value={editFields.workout_type || ''} onChange={e => setEditFields((f: any) => ({ ...f, workout_type: e.target.value }))} className="w-full border rounded px-2 py-1" required />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Summary</label>
+                            <textarea value={editFields.summary || ''} onChange={e => setEditFields((f: any) => ({ ...f, summary: e.target.value }))} className="w-full border rounded px-2 py-1" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Exercises</label>
+                            {(editFields.exercises || []).map((ex: any, idx: number) => (
+                              <div key={idx} className="flex flex-col md:flex-row gap-2 mb-1 w-full">
+                                <input type="text" value={ex.name} onChange={e => setEditFields((f: any) => { const exs = [...(f.exercises || [])]; exs[idx] = { ...exs[idx], name: e.target.value }; return { ...f, exercises: exs }; })} className="flex-1 border rounded px-2 py-1 min-w-0" placeholder="Exercise name" />
+                                <input type="number" min="1" value={ex.sets} onChange={e => setEditFields((f: any) => { const exs = [...(f.exercises || [])]; exs[idx] = { ...exs[idx], sets: e.target.value }; return { ...f, exercises: exs }; })} className="w-16 border rounded px-2 py-1 min-w-0" placeholder="Sets" />
+                                <input type="number" min="1" value={ex.reps} onChange={e => setEditFields((f: any) => { const exs = [...(f.exercises || [])]; exs[idx] = { ...exs[idx], reps: e.target.value }; return { ...f, exercises: exs }; })} className="w-16 border rounded px-2 py-1 min-w-0" placeholder="Reps" />
+                                <input type="text" value={ex.rest} onChange={e => setEditFields((f: any) => { const exs = [...(f.exercises || [])]; exs[idx] = { ...exs[idx], rest: e.target.value }; return { ...f, exercises: exs }; })} className="w-20 border rounded px-2 py-1 min-w-0" placeholder="Rest" />
+                                <input type="text" value={ex.notes} onChange={e => setEditFields((f: any) => { const exs = [...(f.exercises || [])]; exs[idx] = { ...exs[idx], notes: e.target.value }; return { ...f, exercises: exs }; })} className="flex-1 border rounded px-2 py-1 min-w-0" placeholder="Notes" />
+                                {(editFields.exercises || []).length > 1 && <button type="button" onClick={() => setEditFields((f: any) => ({ ...f, exercises: f.exercises.filter((_: any, i: number) => i !== idx) }))} className="text-red-500 font-bold">&times;</button>}
+                              </div>
+                            ))}
+                            <button type="button" onClick={() => setEditFields((f: any) => ({ ...f, exercises: [...(f.exercises || []), { name: '', sets: '', reps: '', rest: '', notes: '' }] }))} className="text-blue-600 font-semibold mt-1">+ Add Exercise</button>
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            <button type="button" className="px-3 py-1 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={() => setEditingDate(null)} disabled={savingEdit || savingToLogged}>Cancel</button>
+                            <button type="submit" className="px-3 py-1 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700" disabled={savingEdit}>{savingEdit ? 'Saving...' : 'Save'}</button>
+                            <button type="button" className="px-3 py-1 rounded-lg bg-gradient-to-r from-orange-500 to-pink-600 text-white font-semibold hover:shadow-lg flex items-center gap-1 relative" onClick={async () => {
+                              setSavingToLogged(true);
+                              try {
+                                await supabase.from('user_logged_workouts').insert({
+                                  user_id: user.id,
+                                  name: editFields.workout_type || 'Custom Workout',
+                                  description: editFields.summary,
+                                  details: { ...editFields, workout_type: editFields.workout_type },
+                                });
+                                setShowLoggedTooltip(true);
+                                setTimeout(() => setShowLoggedTooltip(false), 2000);
+                                toast.success('Saved to logged workouts!');
+                              } catch (err) {
+                                toast.error('Failed to save to logged workouts.');
+                              }
+                              setSavingToLogged(false);
+                            }} disabled={savingEdit || savingToLogged} onMouseEnter={() => setShowLoggedTooltip(true)} onMouseLeave={() => setShowLoggedTooltip(false)}>
+                              {savingToLogged ? (
+                                <svg className="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                              ) : (
+                                <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></svg>
+                              )}
+                              Save to Logged Workouts
+                              {showLoggedTooltip && (
+                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-xs rounded px-2 py-1 z-50">Save to your logged workouts</span>
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="relative">
+                          <button
+                            className={`absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-600 text-white px-2 py-1 rounded text-xs font-semibold hover:shadow-lg transition-all flex items-center gap-1 z-10 ${regenDayLoading && regenDayModal.date === date ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            onClick={e => { e.stopPropagation(); setRegenDayModal({ open: true, date }); setRegenDayFeedback(''); }}
+                            disabled={regenerating || (regenDayLoading && regenDayModal.date === date)}
+                            title="Regenerate Workout"
+                          >
+                            {regenDayLoading && regenDayModal.date === date ? (
+                              <svg className="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                            ) : (
+                              <>
+                                <span className="sr-only">Regenerate Workout</span>
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4v5h.582M20 20v-5h-.581M5.635 19.364A9 9 0 1 1 19.364 5.636" /></svg>
+                              </>
+                            )}
+                            <span>Regenerate</span>
+                          </button>
+                        </div>
+                        <button className="absolute bottom-2 right-2 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-200 z-10" onClick={e => { e.stopPropagation(); setEditingDate(date); setEditFields({ ...(workout?.details || {}), exercises: Array.isArray(workout?.details?.exercises) ? workout.details.exercises : [] }); }}>Edit</button>
+                      </>
                     )}
                   </div>
                 );
