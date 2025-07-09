@@ -10,6 +10,7 @@
     { "src": "/api/edamam-nutrition-analysis", "dest": "/frontend/api/edamam-nutrition-analysis.ts" },
     { "src": "/api/edamam-food-database", "dest": "/frontend/api/edamam-food-database.ts" },
     { "src": "/api/delete-recipe", "dest": "/frontend/api/delete-recipe.ts" },
+    { "src": "/api/generate-news-feed", "dest": "/frontend/api/generate-news-feed.ts" },
     { "src": "/(.*\\.(js|css|svg|png|jpg|jpeg|ico|json|txt|woff2?|ttf|eot|map))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
