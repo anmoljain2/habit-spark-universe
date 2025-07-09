@@ -237,7 +237,7 @@ export default function GroupProfile() {
           </CardTitle>
           {/* Join Group Button or In Group label */}
           <div className="mt-2">
-            {profile?.user_id === group.owner ? (
+            {profile?.user_id === (typeof group.owner === 'object' ? group.owner.user_id : group.owner) ? (
               <>
                 <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold mr-3">In Group (Owner)</span>
                 <Button
@@ -319,12 +319,14 @@ export default function GroupProfile() {
                     return (
                       <li key={memberId} className="flex items-center gap-2">
                         <span className="text-gray-800">
-                          {memberId === group.owner
+                          {memberId === (typeof group.owner === 'object' ? group.owner.user_id : group.owner)
                             ? `Owner (You)`
-                            : member?.display_name || member?.username || memberId}
+                            : member
+                              ? member.display_name || member.username || 'Member'
+                              : <span className="inline-block bg-gray-200 rounded w-24 h-4 animate-pulse" />}
                         </span>
                         {/* Show REMOVE button for non-owner members if current user is owner */}
-                        {profile?.user_id === group.owner && memberId !== group.owner && (
+                        {profile?.user_id === (typeof group.owner === 'object' ? group.owner.user_id : group.owner) && memberId !== (typeof group.owner === 'object' ? group.owner.user_id : group.owner) && (
                           <AlertDialog open={removingMember === memberId} onOpenChange={open => setRemovingMember(open ? memberId : null)}>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -397,7 +399,6 @@ export default function GroupProfile() {
                 )}
               </div>
               {/* Chats, etc. can be added here */}
-              <div className="mt-4">Member list and chat above.</div>
             </>
           ) : (
             <div className="text-gray-500 italic mt-4">This is a private group. Join to see more.</div>

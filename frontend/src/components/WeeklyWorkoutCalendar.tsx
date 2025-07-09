@@ -98,6 +98,18 @@ interface WeeklyWorkoutCalendarProps {
   onLoggedWorkoutDrop?: (date: string, workout: any) => void;
 }
 
+function autoScrollOnDrag(e: React.DragEvent) {
+  const threshold = 80; // px from top/bottom to start scrolling
+  const scrollSpeed = 30; // px per event
+  const y = e.clientY;
+  const windowHeight = window.innerHeight;
+  if (y < threshold) {
+    window.scrollBy({ top: -scrollSpeed, behavior: 'smooth' });
+  } else if (y > windowHeight - threshold) {
+    window.scrollBy({ top: scrollSpeed, behavior: 'smooth' });
+  }
+}
+
 const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedWorkoutDrop }) => {
   const { user } = useAuth();
   const { profile } = useProfile();
@@ -325,7 +337,12 @@ const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedW
                   onClick={submitRegenerate}
                   disabled={regenerating || (!regenFeedback.trim() && selectedContexts.length === 0)}
                 >
-                  {regenerating ? 'Regenerating...' : 'Regenerate'}
+                  {regenerating ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                      Regenerating...
+                    </>
+                  ) : 'Regenerate'}
                 </button>
               </div>
             </div>
@@ -346,7 +363,7 @@ const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedW
                   <div
                     key={date}
                     className={`relative rounded-xl p-3 min-h-[120px] flex flex-col items-start justify-between border shadow-sm transition-all duration-200 bg-white/80 ${isToday ? 'border-pink-500 ring-2 ring-pink-300' : 'border-gray-200'} ${dragOverDate === date ? 'bg-blue-100 border-blue-400' : ''}`}
-                    onDragOver={e => { e.preventDefault(); setDragOverDate(date); }}
+                    onDragOver={e => { e.preventDefault(); setDragOverDate(date); autoScrollOnDrag(e); }}
                     onDragLeave={() => setDragOverDate(null)}
                     onDrop={e => {
                       setDragOverDate(null);

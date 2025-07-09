@@ -49,8 +49,8 @@ const Fitness = () => {
       .from('user_workouts')
       .select('*')
       .eq('user_id', user.id)
-      .gte('week_start', weekStart)
-      .lte('week_start', weekEnd);
+      .gte('date', weekStart)
+      .lte('date', weekEnd);
     if (fetchError) {
       setError('Failed to fetch workouts: ' + fetchError.message);
     } else {
@@ -285,6 +285,12 @@ const Fitness = () => {
       e.preventDefault();
       setLoading(true);
       setError('');
+      const trimmedWorkoutType = workoutType.trim();
+      if (!trimmedWorkoutType) {
+        setError('Workout Type is required.');
+        setLoading(false);
+        return;
+      }
       try {
         // Remove any existing workout for this user and date
         await supabase.from('user_workouts').delete().eq('user_id', userId).eq('date', date);
@@ -293,7 +299,7 @@ const Fitness = () => {
           user_id: userId,
           date,
           details: {
-            workout_type: workoutType,
+            workout_type: trimmedWorkoutType,
             summary,
             exercises: exercises.filter(ex => ex.name.trim()),
           },
@@ -302,10 +308,10 @@ const Fitness = () => {
         // Insert into user_logged_workouts (for personal library)
         const { error: loggedError } = await supabase.from('user_logged_workouts').insert({
           user_id: userId,
-          name: workoutType || 'Custom Workout',
+          name: trimmedWorkoutType || 'Custom Workout',
           description: summary,
           details: {
-            workout_type: workoutType,
+            workout_type: trimmedWorkoutType,
             summary,
             exercises: exercises.filter(ex => ex.name.trim()),
           },
@@ -558,16 +564,15 @@ const Fitness = () => {
 
         {/* Everything else below calendar */}
         <div className="w-full flex flex-col md:flex-row gap-8 mb-10">
-          {/* Log Workout and Logged Workouts side by side */}
           <div className="flex-1 min-w-0 flex flex-col h-full">
             <LogWorkout userId={user.id} onLogged={fetchWorkouts} />
-            {/* Drag-and-drop instructional message */}
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col h-full">
+            {/* Drag-and-drop instructional message above logged workouts */}
             <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg px-4 py-2 mb-3 text-sm font-medium flex items-center gap-2">
               <span role="img" aria-label="drag">🖱️</span>
               Drag and drop your logged workouts onto any day in the calendar to replace the scheduled workout with your own.
             </div>
-          </div>
-          <div className="flex-1 min-w-0 flex flex-col h-full">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow border border-white/50 mt-2 h-full flex flex-col">
               <h4 className="text-lg font-bold text-gray-800 mb-2">Your Logged Workouts</h4>
               {loggedWorkouts.length === 0 ? (
