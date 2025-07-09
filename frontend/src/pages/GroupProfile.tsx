@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import GroupEditQuestionnaire from '../components/GroupEditQuestionnaire';
+import { toast } from 'sonner';
 
 export default function GroupProfile() {
   const { groupId } = useParams();
@@ -156,22 +157,41 @@ export default function GroupProfile() {
   // Leave group logic (for members)
   async function leaveGroup() {
     if (!group || !profile?.user_id) return;
-    // Remove user from group members
-    const newMembers = (group.members || []).filter((id: string) => id !== profile.user_id);
-    await supabase.from('social_groups').update({ members: newMembers }).eq('id', group.id);
-    // Remove groupId from user's group_ids
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('group_ids')
-      .eq('user_id', profile.user_id)
-      .single();
-    const groupIds = userProfile?.group_ids || [];
-    if (groupIds.includes(group.id)) {
-      await supabase.from('user_profiles').update({ group_ids: groupIds.filter((id: string) => id !== group.id) }).eq('user_id', profile.user_id);
+    try {
+      // Remove user from group members (JSONB array)
+      const newMembers = (Array.isArray(group.members) ? group.members : []).filter((id: string) => id !== profile.user_id);
+      const { error: groupError } = await supabase.from('social_groups').update({ members: newMembers }).eq('id', group.id);
+      if (groupError) {
+        toast.error('Failed to leave group: ' + groupError.message);
+        return;
+      }
+      // Remove groupId from user's group_ids
+      const { data: userProfile, error: userProfileError } = await supabase
+        .from('user_profiles')
+        .select('group_ids')
+        .eq('user_id', profile.user_id)
+        .single();
+      if (userProfileError) {
+        toast.error('Failed to update your profile: ' + userProfileError.message);
+        return;
+      }
+      const groupIds = userProfile?.group_ids || [];
+      if (groupIds.includes(group.id)) {
+        const { error: updateError } = await supabase.from('user_profiles').update({ group_ids: groupIds.filter((id: string) => id !== group.id) }).eq('user_id', profile.user_id);
+        if (updateError) {
+          toast.error('Failed to update your profile: ' + updateError.message);
+          return;
+        }
+      }
+      setGroup({ ...group, members: newMembers });
+      setIsMember(false);
+      toast.success('You have left the group.');
+      // Refetch group to ensure UI is up to date
+      navigate('/profile');
+    } catch (err: any) {
+      toast.error('An error occurred while leaving the group.');
+      console.error('Leave group error:', err);
     }
-    setGroup({ ...group, members: newMembers });
-    setIsMember(false);
-    navigate('/profile');
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -217,7 +237,28 @@ export default function GroupProfile() {
           </CardTitle>
           {/* Join Group Button or In Group label */}
           <div className="mt-2">
-            {isMember && profile?.user_id !== group.owner ? (
+            {profile?.user_id === group.owner ? (
+              <>
+                <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold mr-3">In Group (Owner)</span>
+                <Button
+                  className="bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 hover:text-blue-900 font-semibold ml-2"
+                  variant="outline"
+                  onClick={() => setShowEditModal(true)}
+                >
+                  Edit Group
+                </Button>
+                {showEditModal && (
+                  <GroupEditQuestionnaire
+                    group={group}
+                    onClose={() => setShowEditModal(false)}
+                    onSaved={async (updatedGroup) => {
+                      setGroup(updatedGroup);
+                      setShowEditModal(false);
+                    }}
+                  />
+                )}
+              </>
+            ) : isMember ? (
               <>
                 <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold mr-3">In Group</span>
                 <Button
@@ -241,27 +282,6 @@ export default function GroupProfile() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-              </>
-            ) : profile?.user_id === group.owner ? (
-              <>
-                <span className="inline-block bg-green-100 text-green-700 px-4 py-1 rounded-full font-semibold mr-3">In Group (Owner)</span>
-                <Button
-                  className="bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 hover:text-blue-900 font-semibold ml-2"
-                  variant="outline"
-                  onClick={() => setShowEditModal(true)}
-                >
-                  Edit Group
-                </Button>
-                {showEditModal && (
-                  <GroupEditQuestionnaire
-                    group={group}
-                    onClose={() => setShowEditModal(false)}
-                    onSaved={async (updatedGroup) => {
-                      setGroup(updatedGroup);
-                      setShowEditModal(false);
-                    }}
-                  />
-                )}
               </>
             ) : (
               <Button

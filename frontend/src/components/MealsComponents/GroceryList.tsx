@@ -245,8 +245,18 @@ const GroceryList: React.FC<GroceryListProps> = ({ userId, weekStart }) => {
             <button
               onClick={handleGenerateGroceryList}
               className="mt-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold shadow hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2 w-full"
+              disabled={isGenerating}
             >
-              <ShoppingCart className="w-5 h-5" /> {groceryList.length === 0 ? 'Generate Grocery List' : 'Regenerate Grocery List'}
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-5 h-5" /> {groceryList.length === 0 ? 'Generate Grocery List' : 'Regenerate Grocery List'}
+                </>
+              )}
             </button>
           </>
         )}

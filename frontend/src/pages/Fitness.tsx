@@ -288,7 +288,7 @@ const Fitness = () => {
       try {
         // Remove any existing workout for this user and date
         await supabase.from('user_workouts').delete().eq('user_id', userId).eq('date', date);
-        // Insert new workout
+        // Insert new workout into user_workouts
         const { error: insertError } = await supabase.from('user_workouts').insert({
           user_id: userId,
           date,
@@ -299,10 +299,35 @@ const Fitness = () => {
           },
         });
         if (insertError) throw insertError;
+        // Insert into user_logged_workouts (for personal library)
+        const { error: loggedError } = await supabase.from('user_logged_workouts').insert({
+          user_id: userId,
+          name: workoutType || 'Custom Workout',
+          description: summary,
+          details: {
+            workout_type: workoutType,
+            summary,
+            exercises: exercises.filter(ex => ex.name.trim()),
+          },
+        });
+        if (loggedError) {
+          toast.error('Failed to log workout to your library: ' + loggedError.message);
+          console.error('user_logged_workouts insert error:', loggedError);
+          throw loggedError;
+        }
         setWorkoutType('');
         setSummary('');
         setExercises([{ name: '', sets: '', reps: '', rest: '', notes: '' }]);
         onLogged();
+        // Refresh logged workouts list
+        if (typeof setLoggedWorkouts === 'function') {
+          const { data } = await supabase
+            .from('user_logged_workouts')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+          setLoggedWorkouts(data || []);
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to log workout');
       }
@@ -485,7 +510,7 @@ const Fitness = () => {
               </div>
             </div>
           </div>
-          {/* Daily Motivation next to Today's Workout */}
+          {/* Daily Motivation and Weekly Progress stacked in right column */}
           <div className="space-y-6">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50">
               <h3 className="text-xl font-bold text-gray-800 mb-4">Daily Motivation</h3>
@@ -495,6 +520,32 @@ const Fitness = () => {
                 <div className="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-4 py-2 rounded-xl font-medium text-sm">
                   You're 80% to your weekly goal!
                 </div>
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 w-full">
+              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-pink-600" />
+                Weekly Progress
+              </h3>
+              <div className="space-y-4">
+                {weeklyStats.map((stat, index) => {
+                  const percentage = (stat.current / stat.target) * 100;
+                  return (
+                    <div key={index}>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium text-gray-700">{stat.label}</span>
+                        <span className="text-sm text-gray-600">{stat.current}/{stat.target}{stat.label === 'Calories Burned' ? ' kcal' : stat.label === 'Active Minutes' ? ' min' : ''}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className={`bg-gradient-to-r ${stat.color} h-3 rounded-full transition-all duration-500`}
+                          style={{ width: `${Math.min(100, percentage)}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">{Math.round(percentage)}% complete</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -507,20 +558,22 @@ const Fitness = () => {
 
         {/* Everything else below calendar */}
         <div className="w-full flex flex-col md:flex-row gap-8 mb-10">
-          <div className="flex-1 min-w-0">
+          {/* Log Workout and Logged Workouts side by side */}
+          <div className="flex-1 min-w-0 flex flex-col h-full">
             <LogWorkout userId={user.id} onLogged={fetchWorkouts} />
             {/* Drag-and-drop instructional message */}
             <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg px-4 py-2 mb-3 text-sm font-medium flex items-center gap-2">
               <span role="img" aria-label="drag">🖱️</span>
               Drag and drop your logged workouts onto any day in the calendar to replace the scheduled workout with your own.
             </div>
-            {/* User Logged Workouts List */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow border border-white/50 mt-2">
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col h-full">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow border border-white/50 mt-2 h-full flex flex-col">
               <h4 className="text-lg font-bold text-gray-800 mb-2">Your Logged Workouts</h4>
               {loggedWorkouts.length === 0 ? (
                 <div className="text-gray-500 text-sm">No logged workouts yet.</div>
               ) : (
-                <ul className="divide-y divide-gray-200">
+                <ul className="divide-y divide-gray-200 flex-1">
                   {loggedWorkouts.map((w) => (
                     <li
                       key={w.id}
@@ -554,34 +607,6 @@ const Fitness = () => {
                   ))}
                 </ul>
               )}
-            </div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 w-full">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-pink-600" />
-                Weekly Progress
-              </h3>
-              <div className="space-y-4">
-                {weeklyStats.map((stat, index) => {
-                  const percentage = (stat.current / stat.target) * 100;
-                  return (
-                    <div key={index}>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium text-gray-700">{stat.label}</span>
-                        <span className="text-sm text-gray-600">{stat.current}/{stat.target}{stat.label === 'Calories Burned' ? ' kcal' : stat.label === 'Active Minutes' ? ' min' : ''}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div 
-                          className={`bg-gradient-to-r ${stat.color} h-3 rounded-full transition-all duration-500`}
-                          style={{ width: `${Math.min(100, percentage)}%` }}
-                        ></div>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">{Math.round(percentage)}% complete</div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
           </div>
         </div>

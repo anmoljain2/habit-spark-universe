@@ -15,6 +15,18 @@ interface AICalendarMealPlannerProps {
 const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'];
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+function autoScrollOnDrag(e: React.DragEvent) {
+  const threshold = 80; // px from top/bottom to start scrolling
+  const scrollSpeed = 30; // px per event
+  const y = e.clientY;
+  const windowHeight = window.innerHeight;
+  if (y < threshold) {
+    window.scrollBy({ top: -scrollSpeed, behavior: 'smooth' });
+  } else if (y > windowHeight - threshold) {
+    window.scrollBy({ top: scrollSpeed, behavior: 'smooth' });
+  }
+}
+
 const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, weekStart, nutritionPrefs, timezone, todayStr }) => {
   const { weekMeals, loading, refreshMeals } = useMeals();
   const [regeneratingDay, setRegeneratingDay] = useState<string | null>(null);
@@ -273,6 +285,7 @@ const AICalendarMealPlanner: React.FC<AICalendarMealPlannerProps> = ({ userId, w
                       onDragOver={e => {
                         e.preventDefault();
                         setDragOverCell({ day: dateStr, type });
+                        autoScrollOnDrag(e);
                       }}
                       onDragLeave={e => {
                         setDragOverCell(null);
