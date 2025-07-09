@@ -9,7 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { user_id, preferences } = req.body;
+  const { user_id, preferences, regenerate_feedback } = req.body;
   if (!user_id || !preferences || !Array.isArray(preferences)) {
     res.status(400).json({ error: 'user_id and preferences (array) are required' });
     return;
@@ -41,7 +41,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     // 2. Prepare prompt for OpenAI
     const articlesForPrompt = newsResponse.articles.slice(0, 10).map(a => `Title: ${a.title}\nDescription: ${a.description}`).join('\n\n');
-    const prompt = `User interests: ${preferences.join(', ')}\nNews articles: ${articlesForPrompt}\nTask: Generate a personalized news digest with 5 items. For each, provide a headline, a 1-2 sentence summary, and a reason why it matches the user's interests. Return as a JSON array.`;
+    let prompt = `User interests: ${preferences.join(', ')}\nNews articles: ${articlesForPrompt}\n`;
+    if (regenerate_feedback && regenerate_feedback.trim()) {
+      prompt += `\nUser feedback for this news generation: \"${regenerate_feedback.trim()}\". Please use this feedback to better tailor the news selection and summaries.`;
+    }
+    prompt += `\nTask: Generate a personalized news digest with 5 items. For each item, provide:\n- headline: a concise headline\n- summary: a 1-2 sentence summary of the article\n- url: the original article URL (from the news list above)\nReturn as a JSON array. Do not include any extra commentary.`;
     console.log('[OpenAI] Prompt:', prompt);
     // 3. Call OpenAI
     const completion = await openai.chat.completions.create({
@@ -56,14 +60,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // After getting aiNewsDigest (array of news articles)
     // Insert each article into user_news
     const now = new Date().toISOString();
-    const inserts = Array.isArray(aiNewsDigest) ? aiNewsDigest.map((item: any) => ({
+    const inserts = Array.isArray(aiNewsDigest) ? aiNewsDigest.map((item: any, idx: number) => ({
       user_id,
       headline: item.headline,
       summary: item.summary,
-      reason: item.reason,
-      source: item.source,
       url: item.url,
       date: now,
+      source: item.source || newsResponse.articles[idx]?.source?.name || null,
     })) : [];
     if (inserts.length > 0) {
       const { error: insertError } = await supabase.from('user_news').insert(inserts);
