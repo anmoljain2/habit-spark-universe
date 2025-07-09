@@ -33,6 +33,7 @@ const Fitness = () => {
   const [hoveredWorkoutId, setHoveredWorkoutId] = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ open: boolean, workout: any | null }>({ open: false, workout: null });
   const calendarRef = useRef<{ refresh: () => void }>(null);
+  const [wasManuallyReset, setWasManuallyReset] = useState(false);
 
   const getWeekRange = () => {
     const now = new Date();
@@ -195,6 +196,7 @@ const Fitness = () => {
   const handlePause = () => setTimerPaused(true);
   const handleResume = () => setTimerPaused(false);
   const handleReset = () => {
+    setWasManuallyReset(true);
     setTimerActive(false);
     setTimerPaused(false);
     setTimerSeconds(0);
@@ -251,7 +253,12 @@ const Fitness = () => {
   // When timer finishes naturally, mark workout complete
   useEffect(() => {
     if (!timerActive && !timerPaused && timerSeconds === 0 && todayWorkout && !todayWorkout.completed) {
-      markWorkoutComplete();
+      if (!wasManuallyReset) {
+        markWorkoutComplete();
+      }
+    }
+    if (!timerActive && timerSeconds === 0 && wasManuallyReset) {
+      setWasManuallyReset(false);
     }
     // eslint-disable-next-line
   }, [timerActive, timerPaused, timerSeconds]);

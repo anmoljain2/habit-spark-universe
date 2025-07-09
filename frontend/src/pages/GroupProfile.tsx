@@ -121,18 +121,30 @@ export default function GroupProfile() {
 
   // Remove member logic (for owner)
   async function removeMember(userId: string) {
-    if (!group || !profile?.user_id || group.owner !== profile.user_id) return;
+    if (!group || !profile?.user_id || getOwnerId(group.owner) !== profile.user_id) return;
     const newMembers = (group.members || []).filter((id: string) => id !== userId);
     await supabase.from('social_groups').update({ members: newMembers }).eq('id', group.id);
     // Remove groupId from user's group_ids
-    const { data: userProfile } = await supabase
+    const { data: userProfile, error: userProfileError } = await supabase
       .from('user_profiles')
       .select('group_ids')
       .eq('user_id', userId)
       .single();
+    if (userProfileError) {
+      toast.error('Failed to update user profile: ' + userProfileError.message);
+      setGroup({ ...group, members: newMembers });
+      return;
+    }
     const groupIds = userProfile?.group_ids || [];
     if (groupIds.includes(group.id)) {
-      await supabase.from('user_profiles').update({ group_ids: groupIds.filter((id: string) => id !== group.id) }).eq('user_id', userId);
+      const { error: updateError } = await supabase.from('user_profiles').update({ group_ids: groupIds.filter((id: string) => id !== group.id) }).eq('user_id', userId);
+      if (updateError) {
+        toast.error('Failed to update user profile: ' + updateError.message);
+      } else {
+        toast.success('Member removed from group and their profile.');
+      }
+    } else {
+      toast.success('Member removed from group.');
     }
     setGroup({ ...group, members: newMembers });
   }
