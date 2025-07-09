@@ -2,6 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import NewsAPI from 'newsapi';
 import { OpenAI } from 'openai';
 import { createClient } from '@supabase/supabase-js';
+import { jsonrepair } from 'jsonrepair';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -57,7 +58,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     const aiContent = completion.choices[0].message.content;
     console.log('[OpenAI] Response:', aiContent);
-    const aiNewsDigest = JSON.parse(aiContent);
+    // Robust JSON extraction and repair
+    let aiNewsDigest = null;
+    if (aiContent) {
+      // Try to extract from code block
+      const codeBlocks = [...aiContent.matchAll(/```json([\s\S]*?)```/g)].map(m => m[1].trim());
+      for (const block of codeBlocks) {
+        try {
+          aiNewsDigest = JSON.parse(jsonrepair(block));
+          break;
+        } catch (e) {}
+      }
+      // Fallback: try to parse from first array/object in content
+      if (!aiNewsDigest && aiContent) {
+        const arrStart = aiContent.indexOf('[');
+        const arrEnd = aiContent.lastIndexOf(']');
+        if (arrStart !== -1 && arrEnd !== -1 && arrEnd > arrStart) {
+          try {
+            aiNewsDigest = JSON.parse(jsonrepair(aiContent.slice(arrStart, arrEnd + 1)));
+          } catch (e) {}
+        }
+        if (!aiNewsDigest) {
+          const objStart = aiContent.indexOf('{');
+          const objEnd = aiContent.lastIndexOf('}');
+          if (objStart !== -1 && objEnd !== -1 && objEnd > objStart) {
+            try {
+              aiNewsDigest = JSON.parse(jsonrepair(aiContent.slice(objStart, objEnd + 1)));
+            } catch (e) {}
+          }
+        }
+      }
+    }
+    if (!aiNewsDigest) {
+      return res.status(500).json({ error: 'Failed to parse AI response' });
+    }
     console.log('[AI News Digest]:', aiNewsDigest);
 
     // After getting aiNewsDigest (array of news articles)
