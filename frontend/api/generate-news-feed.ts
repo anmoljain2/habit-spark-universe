@@ -26,8 +26,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // 1. Fetch news from NewsAPI.org
+    const queryKeywords = (preferences && preferences.length > 0)
+      ? preferences.join(' ')
+      : 'news'; // fallback keyword
     const query = {
-      q: preferences.join(' '),
+      q: queryKeywords,
       language: 'en',
       pageSize: 10,
       sortBy: 'publishedAt',
@@ -45,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (regenerate_feedback && regenerate_feedback.trim()) {
       prompt += `\nUser feedback for this news generation: \"${regenerate_feedback.trim()}\". Please use this feedback to better tailor the news selection and summaries.`;
     }
-    prompt += `\nTask: Generate a personalized news digest with 5 items. For each item, provide:\n- headline: a concise headline\n- summary: a 1-2 sentence summary of the article\n- url: the original article URL (from the news list above)\nReturn as a JSON array. Do not include any extra commentary.`;
+    prompt += `\nTask: Generate a personalized news digest with 5 items. For each item, provide:\n- headline: a concise headline\n- summary: a detailed summary covering all the main points of the article\n- url: the original article URL (from the news list above)\nReturn as a JSON array. Do not include any extra commentary.`;
     console.log('[OpenAI] Prompt:', prompt);
     // 3. Call OpenAI
     const completion = await openai.chat.completions.create({

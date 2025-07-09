@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
+import { useProfile } from '../components/ProfileContext';
 
 const News = () => {
   const { user, loading: authLoading } = useAuth();
@@ -11,6 +12,7 @@ const News = () => {
   const [regenFeedback, setRegenFeedback] = useState('');
   const [regenLoading, setRegenLoading] = useState(false);
   const [regenError, setRegenError] = useState('');
+  const { newsPreferences } = useProfile();
 
   const fetchNewsFromSupabase = async (userId: string) => {
     setLoading(true);
@@ -43,7 +45,7 @@ const News = () => {
       const res = await fetch('/api/generate-news-feed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, preferences: [], regenerate_feedback: regenFeedback }),
+        body: JSON.stringify({ user_id: user.id, preferences: newsPreferences?.interests || [], regenerate_feedback: regenFeedback }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to regenerate news');
@@ -55,6 +57,26 @@ const News = () => {
       setRegenError(err.message || 'Failed to regenerate news');
     }
     setRegenLoading(false);
+  };
+
+  // Handler for getting news (first time)
+  const handleGetNews = async () => {
+    if (!user) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/generate-news-feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, preferences: newsPreferences?.interests || [], regenerate_feedback: '' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to generate news');
+      await fetchNewsFromSupabase(user.id);
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate news');
+    }
+    setLoading(false);
   };
 
   if (authLoading) {
@@ -75,7 +97,8 @@ const News = () => {
       {!hasTodayNews ? (
         <button
           className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-4 py-2 rounded-xl font-medium mb-6"
-          onClick={() => setRegenModal(true)}
+          onClick={handleGetNews}
+          disabled={loading}
         >
           Get My News
         </button>
@@ -108,12 +131,12 @@ const News = () => {
           </div>
         ))}
       </div>
-      {/* Regenerate/Get News Modal */}
-      {regenModal && (
+      {/* Regenerate Modal (only for regeneration) */}
+      {regenModal && hasTodayNews && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md flex flex-col gap-4">
-            <h3 className="text-lg font-bold text-orange-700 mb-2">{hasTodayNews ? 'Regenerate News' : 'Get My News'}</h3>
-            <label className="text-sm text-gray-700 mb-1">Why are you {hasTodayNews ? 'regenerating' : 'generating'}? (Optional feedback for AI)</label>
+            <h3 className="text-lg font-bold text-orange-700 mb-2">Regenerate News</h3>
+            <label className="text-sm text-gray-700 mb-1">Why are you regenerating? (Optional feedback for AI)</label>
             <textarea
               className="border rounded p-2 w-full min-h-[80px]"
               value={regenFeedback}
@@ -133,7 +156,7 @@ const News = () => {
                 disabled={regenLoading}
               >
                 {regenLoading && <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full inline-block" />}
-                {hasTodayNews ? 'Regenerate' : 'Get News'}
+                Regenerate
               </button>
             </div>
           </div>
