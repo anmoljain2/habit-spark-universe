@@ -200,6 +200,12 @@ export default function GroupProfile() {
   const isPublic = group.visibility === 'public';
   const owner = group.owner || {};
 
+  // Debug logging for owner/member logic
+  console.log('[GroupProfile][DEBUG] profile.user_id:', profile?.user_id);
+  console.log('[GroupProfile][DEBUG] group.owner:', group.owner);
+  console.log('[GroupProfile][DEBUG] typeof group.owner:', typeof group.owner);
+  console.log('[GroupProfile][DEBUG] isMember:', isMember);
+
   return (
     <div className="max-w-3xl mx-auto py-8">
       {/* Celebration Popup */}

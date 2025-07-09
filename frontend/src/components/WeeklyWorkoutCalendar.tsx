@@ -110,6 +110,26 @@ function autoScrollOnDrag(e: React.DragEvent) {
   }
 }
 
+function setCustomDragImage(e: React.DragEvent, name: string) {
+  const dragPreview = document.createElement('div');
+  dragPreview.style.position = 'absolute';
+  dragPreview.style.top = '-1000px';
+  dragPreview.style.left = '-1000px';
+  dragPreview.style.padding = '6px 16px';
+  dragPreview.style.background = '#f472b6'; // Tailwind pink-400
+  dragPreview.style.color = 'white';
+  dragPreview.style.fontWeight = 'bold';
+  dragPreview.style.fontSize = '14px';
+  dragPreview.style.borderRadius = '8px';
+  dragPreview.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
+  dragPreview.innerText = name;
+  document.body.appendChild(dragPreview);
+  e.dataTransfer.setDragImage(dragPreview, dragPreview.offsetWidth / 2, dragPreview.offsetHeight / 2);
+  setTimeout(() => document.body.removeChild(dragPreview), 0);
+}
+
+export { setCustomDragImage };
+
 const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedWorkoutDrop }) => {
   const { user } = useAuth();
   const { profile } = useProfile();
@@ -362,7 +382,7 @@ const WeeklyWorkoutCalendar: React.FC<WeeklyWorkoutCalendarProps> = ({ onLoggedW
                 return (
                   <div
                     key={date}
-                    className={`relative rounded-xl p-3 min-h-[120px] flex flex-col items-start justify-between border shadow-sm transition-all duration-200 bg-white/80 ${isToday ? 'border-pink-500 ring-2 ring-pink-300' : 'border-gray-200'} ${dragOverDate === date ? 'bg-blue-100 border-blue-400' : ''}`}
+                    className={`relative rounded-xl p-3 min-h-[120px] flex flex-col items-start justify-between border shadow-sm transition-all duration-200 bg-white/80 ${isToday ? 'border-pink-500 ring-2 ring-pink-300' : 'border-gray-200'} ${dragOverDate === date ? 'bg-blue-100 border-blue-400 ring-4 ring-blue-400/60' : ''}`}
                     onDragOver={e => { e.preventDefault(); setDragOverDate(date); autoScrollOnDrag(e); }}
                     onDragLeave={() => setDragOverDate(null)}
                     onDrop={e => {

@@ -2,13 +2,13 @@ import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import FitnessQuestionnaire from '../components/FitnessQuestionnaire';
-import { Dumbbell, Target, Timer, TrendingUp, Zap, Award, Play, Calendar, CheckCircle } from 'lucide-react';
+import { Dumbbell, Target, Timer, TrendingUp, Zap, Award, Play, Calendar, CheckCircle, X } from 'lucide-react';
 import axios from 'axios';
 import { formatISO, startOfWeek, endOfWeek } from 'date-fns';
 import { toast } from 'sonner';
 import QuestionnaireWrapper from '../components/QuestionnaireWrapper';
 import { useProfile } from '@/components/ProfileContext';
-import WeeklyWorkoutCalendar from '../components/WeeklyWorkoutCalendar';
+import WeeklyWorkoutCalendar, { setCustomDragImage } from '../components/WeeklyWorkoutCalendar';
 import FitnessGoals from '../components/FitnessGoals';
 import { getLocalDateStr } from '@/lib/utils';
 
@@ -31,6 +31,7 @@ const Fitness = () => {
   const [loggedWorkouts, setLoggedWorkouts] = useState<any[]>([]);
   // Add state for hovered workout
   const [hoveredWorkoutId, setHoveredWorkoutId] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean, workout: any | null }>({ open: false, workout: null });
 
   const getWeekRange = () => {
     const now = new Date();
@@ -582,16 +583,25 @@ const Fitness = () => {
                   {loggedWorkouts.map((w) => (
                     <li
                       key={w.id}
-                      className="py-2 cursor-pointer hover:bg-gray-100 rounded transition-all relative"
+                      className="py-2 cursor-pointer hover:bg-gray-100 rounded transition-all relative group"
                       onMouseEnter={() => setHoveredWorkoutId(w.id)}
                       onMouseLeave={() => setHoveredWorkoutId(null)}
                       draggable
                       onDragStart={e => {
+                        setCustomDragImage(e, w.name);
                         e.dataTransfer.setData('application/json', JSON.stringify(w));
                         e.dataTransfer.effectAllowed = 'move';
                       }}
                     >
                       <span className="font-semibold text-gray-800">{w.name}</span>
+                      {/* X button appears on hover */}
+                      <button
+                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 p-1"
+                        onClick={e => { e.stopPropagation(); setDeleteModal({ open: true, workout: w }); }}
+                        aria-label="Delete workout"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
                       {hoveredWorkoutId === w.id && (
                         <div className="absolute left-48 top-0 z-50 bg-white border border-gray-300 shadow-lg rounded-lg p-4 min-w-[260px] text-sm text-gray-800 whitespace-pre-line">
                           <div className="font-bold text-base mb-1">{w.name}</div>
@@ -621,6 +631,34 @@ const Fitness = () => {
           <FitnessGoals />
         </div>
       </div>
+      {/* Delete confirmation modal */}
+      {deleteModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm flex flex-col gap-4">
+            <h3 className="text-lg font-bold text-red-700 mb-2">Delete Workout</h3>
+            <p>Are you sure you want to delete <span className="font-semibold">{deleteModal.workout?.name}</span> from your logged workouts? This action cannot be undone.</p>
+            <div className="flex gap-2 justify-end mt-4">
+              <button className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={() => setDeleteModal({ open: false, workout: null })}>Cancel</button>
+              <button
+                className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700"
+                onClick={async () => {
+                  if (!deleteModal.workout) return;
+                  const { error } = await supabase.from('user_logged_workouts').delete().eq('id', deleteModal.workout.id);
+                  if (!error) {
+                    setLoggedWorkouts(ws => ws.filter(w => w.id !== deleteModal.workout.id));
+                    toast.success('Workout deleted!');
+                  } else {
+                    toast.error('Failed to delete workout.');
+                  }
+                  setDeleteModal({ open: false, workout: null });
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

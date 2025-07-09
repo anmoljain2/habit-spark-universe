@@ -1,22 +1,22 @@
-# Welcome to your Lovable project
+# Welcome to your LifeQuest project
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/adfe0c27-52f9-4cfb-b7a4-b0e8e5f67335
+**URL**: https://habit-spark-universe.vercel.app/
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
 
-**Use Lovable**
+**Use LifeQuest Web Editor**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/adfe0c27-52f9-4cfb-b7a4-b0e8e5f67335) and start prompting.
+Simply visit the [LifeQuest Project](https://habit-spark-universe.vercel.app/) and start prompting.
 
-Changes made via Lovable will be committed automatically to this repo.
+Changes made via the web editor will be committed automatically to this repo.
 
 **Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in the web editor.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -62,12 +62,10 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/adfe0c27-52f9-4cfb-b7a4-b0e8e5f67335) and click on Share -> Publish.
+Simply deploy to Vercel or your preferred platform.
 
-## Can I connect a custom domain to my Lovable project?
+## Can I connect a custom domain to my LifeQuest project?
 
 Yes, you can!
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+To connect a domain, navigate to your deployment platform's settings and add your custom domain.
