@@ -263,7 +263,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       if (insertError) {
-        console.error('Failed to insert workout for', day.day, insertError);
+        // console.error('Failed to insert workout for', day.day, insertError);
       }
     }
 

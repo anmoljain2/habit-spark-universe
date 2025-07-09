@@ -4,7 +4,6 @@ const EDAMAM_NUTRITION_APP_ID = '7b4b1d25';
 const EDAMAM_NUTRITION_APP_KEY = '718ff8303b7bf705e3e39b9480201e71';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log('[Edamam Nutrition] Incoming request:', req.method, req.body);
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -28,9 +27,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify(requestBody),
     });
     const data = await edamamRes.json();
-    // Log the request body and the full Edamam response JSON for debugging
-    console.log('[Edamam Nutrition] Sent:', requestBody);
-    console.log('[Edamam Nutrition] Response:', data);
     if (!edamamRes.ok) {
       res.status(edamamRes.status).json({ error: data.error || data.message || 'Edamam error', details: data });
       return;
