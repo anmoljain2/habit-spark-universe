@@ -131,7 +131,7 @@ const Index = () => {
         
         {/* Horizontal Info Sections - Full Width */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-          {/* News Section */}
+          {/* Learn Section */}
           <div className="bg-white/70 rounded-xl shadow-md p-4 border border-white/50">
             <div className="flex items-center gap-2 mb-3">
               <div className="bg-gradient-to-br from-indigo-500 to-blue-600 p-2 rounded-lg shadow-sm">
@@ -152,7 +152,7 @@ const Index = () => {
               ))}
             </div>
             <Link 
-              to="/news" 
+              to="/learn" 
               className="inline-flex items-center gap-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
               View All <ArrowRight className="w-3 h-3" />

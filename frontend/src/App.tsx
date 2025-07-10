@@ -12,7 +12,6 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Social from "./pages/Social";
 import UserProfile from "./pages/UserProfile";
-import News from './pages/News';
 import Meals from './pages/Meals';
 import Fitness from './pages/Fitness';
 import Journal from './pages/Journal';
@@ -29,6 +28,7 @@ import { JournalProvider } from './pages/Journal';
 import QuestionnaireWrapper from './components/QuestionnaireWrapper';
 import GroupCreationQuestionnaire from './components/GroupCreationQuestionnaire';
 import GroupProfile from './pages/GroupProfile';
+import Learn from './pages/Learn';
 
 const queryClient = new QueryClient();
 
@@ -85,7 +85,7 @@ const App = () => (
               <Route path="/profile/edit" element={<PrivateLayout><ProtectedRoute><EditProfile /></ProtectedRoute></PrivateLayout>} />
               <Route path="/social" element={<PrivateLayout><ProtectedRoute><Social /></ProtectedRoute></PrivateLayout>} />
               <Route path="/user/:username" element={<PrivateLayout><ProtectedRoute><UserProfile /></ProtectedRoute></PrivateLayout>} />
-              <Route path="/news" element={<PrivateLayout><ProtectedRoute><News /></ProtectedRoute></PrivateLayout>} />
+              <Route path="/learn" element={<PrivateLayout><ProtectedRoute><Learn /></ProtectedRoute></PrivateLayout>} />
               <Route path="/meals" element={<PrivateLayout><ProtectedRoute><Meals /></ProtectedRoute></PrivateLayout>} />
               <Route path="/fitness" element={<PrivateLayout><ProtectedRoute><Fitness /></ProtectedRoute></PrivateLayout>} />
               <Route path="/journal" element={<PrivateLayout><ProtectedRoute><JournalRouteWrapper /></ProtectedRoute></PrivateLayout>} />

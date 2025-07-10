@@ -26,18 +26,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    // 1. Fetch news from NewsAPI.org
-    const queryKeywords = (preferences && preferences.length > 0)
-      ? preferences.join(' ')
-      : 'news'; // fallback keyword
-    const query = {
-      q: queryKeywords,
+    // Date boundaries for today in UTC
+    const now = new Date();
+    const yyyy = now.getUTCFullYear();
+    const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(now.getUTCDate()).padStart(2, '0');
+    const todayStart = `${yyyy}-${mm}-${dd}T00:00:00.000Z`;
+    const tomorrow = new Date(Date.UTC(yyyy, now.getUTCMonth(), now.getUTCDate() + 1));
+    const tomorrowStart = tomorrow.toISOString().slice(0, 10) + 'T00:00:00.000Z';
+    const nowISOString = now.toISOString();
+
+    // Delete previous news for today for this user
+    const { error: deleteError } = await supabase
+      .from('user_news')
+      .delete()
+      .eq('user_id', user_id)
+      .gte('date', todayStart)
+      .lt('date', tomorrowStart);
+    if (deleteError) {
+      res.status(500).json({ error: 'Failed to delete previous news', details: deleteError });
+      return;
+    }
+    // 1. Fetch news from NewsAPI.org (top headlines from major sources)
+    const majorSources = 'cnbc,npr,espn,cnn,bbc-news,abc-news,nbc-news,fox-news,techcrunch,engadget';
+    const query: any = {
+      sources: majorSources,
       language: 'en',
       pageSize: 10,
-      sortBy: 'publishedAt',
     };
+    if (preferences && preferences.length > 0) {
+      query.q = preferences.join(' ');
+    }
     console.log('[NewsAPI] Query:', query);
-    const newsResponse = await newsapi.v2.everything(query);
+    const newsResponse = await newsapi.v2.topHeadlines(query);
     console.log('[NewsAPI] Response:', JSON.stringify(newsResponse, null, 2));
     if (newsResponse.status !== 'ok' || !newsResponse.articles) {
       res.status(500).json({ error: 'Failed to fetch news', details: newsResponse });
@@ -49,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (regenerate_feedback && regenerate_feedback.trim()) {
       prompt += `\nUser feedback for this news generation: \"${regenerate_feedback.trim()}\". Please use this feedback to better tailor the news selection and summaries.`;
     }
-    prompt += `\nTask: Generate a personalized news digest with 5 items. For each item, provide:\n- headline: a concise headline\n- summary: a detailed summary covering all the main points of the article\n- url: the original article URL (from the news list above)\nReturn as a JSON array. Do not include any extra commentary.`;
+    prompt += `\nTask: Generate a personalized news digest with 5 items. For each item, provide:\n- headline: a concise headline\n- summary: a detailed summary covering all the main points of the article\n- url: the original article URL (from the news list above)\nReturn as a JSON array. Only use major, widely-reported headlines from the provided articles, not niche or obscure stories. Do not include any extra commentary.`;
     console.log('[OpenAI] Prompt:', prompt);
     // 3. Call OpenAI
     const completion = await openai.chat.completions.create({
@@ -96,13 +117,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // After getting aiNewsDigest (array of news articles)
     // Insert each article into user_news
-    const now = new Date().toISOString();
     const inserts = Array.isArray(aiNewsDigest) ? aiNewsDigest.map((item: any, idx: number) => ({
       user_id,
       headline: item.headline,
       summary: item.summary,
       url: item.url,
-      date: now,
+      date: nowISOString,
       source: item.source || newsResponse.articles[idx]?.source?.name || null,
     })) : [];
     if (inserts.length > 0) {
@@ -112,7 +132,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return;
       }
     }
-    res.status(200).json({ news: aiNewsDigest });
+    // Fetch only today's news for this user
+    const { data: todaysNews, error: fetchError } = await supabase
+      .from('user_news')
+      .select('*')
+      .eq('user_id', user_id)
+      .gte('date', todayStart)
+      .lt('date', tomorrowStart)
+      .order('date', { ascending: true });
+    if (fetchError) {
+      res.status(500).json({ error: 'Failed to fetch today\'s news', details: fetchError });
+      return;
+    }
+    res.status(200).json({ news: todaysNews });
   } catch (err) {
     console.error('[API ERROR]', err);
     res.status(500).json({ error: 'Internal server error', details: err?.message || err });

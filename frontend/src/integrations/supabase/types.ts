@@ -525,41 +525,47 @@ export type Database = {
       }
       user_news: {
         Row: {
-          created_at: string | null
-          date: string
-          headline: string | null
-          id: string
-          read: boolean | null
-          url: string | null
-          user_id: string | null
-        }
+          created_at: string | null;
+          date: string;
+          headline: string | null;
+          id: string;
+          read: boolean | null;
+          url: string | null;
+          user_id: string | null;
+          source: string | null;
+          summary: string | null;
+        };
         Insert: {
-          created_at?: string | null
-          date: string
-          headline?: string | null
-          id?: string
-          read?: boolean | null
-          url?: string | null
-          user_id?: string | null
-        }
+          created_at?: string | null;
+          date: string;
+          headline?: string | null;
+          id?: string;
+          read?: boolean | null;
+          url?: string | null;
+          user_id?: string | null;
+          source?: string | null;
+          summary?: string | null;
+        };
         Update: {
-          created_at?: string | null
-          date?: string
-          headline?: string | null
-          id?: string
-          read?: boolean | null
-          url?: string | null
-          user_id?: string | null
-        }
+          created_at?: string | null;
+          date?: string;
+          headline?: string | null;
+          id?: string;
+          read?: boolean | null;
+          url?: string | null;
+          user_id?: string | null;
+          source?: string | null;
+          summary?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "user_news_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+            foreignKeyName: "user_news_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
       }
       user_news_preferences: {
         Row: {
