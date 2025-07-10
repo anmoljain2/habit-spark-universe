@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../components/ProfileContext';
 import DailyBookSummary from '../components/IntelligenceComponents/DailyBookSummary';
 import LearnHeadlines from '../components/IntelligenceComponents/LearnHeadlines';
+import LearningReels from '../components/IntelligenceComponents/LearningReels';
 
 const Learn = () => {
   const { user, loading: authLoading } = useAuth();
@@ -111,6 +112,7 @@ const Learn = () => {
   return (
     <div className="bg-gray-50 min-h-screen py-8">
       <div className="max-w-2xl mx-auto">
+        <LearningReels />
         <DailyBookSummary />
         <LearnHeadlines news={learn} loading={loading} error={error} />
         {/* Regenerate Modal (only for regeneration) */}
